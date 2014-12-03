@@ -5,33 +5,46 @@ require 'csv'
 require 'site-inspector'
 require 'oj'
 
-INPUT_CSV = ARGV[0] || "gov-domains.csv"
+FileUtils.mkdir_p "cache"
+
+INPUT_CSV = ARGV[0] || "domains.csv"
 
 def go
-  CSV.open("analysis.csv", "w") do |analysis|
+  CSV.open("output.csv", "w") do |analysis|
 
     analysis << [
-      "domain",
-      "agency",
-      "https",
-      "force_https",
-      "hsts",
-      "hsts details"
+      "Domain",
+      "Details",
+      "Entity",
+      "HTTPS?",
+      "Force HTTPS?",
+      "HSTS?",
+      "HSTS Header"
     ]
 
-    # gov-domains.csv is the CSV of domains distributed here:
-    # http://catalog.data.gov/dataset/gov-domains-api
     CSV.foreach(INPUT_CSV) do |row|
-      # next unless row[0]
-      # next if row[0].strip.downcase == "domain name"
+      next if row[0].strip.downcase == "domain name"
+      domain = row[0].strip.downcase
 
-      domain = row[1].strip.downcase
-      agency = row[2] ? row[2].strip : nil
-      puts "[#{domain}]"
+      from_csv = {
+        'domain' => domain,
+        'details' => row[1].strip,
+        'entity' => (row[2] ? row[2].strip : nil)
+      }
 
-      puts "\t[#{domain}]"
-      output = details_for domain, agency
-      analysis << output
+      puts "[#{from_csv['domain']}]"
+
+      puts "\t[#{from_csv['domain']}]"
+      from_domain = check_domain from_csv
+      analysis << [
+        from_csv['domain'],
+        from_csv['details'],
+        from_csv['entity'],
+        from_domain['https'],
+        from_domain['force_https'],
+        from_domain['hsts'],
+        from_domain['hsts_header']
+      ]
     end
   end
 end
@@ -41,7 +54,7 @@ def cache_path(domain)
 end
 
 def cache!(response, domain)
-  File.open(cache_path(domain), "w") {|f| f.write Oj.dump(response)}
+  File.open(cache_path(domain), "w") {|f| f.write Oj.dump(response, indent: 2, mode: :compat)}
 end
 
 def uncache!(domain)
@@ -50,42 +63,71 @@ def uncache!(domain)
   end
 end
 
-def details_for(domain, agency)
-  if cached = uncache!(domain)
+def check_domain(from_csv)
+  domain = from_csv['domain']
+
+  from_domain = uncache!(domain)
+
+  if from_domain
     puts "\tCached, skipping."
-    return cached
-  end
 
-  begin
-    site = SiteInspector.new domain
-  rescue Exception => exc
-    puts "\tERROR."
-    puts exc
-    return []
-  end
-
-  hsts = nil
-  if site.response
-    strict_header = site.response.headers.keys.find {|h| h.downcase =~ /^strict/}
-    if strict_header
-      hsts = site.response.headers[strict_header]
+  else
+    begin
+      site = SiteInspector.new domain
+    rescue Exception => exc
+      puts "\tERROR."
+      puts exc
+      return []
     end
+
+    # TODO: send looser strict check upstream
+    hsts = nil
+    if site.response
+      strict_header = site.response.headers.keys.find {|h| h.downcase =~ /^strict/}
+      if strict_header
+        hsts = site.response.headers[strict_header]
+      end
+    end
+
+    from_domain = {
+      'site' => domain_details(site),
+      'derived' => {
+        'hsts' => !!hsts,
+        'hsts_header' => hsts
+      },
+      'headers' => site.response.headers
+    }
+
+    cache! from_domain, domain
+    puts "\tFetched, cached."
+    # normalize to be read from cache again
+    from_domain = uncache!(domain)
   end
 
-  response = [
-    domain,
-    agency,
-    site.https?,
-    site.enforce_https?,
-    !!hsts,
-    (hsts || "N/A")
-  ]
-
-  cache! response, domain
-
-  puts "\tFetched, cached."
-
-  response
+  {
+    'domain' => domain,
+    'https' => from_domain['site']['ssl'],
+    'force_https' => from_domain['site']['enforce_https'],
+    'hsts' => from_domain['derived']['hsts'],
+    'hsts_header' => from_domain['derived']['hsts_header']
+  }
 end
 
+# what fields from site-inspector do we care about
+def domain_details(site)
+  {
+    'live' => !!(site.response),
+    'ssl' => site.https?,
+    'enforce_https' => site.enforce_https?,
+    'non_www' => site.non_www?,
+    'redirect' => site.redirect,
+    'click_jacking_protection' => site.click_jacking_protection?,
+    'content_security_policy' => site.content_security_policy?,
+    'xss_protection' => site.xss_protection?,
+    'secure_cookies' => site.secure_cookies?,
+    'strict_transport_security' => site.strict_transport_security?
+  }
+end
+
+# go
 go
