@@ -4,3 +4,4 @@ old-cache/
 *.json
 .~lock*
 /todo.txt
+Gemfile.lock
