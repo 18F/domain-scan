@@ -9,7 +9,7 @@ For each .gov domain, this lists whether:
 * HTTPS is enabled (correctly).
 * HTTPS is forced (redirect `http://` to `https://`).
 * HSTS ([Strict Transport Security](https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) is enabled (tells the browser to never use `http://`).
-* HSTS is enabled for **all subdomains** and a **long expiration** (needed to be [preloaded](https://hstspreload.appspot.com/) in browsers).
+* HSTS is enabled for **all subdomains** and a **long expiration** (required in order to be [preloaded](https://hstspreload.appspot.com/) in browsers).
 
 
 ### Setup
