@@ -46,5 +46,4 @@ Then soon:
 * Save the certificate to disk.
 * Show when a cert is installed but invalid.
 * Who issues the cert?
-* Loosen HSTS check to site-inspector.
 * Whether the cert is SHA-1 vs SHA-2.
