@@ -35,11 +35,16 @@ Prepare for a `cache/` directory to be created, and for that directory to fill u
 
 ### TODO
 
-Some of these are/may be [site-inspector](https://github.com/benbalter/site-inspector-ruby) todos.
+Needed immediately:
+
+- [ ] Detect when a website is just a redirector
+- [ ] Detect when a website doesn't resolve normally in browsers
+- [ ] Serialize entire site-inspector result-set.
+
+Then soon:
 
 * Save the certificate to disk.
 * Show when a cert is installed but invalid.
 * Who issues the cert?
 * Loosen HSTS check to site-inspector.
-* Easy serialization path for site-inspector results.
 * Whether the cert is SHA-1 vs SHA-2.
