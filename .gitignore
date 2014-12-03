@@ -3,3 +3,4 @@ old-cache/
 *.csv
 *.json
 .~lock*
+/todo.txt
