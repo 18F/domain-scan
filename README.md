@@ -19,7 +19,7 @@ The script is tested with Ruby 2.1, and should run on 1.9+.
 Install dependencies:
 
 ```bash
-gem install site-inspector oj
+bundle install
 ```
 
 Run the script on the domain CSV:
