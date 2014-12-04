@@ -30,6 +30,8 @@ def go
       next if row[0].strip.downcase == "domain name"
       domain = row[0].strip.downcase
 
+      next unless domain.end_with?(".gov")
+
       # supply a 2nd argument to quickly run it on a particular domain
       if DEBUG_DOMAIN
         domain = DEBUG_DOMAIN
@@ -87,11 +89,13 @@ def check_domain(from_csv)
 
   else
     begin
+      open("https://www.google.com").read
       site = SiteInspector.new domain
-    rescue Exception => exc
+
+    rescue SocketError, Exception => exc
       puts "\tERROR."
       puts exc
-      return []
+      return {}
     end
 
     from_domain = {
