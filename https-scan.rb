@@ -92,7 +92,7 @@ def check_domain(domain)
 
   else
     begin
-      open("https://www.google.com").read
+      open("https://18f.gsa.gov").read
       site = SiteInspector.new domain
 
     rescue SocketError, Exception => exc
