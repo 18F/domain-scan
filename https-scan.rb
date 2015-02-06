@@ -20,6 +20,8 @@ def go
       "Domain",
       "Details",
       "Entity",
+      "Live?",
+      "Redirect?",
       "HTTPS?",
       "Force HTTPS?",
       "HSTS?",
@@ -39,18 +41,20 @@ def go
 
       from_csv = {
         'domain' => domain,
-        'details' => row[1].strip,
+        'details' => (row[1] ? row[1].strip : nil),
         'entity' => (row[2] ? row[2].strip : nil)
       }
 
       puts "[#{from_csv['domain']}]"
 
       puts "\t[#{from_csv['domain']}]"
-      from_domain = check_domain from_csv
+      from_domain = check_domain domain
       analysis << [
         from_csv['domain'],
         from_csv['details'],
         from_csv['entity'],
+        from_domain['live'],
+        from_domain['redirect'],
         from_domain['https'],
         from_domain['force_https'],
         from_domain['hsts'],
@@ -73,16 +77,15 @@ def cache!(response, domain)
   File.open(cache_path(domain), "w") {|f| f.write Oj.dump(response, indent: 2, mode: :compat)}
 end
 
-def uncache!(domain)
+def from_cache!(domain)
   if File.exists?(cache_path(domain))
     Oj.load(File.read(cache_path(domain)))
   end
 end
 
-def check_domain(from_csv)
-  domain = from_csv['domain']
+def check_domain(domain)
 
-  from_domain = uncache!(domain)
+  from_domain = from_cache!(domain)
 
   if from_domain
     puts "\tCached, skipping."
@@ -106,11 +109,13 @@ def check_domain(from_csv)
     cache! from_domain, domain
     puts "\tFetched, cached."
     # normalize to be read from cache again
-    from_domain = uncache!(domain)
+    from_domain = from_cache!(domain)
   end
 
   {
     'domain' => domain,
+    'live' => from_domain['site']['live'],
+    'redirect' => from_domain['site']['redirect'],
     'https' => from_domain['site']['ssl'],
     'force_https' => from_domain['site']['enforce_https'],
     'hsts' => from_domain['site']['strict_transport_security'],

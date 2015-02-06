@@ -35,14 +35,6 @@ Prepare for a `cache/` directory to be created, and for that directory to fill u
 
 ### TODO
 
-Needed immediately:
-
-- [ ] Detect when a website is just a redirector
-- [ ] Detect when a website doesn't resolve normally in browsers
-- [ ] Serialize entire site-inspector result-set.
-
-Then soon:
-
 * Save the certificate to disk.
 * Show when a cert is installed but invalid.
 * Who issues the cert?
