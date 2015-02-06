@@ -6,10 +6,12 @@ Can be used with the [official .gov domain list](https://catalog.data.gov/datase
 
 For each .gov domain, this lists whether:
 
+* The site is in use (responds to HTTP/HTTPS).
+* The site just redirects to another domain.
 * HTTPS is enabled (correctly).
 * HTTPS is forced (redirect `http://` to `https://`).
 * HSTS ([Strict Transport Security](https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) is enabled (tells the browser to never use `http://`).
-* HSTS is enabled for **all subdomains** and a **long expiration** (required in order to be [preloaded](https://hstspreload.appspot.com/) in browsers).
+* The full HSTS header string, to detect whether HSTS is enabled for **all subdomains** and a **long expiration** (required in order to be [preloaded](https://hstspreload.appspot.com/) in browsers).
 
 
 ### Setup
