@@ -14,7 +14,7 @@ For each .gov domain, this lists whether:
 
 ### Setup
 
-The script is tested with Ruby 2.1, and should run on 1.9+.
+The script is tested with Ruby 2.2 and should run on 1.9+.
 
 Install dependencies:
 
