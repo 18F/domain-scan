@@ -1,5 +1,5 @@
 source "https://rubygems.org"
 
 gem "oj"
-gem "site-inspector", ">= 0.1.2"
+gem "site-inspector", git: "https://github.com/benbalter/site-inspector-ruby"
 gem "curb"
