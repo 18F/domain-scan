@@ -28,16 +28,18 @@ def go
       "HSTS Header"
     ]
 
-    CSV.foreach(INPUT_CSV) do |row|
+    if DEBUG_DOMAIN
+      domains = [[DEBUG_DOMAIN, nil, nil]]
+    else
+      domains = CSV.read(INPUT_CSV)
+    end
+
+    domains.each do |row|
       next if row[0].strip.downcase == "domain name"
       domain = row[0].strip.downcase
 
+      # will need to change for .mil
       next unless domain.end_with?(".gov")
-
-      # supply a 2nd argument to quickly run it on a particular domain
-      if DEBUG_DOMAIN
-        domain = DEBUG_DOMAIN
-      end
 
       from_csv = {
         'domain' => domain,
@@ -60,13 +62,10 @@ def go
         from_domain['hsts'],
         from_domain['hsts_header']
       ]
-
-      # if we wanted to quick test one domain, just quit now
-      if DEBUG_DOMAIN
-        break
-      end
     end
+
   end
+
 end
 
 def cache_path(domain)
