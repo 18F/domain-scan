@@ -1,7 +1,6 @@
 cache/
-old-cache/
 *.csv
 *.json
 .~lock*
 /todo.txt
-Gemfile.lock
+__pycache__
