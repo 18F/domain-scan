@@ -1,7 +1,9 @@
-cache/
+/cache
 *.csv
 *.json
 .~lock*
 /todo.txt
 __pycache__
 *.pyc
+/reports
+/results
