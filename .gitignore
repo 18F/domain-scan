@@ -4,3 +4,4 @@ cache/
 .~lock*
 /todo.txt
 __pycache__
+*.pyc

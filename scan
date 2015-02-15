@@ -2,8 +2,11 @@
 
 import sys, os
 import utils
+import logging
 import csv
 
+options = utils.options()
+utils.configure_logging(options)
 utils.mkdir_p("cache")
 
 def domains_from(arg):
@@ -14,13 +17,21 @@ def domains_from(arg):
   else:
     yield arg
 
+def dependencies():
+  return utils.try_command("site-inspector")
+
 def run(options=None):
-  if not options["_"]:
-    print("Provide a CSV file, or domain name.")
+  if not dependencies():
+    logging.error("site-inspector not found.")
     exit()
 
+  if not options["_"]:
+    logging.error("Provide a CSV file, or domain name.")
+    exit()
+
+  # phew, we're ready
   for domain in domains_from(options["_"][0]):
     print(domain)
 
 
-run(utils.options())
+run(options)

@@ -1,5 +1,6 @@
 import os, os.path
 import errno
+import subprocess
 import sys, traceback
 import json
 import logging
@@ -103,3 +104,19 @@ def notify(body):
 def format_exception(exception):
   exc_type, exc_value, exc_traceback = sys.exc_info()
   return "\n".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+
+def try_command(command):
+  try:
+    subprocess.check_call(["which", command], shell=False)
+    return True
+  except subprocess.CalledProcessError as exc:
+    logging.warn("No command found: %s" % (str(command)))
+    return False
+
+def run_command(command):
+  try:
+    subprocess.check_output(command, shell=False)
+    return True
+  except subprocess.CalledProcessError as exc:
+    logging.warn("Error running %s." % (str(command)))
+    return False
