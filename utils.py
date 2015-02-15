@@ -105,18 +105,19 @@ def format_exception(exception):
   exc_type, exc_value, exc_traceback = sys.exc_info()
   return "\n".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
+# test if a command exists, don't print output
 def try_command(command):
   try:
-    subprocess.check_call(["which", command], shell=False)
+    subprocess.check_call(["which", command], shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return True
   except subprocess.CalledProcessError as exc:
     logging.warn("No command found: %s" % (str(command)))
     return False
 
-def run_command(command):
+def scan(command):
   try:
-    subprocess.check_output(command, shell=False)
-    return True
+    response = subprocess.check_output(command, shell=False)
+    return str(response, encoding='UTF-8')
   except subprocess.CalledProcessError as exc:
     logging.warn("Error running %s." % (str(command)))
-    return False
+    return None
