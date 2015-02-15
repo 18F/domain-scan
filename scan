@@ -3,11 +3,12 @@
 import sys, os
 import utils
 import logging
-import csv
+import csv, json
 
 options = utils.options()
 utils.configure_logging(options)
 utils.mkdir_p("cache")
+utils.mkdir_p("results")
 
 def domains_from(arg):
   if arg.endswith(".csv"):
@@ -30,8 +31,48 @@ def run(options=None):
     exit()
 
   # phew, we're ready
-  for domain in domains_from(options["_"][0]):
-    print(domain)
+  report = 'results/inspect.csv'
 
+  with open(report, 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(inspect.headers)
+    for domain in domains_from(options["_"][0]):
+      writer.writerow(inspect(domain))
+
+  logging.info("Results written to %s" % report)
+
+##
+# Inspect a domain's fundamentals using site-inspector.
+##
+def inspect(domain):
+  logging.debug("[%s]" % domain)
+
+
+  # 'raw' should end up as JSON of the intermediate format
+  cache = cache_path(domain, "inspect")
+  if (os.path.exists(cache)):
+    logging.debug("\tCached.")
+    raw = open(cache).read()
+  else:
+    logging.debug("\tsite-inspector %s" % domain)
+    raw = utils.scan(["site-inspector", domain])
+    utils.write(raw, cache)
+
+  data = json.loads(raw)
+
+  return [
+    domain, data['live'], data['redirect'],
+    data['ssl'], data['enforce_https'], data['strict_transport_security'],
+    data['headers'].get('strict-transport-security', None)
+  ]
+
+inspect.headers = [
+  "Domain", "Live?", "Redirect?",
+  "HTTPS?", "Force HTTPS?", "HSTS?",
+  "HSTS Header"
+]
+
+def cache_path(domain, operation):
+  return os.path.join(utils.data_dir(), operation, ("%s.json" % domain))
 
 run(options)
