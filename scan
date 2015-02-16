@@ -14,7 +14,7 @@ def domains_from(arg):
   if arg.endswith(".csv"):
     with open(arg, newline='') as csvfile:
       for row in csv.reader(csvfile):
-        if (not row[0]) or (row[0].startswith("Domain")):
+        if (not row[0]) or (row[0].lower().startswith("domain")):
           continue
         yield row[0].lower(), row[1:]
   else:
@@ -35,6 +35,10 @@ def scan_domains(scanner, domains, output):
 
 def dependencies():
   return utils.try_command("site-inspector")
+
+# marker for a cached invalid response
+def invalid():
+  return utils.json_for({'invalid': True})
 
 def run(options=None):
   if not dependencies():
@@ -59,14 +63,19 @@ def inspect(domain, other=None):
   if (os.path.exists(cache)):
     logging.debug("\tCached.")
     raw = open(cache).read()
+    data = json.loads(raw)
+    if data.get('invalid'):
+      return None
+
   else:
     logging.debug("\t site-inspector %s" % domain)
     raw = utils.scan(["site-inspector", domain])
     if not raw:
+      utils.write(invalid(), cache)
       return None
     utils.write(raw, cache)
+    data = json.loads(raw)
 
-  data = json.loads(raw)
 
   # always returns 1 row
   yield [
@@ -122,6 +131,11 @@ def tls(domain, other=None):
 
     # can return multiple rows, one for each 'endpoint'
     for endpoint in data['endpoints']:
+
+      # this meant it couldn't connect to the endpoint
+      # if not endpoint.get("grade"):
+      #   continue
+
       sslv3 = False
       tlsv12 = False
       for protocol in endpoint['details']['protocols']:
