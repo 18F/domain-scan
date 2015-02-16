@@ -1,47 +1,54 @@
-## HTTPS in the .gov world
+## An HTTPS scanner
 
-Runs .gov domains through Ben Balter's [`site-inspector`](https://github.com/benbalter/site-inspector-ruby) to create a spreadsheet of data on HTTPS strength and adoption in the .gov world.
+Scans domains for:
 
-Can be used with the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api).
+* Whether the domain exists and has valid HTTPS enabled.
+* Whether HTTP Strict Transport Security (HSTS) is enabled.
+* TLS configuration details.
+* (Coming soon) Mixed content reports.
 
-For each .gov domain, this lists whether:
-
-* The site is in use (responds to HTTP/HTTPS).
-* The site just redirects to another domain.
-* HTTPS is enabled (correctly).
-* HTTPS is forced (redirect `http://` to `https://`).
-* HSTS ([Strict Transport Security](https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) is enabled (tells the browser to never use `http://`).
-* The full HSTS header string, to detect whether HSTS is enabled for **all subdomains** and a **long expiration** (required in order to be [preloaded](https://hstspreload.appspot.com/) in browsers).
+Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api).
 
 
-### Setup
+### Usage
 
-The script is tested with Ruby 2.2 and should run on 1.9+.
+Requires **Python 3**. Tested on 3.4.2.
 
-Install dependencies:
+Scan a domain.
 
 ```bash
-bundle install
+./scan konklone.com
 ```
 
-Run the script on the domain CSV:
+Scan a list of domains from a CSV. CSV header rows will be ignored if the first cell starts with "Domain" (case-insensitive).
 
+```bash
+./scan domains.csv
 ```
-./https-scan.rb domains.csv
-```
 
-Where `domains.csv` is a CSV in the format of the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api).
+## Order of events
 
-Prepare for a `cache/` directory to be created, and for that directory to fill up with many `.json` files - one for each domain analyzed.
+First, every given domain is run through [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
+
+* Results stored in JSON per-domain in `cache/inspect/[domain].json`.
+* Results stored in CSV for all domains at `results/inspect.csv`.
+
+Next, every domain site-inspector saw as _live_ and _HTTPS-enabled_ will be run through [`ssllabs-scan`](https://github.com/ssllabs/ssllabs-scan), which uses the SSL Labs API and is subject to their [Terms and Conditions](https://github.com/ssllabs/ssllabs-scan/blob/master/ssllabs-api-docs.md#terms-and-conditions).
+
+* Results stored in JSON per-domain in `cache/tls/[domain].json`.
+* Results stored in CSV for all domains at `results/tls.csv`.
 
 
 ### TODO
 
-* Save the certificate to disk.
-* Show when a cert is installed but invalid.
-* Who issues the cert?
-* Whether the cert is SHA-1 vs SHA-2.
-
+* Look at SSLyze instead of SSL Labs, for local scanning and the lack of Terms and Conditions.
+* Control which scans are done (e.g. skip the `tls` scan, or use `sslyze` instead of `ssllabs-scan`).
+* Mixed content scanning.
+* Check invalid HTTPS as well, save cert details.
+* Save server hostname (e.g. e248.akamai.net)
+* Check for HTTP Public Key Pinning headers.
+* Mark HSTS qualities: long max-age? subdomains? preload?
+* better independent queueing of individual tasks (moxie? celery?)
 
 ### Public domain
 
