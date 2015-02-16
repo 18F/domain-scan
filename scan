@@ -133,8 +133,8 @@ def tls(domain, other=None):
     for endpoint in data['endpoints']:
 
       # this meant it couldn't connect to the endpoint
-      # if not endpoint.get("grade"):
-      #   continue
+      if not endpoint.get("grade"):
+        continue
 
       sslv3 = False
       tlsv12 = False
