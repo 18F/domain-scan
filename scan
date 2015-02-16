@@ -14,11 +14,24 @@ def domains_from(arg):
   if arg.endswith(".csv"):
     with open(arg, newline='') as csvfile:
       for row in csv.reader(csvfile):
-        if (not row[0]) or (row[0] == "Domain Name"):
+        if (not row[0]) or (row[0].startswith("Domain")):
           continue
-        yield row[0].lower()
+        yield row[0].lower(), row[1:]
   else:
-    yield arg
+    yield arg, []
+
+# run a method over every domain, write row to output file
+def scan_domains(scanner, domains, output):
+  with open(output, 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(scanner.headers)
+
+    for domain, other in domains_from(domains):
+      for row in scanner(domain, other):
+        if row:
+          writer.writerow(row)
+
+  logging.warn("Results written to %s" % output)
 
 def dependencies():
   return utils.try_command("site-inspector")
@@ -32,37 +45,31 @@ def run(options=None):
     logging.error("Provide a CSV file, or domain name.")
     exit()
 
-  # phew, we're ready
-  report = 'results/inspect.csv'
-
-  with open(report, 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(inspect.headers)
-
-    for domain in domains_from(options["_"][0]):
-      writer.writerow(inspect(domain))
-
-  logging.info("Results written to %s" % report)
+  scan_domains(inspect, options["_"][0], 'results/inspect.csv')
+  scan_domains(tls, 'results/inspect.csv', 'results/tls.csv')
 
 ##
 # Inspect a domain's fundamentals using site-inspector.
 ##
-def inspect(domain):
-  logging.debug("[%s]" % domain)
+def inspect(domain, other=None):
+  logging.debug("[%s][inspect]" % domain)
 
-  # 'raw' should end up as JSON of the intermediate format
+  # cache JSON as it comes back from site-inspector
   cache = cache_path(domain, "inspect")
   if (os.path.exists(cache)):
     logging.debug("\tCached.")
     raw = open(cache).read()
   else:
-    logging.debug("\tsite-inspector %s" % domain)
+    logging.debug("\t site-inspector %s" % domain)
     raw = utils.scan(["site-inspector", domain])
+    if not raw:
+      return None
     utils.write(raw, cache)
 
   data = json.loads(raw)
 
-  return [
+  # always returns 1 row
+  yield [
     domain, data['live'], data['redirect'],
     data['ssl'], data['enforce_https'], data['strict_transport_security'],
     data['headers'].get('strict-transport-security', None)
@@ -72,6 +79,88 @@ inspect.headers = [
   "Domain", "Live?", "Redirect?",
   "HTTPS?", "Force HTTPS?", "HSTS?",
   "HSTS Header"
+]
+
+
+###
+# Inspect a site's valid TLS configuration using ssllabs-scan.
+#
+# Needs input from a CSV with inspect details.
+# Will skip over domains for which HTTPS is not validly enabled.
+###
+def tls(domain, other=None):
+  logging.debug("[%s][tls]" % domain)
+
+  # if a CSV was given, require an inspect.csv, and
+  # require that a domain be Live and have valid HTTPS.
+  if other and (not ((other[0] == 'True') and (other[2] == 'True'))):
+    logging.debug("\tSkipping.")
+    yield None
+
+  else:
+    # cache reformatted JSON from ssllabs
+    cache = cache_path(domain, "tls")
+    if (os.path.exists(cache)):
+      logging.debug("\tCached.")
+      raw = open(cache).read()
+      data = json.loads(raw)
+    else:
+      logging.debug("\t ssllabs-scan %s" % domain)
+
+      if options.get("debug"):
+        cmd = ["ssllabs-scan", "--usecache=true", "--verbosity=debug", domain]
+      else:
+        cmd = ["ssllabs-scan", "--usecache=true", "--quiet", domain]
+      raw = utils.scan(cmd)
+      if raw:
+        data = json.loads(raw)
+        # we only give ssllabs-scan one at a time, so we can de-pluralize this
+        data = data[0]
+        utils.write(utils.json_for(data), cache)
+      else:
+        raise Exception("Invalid data from ssllabs-scan: %s" % raw)
+
+    # can return multiple rows, one for each 'endpoint'
+    for endpoint in data['endpoints']:
+      sslv3 = False
+      tlsv12 = False
+      for protocol in endpoint['details']['protocols']:
+        if (protocol['name'] == "SSL") and (protocol['version'] == '3.0'):
+          sslv3 = True
+        if (protocol['name'] == "TLS") and (protocol['version'] == '1.2'):
+          tlsv12 = True
+
+      spdy = False
+      h2 = False
+      npn = endpoint['details'].get('npnProtocols', None)
+      if npn:
+        spdy = ("spdy" in npn)
+        h2 = ("h2-" in npn)
+
+      yield [
+        domain, endpoint['grade'],
+        endpoint['details']['cert']['sigAlg'],
+        endpoint['details']['key']['alg'],
+        endpoint['details']['key']['size'],
+        endpoint['details']['forwardSecrecy'],
+        endpoint['details']['ocspStapling'],
+        endpoint['details']['heartbleed'],
+        sslv3,
+        endpoint['details']['key'].get('debianFlaw', False),
+        tlsv12,
+        spdy,
+        endpoint['details']['sniRequired'],
+        h2
+      ]
+
+tls.headers = [
+  "Domain", "Grade",
+  "Signature Algorithm", "Key Type", "Key Size", # strength
+  "Forward Secrecy", "OCSP Stapling", # privacy
+  "Heartbleed", "SSLv3", "Debian Flaw", # bad things
+  "TLSv1.2", "SPDY", "Requires SNI", # forward
+  "HTTP/2", # ever forward
+  # "Server", "Hostname" # these belong at the site-inspector level
 ]
 
 def cache_path(domain, operation):
