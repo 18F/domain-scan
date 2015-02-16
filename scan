@@ -14,7 +14,9 @@ def domains_from(arg):
   if arg.endswith(".csv"):
     with open(arg, newline='') as csvfile:
       for row in csv.reader(csvfile):
-        yield row[0]
+        if (not row[0]) or (row[0] == "Domain Name"):
+          continue
+        yield row[0].lower()
   else:
     yield arg
 
@@ -38,10 +40,6 @@ def run(options=None):
     writer.writerow(inspect.headers)
 
     for domain in domains_from(options["_"][0]):
-      if (not domain) or (domain == "Domain Name"):
-        continue
-
-      domain = domain.lower()
       writer.writerow(inspect(domain))
 
   logging.info("Results written to %s" % report)
