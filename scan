@@ -36,7 +36,12 @@ def run(options=None):
   with open(report, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(inspect.headers)
+
     for domain in domains_from(options["_"][0]):
+      if (not domain) or (domain == "Domain Name"):
+        continue
+
+      domain = domain.lower()
       writer.writerow(inspect(domain))
 
   logging.info("Results written to %s" % report)
@@ -46,7 +51,6 @@ def run(options=None):
 ##
 def inspect(domain):
   logging.debug("[%s]" % domain)
-
 
   # 'raw' should end up as JSON of the intermediate format
   cache = cache_path(domain, "inspect")
