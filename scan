@@ -127,7 +127,8 @@ def tls(domain, other=None):
         data = data[0]
         utils.write(utils.json_for(data), cache)
       else:
-        raise Exception("Invalid data from ssllabs-scan: %s" % raw)
+        return None
+        # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
 
     # can return multiple rows, one for each 'endpoint'
     for endpoint in data['endpoints']:
