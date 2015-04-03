@@ -34,28 +34,34 @@ def scan_domains(scanner, domains, output):
   logging.warn("Results written to %s" % output)
 
 def dependencies():
-  return utils.try_command("site-inspector")
+  return
 
 # marker for a cached invalid response
 def invalid():
   return utils.json_for({'invalid': True})
 
 def run(options=None):
-  if not dependencies():
-    logging.error("site-inspector not found.")
-    exit()
 
   if not options["_"]:
     logging.error("Provide a CSV file, or domain name.")
     exit()
 
+  if not utils.try_command("site-inspector"):
+    logging.error("You need `site-inspector` to scan site details.")
+    exit()
   scan_domains(inspect, options["_"][0], 'results/inspect.csv')
-  scan_domains(tls, 'results/inspect.csv', 'results/tls.csv')
+
+  if options.get("tls"):
+    if not utils.try_command("ssllabs-scan"):
+      logging.error("You need `ssllabs-scan` to scan TLS details.")
+      exit()
+    scan_domains(tls, 'results/inspect.csv', 'results/tls.csv')
 
 ##
 # Inspect a domain's fundamentals using site-inspector.
 ##
 def inspect(domain, other=None):
+
   logging.debug("[%s][inspect]" % domain)
 
   # cache JSON as it comes back from site-inspector
