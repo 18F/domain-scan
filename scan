@@ -80,8 +80,8 @@ def inspect(domain, other=None):
   # always returns 1 row
   yield [
     domain, data['live'], data['redirect'],
-    data['ssl'], data['enforce_https'], data['strict_transport_security'],
-    data['headers'].get('strict-transport-security', None)
+    data['ssl'], data['enforce_https'], data['strict_transport_security']
+    # data['headers'].get('strict-transport-security', None)
   ]
 
 inspect.headers = [
