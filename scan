@@ -5,10 +5,12 @@ import utils
 import logging
 import csv, json
 
+# basic setup - logs, output dirs
 options = utils.options()
 utils.configure_logging(options)
 utils.mkdir_p("cache")
 utils.mkdir_p("results")
+
 
 def domains_from(arg):
   if arg.endswith(".csv"):
@@ -66,7 +68,7 @@ def inspect(domain, other=None):
 
   # cache JSON as it comes back from site-inspector
   cache = cache_path(domain, "inspect")
-  if (os.path.exists(cache)):
+  if (options.get("force", False) == False) and (os.path.exists(cache)):
     logging.debug("\tCached.")
     raw = open(cache).read()
     data = json.loads(raw)
@@ -85,13 +87,13 @@ def inspect(domain, other=None):
 
   # always returns 1 row
   yield [
-    domain, data['live'], data['redirect'],
+    domain, data['domain'], data['live'], data['redirect'],
     data['ssl'], data['enforce_https'], data['strict_transport_security']
-    # data['headers'].get('strict-transport-security', None)
+    data.get('headers', {}).get('strict-transport-security')
   ]
 
 inspect.headers = [
-  "Domain", "Live?", "Redirect?",
+  "Domain", "Canonical", "Live?", "Redirect?",
   "HTTPS?", "Force HTTPS?", "HSTS?",
   "HSTS Header"
 ]
@@ -100,15 +102,14 @@ inspect.headers = [
 ###
 # Inspect a site's valid TLS configuration using ssllabs-scan.
 #
-# Needs input from a CSV with inspect details.
-# Will skip over domains for which HTTPS is not validly enabled.
+# Requires `other` to have fields from an inspect CSV.
+# Only processes live domains with valid HTTPS.
 ###
 def tls(domain, other=None):
   logging.debug("[%s][tls]" % domain)
 
-  # if a CSV was given, require an inspect.csv, and
-  # require that a domain be Live and have valid HTTPS.
-  if other and (not ((other[0] == 'True') and (other[2] == 'True'))):
+  # other[1] = Live?, other[3] = HTTPS?
+  if other and (not ((other[1] == 'True') and (other[3] == 'True'))):
     logging.debug("\tSkipping.")
     yield None
 
@@ -182,6 +183,64 @@ tls.headers = [
   "TLSv1.2", "SPDY", "Requires SNI", # forward
   "HTTP/2", # ever forward
   # "Server", "Hostname" # these belong at the site-inspector level
+]
+
+###
+# Run a mixed content scan on the domain.
+#
+# Requires `other` to be details from an inspect CSV.
+# Only processes live domains. If HTTPS is enabled and forced,
+# then uses the `https://` version of the domain
+###
+def mixed(domain, other=None):
+  logging.debug("[%s][mixed]" % domain)
+
+  # other[1] = Live?
+  if other and (not (other[1] == 'True')):
+    logging.debug("\tSkipping.")
+    yield None
+
+
+  else:
+    # cache restructured data from mixed-content-scam
+
+    cache = cache_path(domain, "mixed")
+    if (os.path.exists(cache)):
+      logging.debug("\tCached.")
+      raw = open(cache).read()
+      data = json.loads(raw)
+
+    else:
+      # Only use HTTPS if it's forced. Otherwise, assume the domain
+      # still needs to evaluate what mixed content appears on the
+      # HTTP version.
+      #
+      # Use the canonical domain, as calculated by site-inspector,
+      # to pick what URL to scan.
+      #
+      # other[0] = Canonical, other[3] = HTTPS?, other[4] = Force HTTPS?
+      effective = other[0]
+      if (other[3] == "True") and (other[4] == "True"):
+        effective = "https://%s" % effective
+      else:
+        effective = "http://%s" % effective
+
+      logging.debug("\t mixed-content-scan --format=json %s" % effective)
+
+      cmd = ["mixed-content-scan", "--format=json", effective]
+      raw = utils.scan(cmd)
+      if raw:
+        # read line by line, store two dicts - by page, by resource
+
+        # data = json.loads(raw)
+        utils.write(raw, cache)
+      else:
+        return None
+        # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
+
+
+mixed.headers = [
+  "Domain", "Pages", "Resources"
 ]
 
 def cache_path(domain, operation):
