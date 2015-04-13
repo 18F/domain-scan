@@ -97,12 +97,11 @@ def inspect(domain, other=None):
     domain, data['canonical'], data['live'], data['redirect'],
     https_valid, data['enforce_https'], https_bad_chain, https_bad_name,
     data['hsts'], data['hsts_header'], data['hsts_entire_domain'], data['hsts_entire_domain_preload']
-
   ]
 
 inspect.headers = [
   "Domain", "Canonical", "Live", "Redirect",
-  "HTTPS?", "Force HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
+  "HTTPS", "Force HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
   "HSTS", "HSTS Header", "HSTS All Subdomains" "HSTS Preload"
 ]
 
@@ -116,8 +115,8 @@ inspect.headers = [
 def tls(domain, other=None):
   logging.debug("[%s][tls]" % domain)
 
-  # other[1] = Live?, other[3] = HTTPS?
-  if other and (not ((other[1] == 'True') and (other[3] == 'True'))):
+  # other[1] = Live, other[3] = HTTPS, other[5] = HTTPS Bad Chain
+  if other and (not ((other[1] == 'True') and ((other[3] == 'True') or (other[5] == 'True')))):
     logging.debug("\tSkipping.")
     yield None
 
