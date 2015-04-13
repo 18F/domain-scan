@@ -77,7 +77,7 @@ def inspect(domain, other=None):
 
   else:
     logging.debug("\t site-inspector %s" % domain)
-    raw = utils.scan(["site-inspector", domain])
+    raw = utils.scan(["site-inspector", domain, "--http"])
     if not raw:
       utils.write(invalid(), cache)
       return None
@@ -88,7 +88,7 @@ def inspect(domain, other=None):
   # always returns 1 row
   yield [
     domain, data['domain'], data['live'], data['redirect'],
-    data['ssl'], data['enforce_https'], data['strict_transport_security']
+    data['ssl'], data['enforce_https'], data['strict_transport_security'],
     data.get('headers', {}).get('strict-transport-security')
   ]
 
