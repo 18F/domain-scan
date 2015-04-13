@@ -123,17 +123,22 @@ def tls(domain, other=None):
   else:
     # cache reformatted JSON from ssllabs
     cache = cache_path(domain, "tls")
-    if (os.path.exists(cache)):
+
+    force = options.get("force", False)
+
+    if (force == False) and (os.path.exists(cache)):
       logging.debug("\tCached.")
       raw = open(cache).read()
       data = json.loads(raw)
     else:
       logging.debug("\t ssllabs-scan %s" % domain)
 
+      usecache = str(not force).lower()
+
       if options.get("debug"):
-        cmd = ["ssllabs-scan", "--usecache=true", "--verbosity=debug", domain]
+        cmd = ["ssllabs-scan", "--usecache=%s" % usecache, "--verbosity=debug", domain]
       else:
-        cmd = ["ssllabs-scan", "--usecache=true", "--quiet", domain]
+        cmd = ["ssllabs-scan", "--usecache=%s" % usecache, "--quiet", domain]
       raw = utils.scan(cmd)
       if raw:
         data = json.loads(raw)
@@ -189,7 +194,6 @@ tls.headers = [
   "Heartbleed", "SSLv3", "Debian Flaw", # bad things
   "TLSv1.2", "SPDY", "Requires SNI", # forward
   "HTTP/2", # ever forward
-  # "Server", "Hostname" # these belong at the site-inspector level
 ]
 
 ###
@@ -202,7 +206,7 @@ tls.headers = [
 def mixed(domain, other=None):
   logging.debug("[%s][mixed]" % domain)
 
-  # other[1] = Live?
+  # other[1] = Live
   if other and (not (other[1] == 'True')):
     logging.debug("\tSkipping.")
     yield None
@@ -225,7 +229,7 @@ def mixed(domain, other=None):
       # Use the canonical domain, as calculated by site-inspector,
       # to pick what URL to scan.
       #
-      # other[0] = Canonical, other[3] = HTTPS?, other[4] = Force HTTPS?
+      # other[0] = Canonical, other[3] = HTTPS, other[4] = Force HTTPS?
       effective = other[0]
       if (other[3] == "True") and (other[4] == "True"):
         effective = "https://%s" % effective
