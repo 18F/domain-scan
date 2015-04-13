@@ -86,17 +86,24 @@ def inspect(domain, other=None):
 
 
   # always returns 1 row
-  hsts_header = data.get('headers', {}).get('strict-transport-security')
+
+  canonical_https = data['endpoints']['https'][data['canonical_endpoint']]
+  https_valid = canonical_https.get('https_valid', False)
+  https_bad_chain = canonical_https.get('https_bad_chain', False)
+  https_bad_name = canonical_https.get('https_bad_name', False)
+
+
   yield [
-    domain, data['domain'], data['live'], data['redirect'],
-    data['ssl'], data['enforce_https'], (hsts_header is not None),
-    hsts_header
+    domain, data['canonical'], data['live'], data['redirect'],
+    https_valid, data['enforce_https'], https_bad_chain, https_bad_name,
+    data['hsts'], data['hsts_header'], data['hsts_entire_domain'], data['hsts_entire_domain_preload']
+
   ]
 
 inspect.headers = [
-  "Domain", "Canonical", "Live?", "Redirect?",
-  "HTTPS?", "Force HTTPS?", "HSTS?",
-  "HSTS Header"
+  "Domain", "Canonical", "Live", "Redirect",
+  "HTTPS?", "Force HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
+  "HSTS", "HSTS Header", "HSTS All Subdomains" "HSTS Preload"
 ]
 
 
