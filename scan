@@ -92,9 +92,16 @@ def inspect(domain, other=None):
   https_bad_chain = canonical_https.get('https_bad_chain', False)
   https_bad_name = canonical_https.get('https_bad_name', False)
 
+  # TODO: change this to just 'redirect_to' after re-run
+  canonical = data['endpoints'][data['canonical_protocol']][data['canonical_endpoint']]
+  if (data['redirect'] or False):
+    redirect = canonical['redirect_to']
+  else:
+    redirect = None
+
 
   yield [
-    domain, data['canonical'], (data['live'] or False), (data['redirect'] or False),
+    domain, data['canonical'], (data['live'] or False), redirect,
     https_valid, (data['enforce_https'] or False), https_bad_chain, https_bad_name,
     (data['hsts'] or False), data['hsts_header'], (data['hsts_entire_domain'] or False), (data['hsts_entire_domain_preload'] or False)
   ]
