@@ -94,15 +94,15 @@ def inspect(domain, other=None):
 
 
   yield [
-    domain, data['canonical'], data['live'], data['redirect'],
-    https_valid, data['enforce_https'], https_bad_chain, https_bad_name,
-    data['hsts'], data['hsts_header'], data['hsts_entire_domain'], data['hsts_entire_domain_preload']
+    domain, data['canonical'], (data['live'] or False), (data['redirect'] or False),
+    https_valid, (data['enforce_https'] or False), https_bad_chain, https_bad_name,
+    (data['hsts'] or False), data['hsts_header'], (data['hsts_entire_domain'] or False), (data['hsts_entire_domain_preload'] or False)
   ]
 
 inspect.headers = [
   "Domain", "Canonical", "Live", "Redirect",
   "HTTPS", "Force HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
-  "HSTS", "HSTS Header", "HSTS All Subdomains" "HSTS Preload"
+  "HSTS", "HSTS Header", "HSTS All Subdomains", "HSTS Preload"
 ]
 
 
