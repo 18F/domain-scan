@@ -7,7 +7,7 @@ Scans domains for:
 * TLS configuration details.
 * (Coming soon) Mixed content reports.
 
-Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api).
+Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
 
 
 ### Usage
