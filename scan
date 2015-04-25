@@ -5,10 +5,14 @@ import utils
 import logging
 import csv, json
 
+# basic setup - logs, output dirs
 options = utils.options()
 utils.configure_logging(options)
 utils.mkdir_p("cache")
 utils.mkdir_p("results")
+
+# make site-inspector path overrideable
+site_inspector_cmd = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
 
 def domains_from(arg):
   if arg.endswith(".csv"):
@@ -46,7 +50,7 @@ def run(options=None):
     logging.error("Provide a CSV file, or domain name.")
     exit()
 
-  if not utils.try_command("site-inspector"):
+  if not utils.try_command(site_inspector_cmd):
     logging.error("You need `site-inspector` to scan site details.")
     exit()
   scan_domains(inspect, options["_"][0], 'results/inspect.csv')
@@ -66,7 +70,7 @@ def inspect(domain, other=None):
 
   # cache JSON as it comes back from site-inspector
   cache = cache_path(domain, "inspect")
-  if (os.path.exists(cache)):
+  if (options.get("force", False) == False) and (os.path.exists(cache)):
     logging.debug("\tCached.")
     raw = open(cache).read()
     data = json.loads(raw)
@@ -74,8 +78,8 @@ def inspect(domain, other=None):
       return None
 
   else:
-    logging.debug("\t site-inspector %s" % domain)
-    raw = utils.scan(["site-inspector", domain])
+    logging.debug("\t %s %s --http" % (site_inspector_cmd, domain))
+    raw = utils.scan([site_inspector_cmd, domain, "--http"])
     if not raw:
       utils.write(invalid(), cache)
       return None
@@ -84,48 +88,64 @@ def inspect(domain, other=None):
 
 
   # always returns 1 row
+
+  canonical_https = data['endpoints']['https'][data['canonical_endpoint']]
+  https_valid = canonical_https.get('https_valid', False)
+  https_bad_chain = canonical_https.get('https_bad_chain', False)
+  https_bad_name = canonical_https.get('https_bad_name', False)
+
   yield [
-    domain, data['live'], data['redirect'],
-    data['ssl'], data['enforce_https'], data['strict_transport_security']
-    # data['headers'].get('strict-transport-security', None)
+    domain, data['canonical'], data['up'],
+    data['redirect'], data['redirect_to'],
+    https_valid, data['default_https'], data['downgrade_https'], data['enforce_https'],
+    https_bad_chain, https_bad_name,
+    data['hsts'], data['hsts_header'], data['hsts_entire_domain'], data['hsts_entire_domain_preload'],
+    data['broken_root'], data['broken_www']
   ]
 
 inspect.headers = [
-  "Domain", "Live?", "Redirect?",
-  "HTTPS?", "Force HTTPS?", "HSTS?",
-  "HSTS Header"
+  "Domain", "Canonical", "Live",
+  "Redirect", "Redirect To",
+  "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
+  "HTTPS Bad Chain", "HTTPS Bad Hostname",
+  "HSTS", "HSTS Header", "HSTS All Subdomains", "HSTS Preload Ready",
+  "Broken Root", "Broken WWW"
 ]
 
 
 ###
 # Inspect a site's valid TLS configuration using ssllabs-scan.
 #
-# Needs input from a CSV with inspect details.
-# Will skip over domains for which HTTPS is not validly enabled.
+# Requires `other` to have fields from an inspect CSV.
+# Only processes live domains with valid HTTPS.
 ###
 def tls(domain, other=None):
   logging.debug("[%s][tls]" % domain)
 
-  # if a CSV was given, require an inspect.csv, and
-  # require that a domain be Live and have valid HTTPS.
-  if other and (not ((other[0] == 'True') and (other[2] == 'True'))):
+  # other[1] = Live, other[4] = Valid HTTPS, other[8] = HTTPS Bad Chain
+  if other and (not ((other[1] == 'True') and ((other[4] == 'True') or (other[8] == 'True')))):
     logging.debug("\tSkipping.")
     yield None
 
   else:
     # cache reformatted JSON from ssllabs
     cache = cache_path(domain, "tls")
-    if (os.path.exists(cache)):
+
+    force = options.get("force", False)
+
+    if (force == False) and (os.path.exists(cache)):
       logging.debug("\tCached.")
       raw = open(cache).read()
       data = json.loads(raw)
     else:
       logging.debug("\t ssllabs-scan %s" % domain)
 
+      usecache = str(not force).lower()
+
       if options.get("debug"):
-        cmd = ["ssllabs-scan", "--usecache=true", "--verbosity=debug", domain]
+        cmd = ["ssllabs-scan", "--usecache=%s" % usecache, "--verbosity=debug", domain]
       else:
-        cmd = ["ssllabs-scan", "--usecache=true", "--quiet", domain]
+        cmd = ["ssllabs-scan", "--usecache=%s" % usecache, "--quiet", domain]
       raw = utils.scan(cmd)
       if raw:
         data = json.loads(raw)
@@ -181,7 +201,64 @@ tls.headers = [
   "Heartbleed", "SSLv3", "Debian Flaw", # bad things
   "TLSv1.2", "SPDY", "Requires SNI", # forward
   "HTTP/2", # ever forward
-  # "Server", "Hostname" # these belong at the site-inspector level
+]
+
+###
+# Run a mixed content scan on the domain.
+#
+# Requires `other` to be details from an inspect CSV.
+# Only processes live domains. If HTTPS is enabled and forced,
+# then uses the `https://` version of the domain
+###
+def mixed(domain, other=None):
+  logging.debug("[%s][mixed]" % domain)
+
+  # other[1] = Live
+  if other and (not (other[1] == 'True')):
+    logging.debug("\tSkipping.")
+    yield None
+
+
+  else:
+    # cache restructured data from mixed-content-scam
+
+    cache = cache_path(domain, "mixed")
+    if (os.path.exists(cache)):
+      logging.debug("\tCached.")
+      raw = open(cache).read()
+      data = json.loads(raw)
+
+    else:
+      # Only use HTTPS if it's forced. Otherwise, assume the domain
+      # still needs to evaluate what mixed content appears on the
+      # HTTP version.
+      #
+      # Use the canonical domain, as calculated by site-inspector,
+      # to pick what URL to scan.
+      #
+      # other[0] = Canonical, other[4] = HTTPS, other[5] = Defaults to HTTPS?
+      effective = other[0]
+      if (other[3] == "True") and (other[4] == "True"):
+        effective = "https://%s" % effective
+      else:
+        effective = "http://%s" % effective
+
+      logging.debug("\t mixed-content-scan --format=json %s" % effective)
+
+      cmd = ["mixed-content-scan", "--format=json", effective]
+      raw = utils.scan(cmd)
+      if raw:
+        # read line by line, store two dicts - by page, by resource
+
+        # data = json.loads(raw)
+        utils.write(raw, cache)
+      else:
+        return None
+        # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
+
+
+mixed.headers = [
+  "Domain", "Pages", "Resources"
 ]
 
 def cache_path(domain, operation):
