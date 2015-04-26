@@ -36,8 +36,10 @@ def options():
                 key, value = arg, "True"
 
             key = key.split("--")[1]
-            if value.lower() == 'true': value = True
-            elif value.lower() == 'false': value = False
+            if value.lower() == 'true':
+                value = True
+            elif value.lower() == 'false':
+                value = False
             options[key.lower()] = value
         else:
             options["_"].append(arg)
