@@ -126,7 +126,7 @@ def try_command(command):
                               stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL)
         return True
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         logging.warn("No command found: %s" % (str(command)))
         return False
 
@@ -135,6 +135,6 @@ def scan(command):
     try:
         response = subprocess.check_output(command, shell=False)
         return str(response, encoding='UTF-8')
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         logging.warn("Error running %s." % (str(command)))
         return None
