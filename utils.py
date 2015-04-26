@@ -59,7 +59,7 @@ def configure_logging(options=None):
 def mkdir_p(path):
     try:
         os.makedirs(path)
-    except OSError as exc: # Python >2.5
+    except OSError as exc:  # Python >2.5
         if exc.errno == errno.EEXIST:
             pass
         else:

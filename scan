@@ -196,11 +196,11 @@ def tls(domain, other=None):
 
 tls.headers = [
     "Domain", "Grade",
-    "Signature Algorithm", "Key Type", "Key Size", # strength
-    "Forward Secrecy", "OCSP Stapling", # privacy
-    "Heartbleed", "SSLv3", "Debian Flaw", # bad things
-    "TLSv1.2", "SPDY", "Requires SNI", # forward
-    "HTTP/2", # ever forward
+    "Signature Algorithm", "Key Type", "Key Size",  # strength
+    "Forward Secrecy", "OCSP Stapling",  # privacy
+    "Heartbleed", "SSLv3", "Debian Flaw",  # bad things
+    "TLSv1.2", "SPDY", "Requires SNI",  # forward
+    "HTTP/2",  # ever forward
 ]
 
 ###
