@@ -241,8 +241,6 @@ def mixed(domain, other=None):
         if (os.path.exists(cache)):
             logging.debug("\tCached.")
             raw = open(cache).read()
-            data = json.loads(raw)
-
         else:
             # Only use HTTPS if it's forced. Otherwise, assume the domain
             # still needs to evaluate what mixed content appears on the
