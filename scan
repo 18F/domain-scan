@@ -279,4 +279,6 @@ mixed.headers = [
 def cache_path(domain, operation):
     return os.path.join(utils.data_dir(), operation, ("%s.json" % domain))
 
-run(options)
+
+if __name__ == '__main__':
+    run(options)
