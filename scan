@@ -102,16 +102,19 @@ def inspect(domain, other=None):
     yield [
         domain, data['canonical'], data['up'],
         data['redirect'], data['redirect_to'],
-        https_valid, data['default_https'], data['downgrade_https'], data['enforce_https'],
+        https_valid, data['default_https'], data['downgrade_https'],
+        data['enforce_https'],
         https_bad_chain, https_bad_name,
-        data['hsts'], data['hsts_header'], data['hsts_entire_domain'], data['hsts_entire_domain_preload'],
+        data['hsts'], data['hsts_header'], data['hsts_entire_domain'],
+        data['hsts_entire_domain_preload'],
         data['broken_root'], data['broken_www']
     ]
 
 inspect.headers = [
     "Domain", "Canonical", "Live",
     "Redirect", "Redirect To",
-    "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
+    "Valid HTTPS", "Defaults to HTTPS",
+    "Downgrades HTTPS", "Strictly Forces HTTPS",
     "HTTPS Bad Chain", "HTTPS Bad Hostname",
     "HSTS", "HSTS Header", "HSTS All Subdomains", "HSTS Preload Ready",
     "Broken Root", "Broken WWW"
@@ -128,7 +131,8 @@ def tls(domain, other=None):
     logging.debug("[%s][tls]" % domain)
 
     # other[1] = Live, other[4] = Valid HTTPS, other[8] = HTTPS Bad Chain
-    if other and (not ((other[1] == 'True') and ((other[4] == 'True') or (other[8] == 'True')))):
+    if other and (not ((other[1] == 'True') and
+                  ((other[4] == 'True') or (other[8] == 'True')))):
         logging.debug("\tSkipping.")
         yield None
 
@@ -148,13 +152,16 @@ def tls(domain, other=None):
             usecache = str(not force).lower()
 
             if options.get("debug"):
-                cmd = ["ssllabs-scan", "--usecache=%s" % usecache, "--verbosity=debug", domain]
+                cmd = ["ssllabs-scan", "--usecache=%s" % usecache,
+                       "--verbosity=debug", domain]
             else:
-                cmd = ["ssllabs-scan", "--usecache=%s" % usecache, "--quiet", domain]
+                cmd = ["ssllabs-scan", "--usecache=%s" % usecache,
+                       "--quiet", domain]
             raw = utils.scan(cmd)
             if raw:
                 data = json.loads(raw)
-                # we only give ssllabs-scan one at a time, so we can de-pluralize this
+                # we only give ssllabs-scan one at a time,
+                # so we can de-pluralize this
                 data = data[0]
                 utils.write(utils.json_for(data), cache)
             else:
@@ -171,9 +178,11 @@ def tls(domain, other=None):
             sslv3 = False
             tlsv12 = False
             for protocol in endpoint['details']['protocols']:
-                if (protocol['name'] == "SSL") and (protocol['version'] == '3.0'):
+                if ((protocol['name'] == "SSL") and
+                        (protocol['version'] == '3.0')):
                     sslv3 = True
-                if (protocol['name'] == "TLS") and (protocol['version'] == '1.2'):
+                if ((protocol['name'] == "TLS") and
+                        (protocol['version'] == '1.2')):
                     tlsv12 = True
 
             spdy = False
@@ -241,7 +250,8 @@ def mixed(domain, other=None):
             # Use the canonical domain, as calculated by site-inspector,
             # to pick what URL to scan.
             #
-            # other[0] = Canonical, other[4] = HTTPS, other[5] = Defaults to HTTPS?
+            # other[0] = Canonical, other[4] = HTTPS,
+            # other[5] = Defaults to HTTPS?
             effective = other[0]
             if (other[3] == "True") and (other[4] == "True"):
                 effective = "https://%s" % effective

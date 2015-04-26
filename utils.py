@@ -69,7 +69,8 @@ def mkdir_p(path):
 
 
 def json_for(object):
-    return json.dumps(object, sort_keys=True, indent=2, default=format_datetime)
+    return json.dumps(object, sort_keys=True,
+                      indent=2, default=format_datetime)
 
 
 def format_datetime(obj):
@@ -110,13 +111,16 @@ def notify(body):
 
 def format_exception(exception):
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    return "\n".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    return "\n".join(traceback.format_exception(exc_type, exc_value,
+                                                exc_traceback))
 
 
 # test if a command exists, don't print output
 def try_command(command):
     try:
-        subprocess.check_call(["which", command], shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(["which", command], shell=False,
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError as exc:
         logging.warn("No command found: %s" % (str(command)))
