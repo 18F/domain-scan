@@ -14,6 +14,7 @@ utils.mkdir_p("results")
 # make site-inspector path overrideable
 site_inspector_cmd = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
 
+
 def domains_from(arg):
     if arg.endswith(".csv"):
         with open(arg, newline='') as csvfile:
@@ -23,6 +24,7 @@ def domains_from(arg):
                 yield row[0].lower(), row[1:]
     else:
         yield arg, []
+
 
 # run a method over every domain, write row to output file
 def scan_domains(scanner, domains, output):
@@ -37,12 +39,15 @@ def scan_domains(scanner, domains, output):
 
     logging.warn("Results written to %s" % output)
 
+
 def dependencies():
     return
+
 
 # marker for a cached invalid response
 def invalid():
     return utils.json_for({'invalid': True})
+
 
 def run(options=None):
 
@@ -60,6 +65,7 @@ def run(options=None):
             logging.error("You need `ssllabs-scan` to scan TLS details.")
             exit()
         scan_domains(tls, 'results/inspect.csv', 'results/tls.csv')
+
 
 ##
 # Inspect a domain's fundamentals using site-inspector.
@@ -85,7 +91,6 @@ def inspect(domain, other=None):
             return None
         utils.write(raw, cache)
         data = json.loads(raw)
-
 
     # always returns 1 row
 
@@ -203,6 +208,7 @@ tls.headers = [
     "HTTP/2",  # ever forward
 ]
 
+
 ###
 # Run a mixed content scan on the domain.
 #
@@ -217,7 +223,6 @@ def mixed(domain, other=None):
     if other and (not (other[1] == 'True')):
         logging.debug("\tSkipping.")
         yield None
-
 
     else:
         # cache restructured data from mixed-content-scam
@@ -260,6 +265,7 @@ def mixed(domain, other=None):
 mixed.headers = [
     "Domain", "Pages", "Resources"
 ]
+
 
 def cache_path(domain, operation):
     return os.path.join(utils.data_dir(), operation, ("%s.json" % domain))

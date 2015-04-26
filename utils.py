@@ -5,6 +5,7 @@ import sys, traceback
 import json
 import logging
 
+
 # Wrapper to a run() method to catch exceptions.
 def run(run_method, additional=None):
     cli_options = options()
@@ -17,6 +18,7 @@ def run(run_method, additional=None):
         return run_method(cli_options)
     except Exception as exception:
         notify(exception)
+
 
 # read options from the command line
 #   e.g. ./scan --inspect --debug
@@ -65,8 +67,10 @@ def mkdir_p(path):
         else:
             raise
 
+
 def json_for(object):
     return json.dumps(object, sort_keys=True, indent=2, default=format_datetime)
+
 
 def format_datetime(obj):
     if isinstance(obj, datetime.date):
@@ -87,8 +91,10 @@ def write(content, destination, binary=False):
     f.write(content)
     f.close()
 
+
 def data_dir():
     return "cache"
+
 
 def notify(body):
     try:
@@ -101,9 +107,11 @@ def notify(body):
         print("Exception logging message to admin, halting as to avoid loop")
         print(format_exception(exception))
 
+
 def format_exception(exception):
     exc_type, exc_value, exc_traceback = sys.exc_info()
     return "\n".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+
 
 # test if a command exists, don't print output
 def try_command(command):
@@ -113,6 +121,7 @@ def try_command(command):
     except subprocess.CalledProcessError as exc:
         logging.warn("No command found: %s" % (str(command)))
         return False
+
 
 def scan(command):
     try:
