@@ -1,5 +1,4 @@
 import os
-import os.path
 import errno
 import subprocess
 import sys
