@@ -1,7 +1,9 @@
-import os, os.path
+import os
+import os.path
 import errno
 import subprocess
-import sys, traceback
+import sys
+import traceback
 import json
 import logging
 
