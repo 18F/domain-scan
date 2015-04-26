@@ -78,7 +78,7 @@ def inspect(domain, other=None):
 
     # cache JSON as it comes back from site-inspector
     cache = cache_path(domain, "inspect")
-    if (options.get("force", False) == False) and (os.path.exists(cache)):
+    if (options.get("force", False) is False) and (os.path.exists(cache)):
         logging.debug("\tCached.")
         raw = open(cache).read()
         data = json.loads(raw)
@@ -144,7 +144,7 @@ def tls(domain, other=None):
 
         force = options.get("force", False)
 
-        if (force == False) and (os.path.exists(cache)):
+        if (force is False) and (os.path.exists(cache)):
             logging.debug("\tCached.")
             raw = open(cache).read()
             data = json.loads(raw)
