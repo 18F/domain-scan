@@ -255,9 +255,12 @@ dap.headers = ["Domain", "Participates in DAP"]
 ###
 # Run a mixed content scan on the domain.
 #
-# Requires `other` to be details from an inspect CSV.
-# Only processes live domains. If HTTPS is enabled and forced,
-# then uses the `https://` version of the domain
+# If inspection details are present, limits scan to live
+# domains. If HTTPS is canonical, then uses the `https://`
+# version of the domain.
+#
+# TODO: This is still incomplete. Which protocol to use
+# when inspection is not done prior is an open question.
 ###
 def mixed(domain):
     logging.debug("[%s][mixed]" % domain)
@@ -282,9 +285,6 @@ def mixed(domain):
             #
             # Use the canonical domain, as calculated by site-inspector,
             # to pick what URL to scan.
-            #
-            # other[0] = Canonical, other[4] = HTTPS,
-            # other[5] = Defaults to HTTPS?
             effective = other[0]
             if (other[3] == "True") and (other[4] == "True"):
                 effective = "https://%s" % effective
