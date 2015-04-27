@@ -42,13 +42,12 @@ Next, every domain site-inspector saw as _live_ and _HTTPS-enabled_ will be run 
 ### TODO
 
 * Look at SSLyze instead of SSL Labs, for local scanning and the lack of Terms and Conditions.
-* Control which scans are done (e.g. skip the `tls` scan, or use `sslyze` instead of `ssllabs-scan`).
 * Mixed content scanning.
 * Check invalid HTTPS as well, save cert details.
 * Save server hostname (e.g. e248.akamai.net)
 * Check for HTTP Public Key Pinning headers.
 * Mark HSTS qualities: long max-age? subdomains? preload?
-* better independent queueing of individual tasks (moxie? celery?)
+* better independent queueing of individual tasks (docker? moxie? celery?)
 
 ### Public domain
 
