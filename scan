@@ -25,9 +25,9 @@ def domains_from(arg):
             for row in csv.reader(csvfile):
                 if (not row[0]) or (row[0].lower().startswith("domain")):
                     continue
-                yield row[0].lower(), row[1:]
+                yield row[0].lower()
     else:
-        yield arg, []
+        yield arg
 
 
 # run a method over every domain, write row to output file
@@ -36,8 +36,9 @@ def scan_domains(scanner, domains, output):
         writer = csv.writer(csvfile)
         writer.writerow(scanner.headers)
 
-        for domain, other in domains_from(domains):
-            for row in scanner(domain, other):
+        for domain in domains_from(domains):
+            for row in scanner(domain):
+                # TODO: handle None as empty row
                 if row:
                     writer.writerow(row)
 
@@ -50,21 +51,24 @@ def run(options=None):
         logging.error("Provide a CSV file, or domain name.")
         exit()
 
+    given = options["_"][0]
+
     # clear out existing result CSVs, to avoid inconsistent data
     for result in glob.glob("results/*.csv"):
         os.remove(result)
 
+    # --inspect:
     if options.get("inspect"):
         if not utils.try_command(site_inspector_cmd):
             logging.error("You need `site-inspector` to scan site details.")
             exit()
-        scan_domains(inspect, options["_"][0], 'results/inspect.csv')
+        scan_domains(inspect, given, 'results/inspect.csv')
 
     if options.get("tls"):
         if not utils.try_command("ssllabs-scan"):
             logging.error("You need `ssllabs-scan` to scan TLS details.")
             exit()
-        scan_domains(tls, 'results/inspect.csv', 'results/tls.csv')
+        scan_domains(tls, given, 'results/tls.csv')
 
     if options.get("dap"):
         dap_file = options.get("dap-csv")
@@ -72,15 +76,14 @@ def run(options=None):
             logging.error("--dap-csv should point to a CSV file.")
             exit()
         dap_domains = load_domains(dap_file)
-        scan_domains(dap, options["_"][0], 'results/dap.csv')
+        scan_domains(dap, given, 'results/dap.csv')
 
 
 
 ##
 # Inspect a domain's fundamentals using site-inspector.
 ##
-def inspect(domain, other=None):
-
+def inspect(domain):
     logging.debug("[%s][inspect]" % domain)
 
     # cache JSON as it comes back from site-inspector
@@ -133,16 +136,15 @@ inspect.headers = [
 ###
 # Inspect a site's valid TLS configuration using ssllabs-scan.
 #
-# Requires `other` to have fields from an inspect CSV.
-# Only processes live domains with valid HTTPS.
+# If site inspection data exists for a domain, will check results
+# and only process domains with valid HTTPS, or broken chains.
 ###
-def tls(domain, other=None):
+def tls(domain):
     logging.debug("[%s][tls]" % domain)
 
-    # other[1] = Live, other[4] = Valid HTTPS, other[8] = HTTPS Bad Chain
-    if other and (not ((other[1] == 'True') and
-                  ((other[4] == 'True') or (other[8] == 'True')))):
-        logging.debug("\tSkipping.")
+    # If inspection data exists, check to see if we can skip.
+    if not data_for(domain, "inspect").get("support_https"):
+        logging.debug("\tSkipping, HTTPS not supported in inspection.")
         yield None
 
     else:
@@ -238,12 +240,16 @@ tls.headers = [
 ]
 
 
+###
+# Compare
 # Assumes dap_domains is preloaded.
-def dap(domain, other=None):
+def dap(domain):
     logging.debug("[%s][dap]" % domain)
     logging.debug("\tChecking file.")
     yield [domain, (domain in dap_domains)]
+
 dap.headers = ["Domain", "Participates in DAP"]
+
 
 ###
 # Run a mixed content scan on the domain.
@@ -252,12 +258,12 @@ dap.headers = ["Domain", "Participates in DAP"]
 # Only processes live domains. If HTTPS is enabled and forced,
 # then uses the `https://` version of the domain
 ###
-def mixed(domain, other=None):
+def mixed(domain):
     logging.debug("[%s][mixed]" % domain)
 
-    # other[1] = Live
-    if other and (not (other[1] == 'True')):
-        logging.debug("\tSkipping.")
+    # If inspection data exists, check to see if we can skip.
+    if not data_for(domain, "inspect").get("up"):
+        logging.debug("\tSkipping, domain not up in inspection.")
         yield None
 
     else:
@@ -302,8 +308,18 @@ mixed.headers = [
 ]
 
 
+# Predictable cache path for a domain and operation.
 def cache_path(domain, operation):
     return os.path.join(utils.data_dir(), operation, ("%s.json" % domain))
+
+# Used to quickly get cached data for a domain.
+def data_for(domain, operation):
+    path = cache_path(domain, operation)
+    if os.path.exists(path):
+        raw = open(path).read()
+        return json.loads(raw)
+    else:
+        return {}
 
 # marker for a cached invalid response
 def invalid(data=None):
