@@ -46,8 +46,10 @@ def dependencies():
 
 
 # marker for a cached invalid response
-def invalid():
-    return utils.json_for({'invalid': True})
+def invalid(data=None):
+    if data is None: data = {}
+    data['invalid'] = True
+    return utils.json_for(data)
 
 
 def run(options=None):
@@ -88,7 +90,7 @@ def inspect(domain, other=None):
         logging.debug("\t %s %s --http" % (site_inspector_cmd, domain))
         raw = utils.scan([site_inspector_cmd, domain, "--http"])
         if not raw:
-            utils.write(invalid(), cache)
+            utils.write(invalid({}), cache)
             return None
         utils.write(raw, cache)
         data = json.loads(raw)
@@ -147,6 +149,9 @@ def tls(domain, other=None):
             logging.debug("\tCached.")
             raw = open(cache).read()
             data = json.loads(raw)
+
+            if data.get('invalid'):
+                return None
         else:
             logging.debug("\t ssllabs-scan %s" % domain)
 
@@ -161,9 +166,17 @@ def tls(domain, other=None):
             raw = utils.scan(cmd)
             if raw:
                 data = json.loads(raw)
+
                 # we only give ssllabs-scan one at a time,
                 # so we can de-pluralize this
                 data = data[0]
+
+                # if SSL Labs had an error hitting the site, cache this
+                # as an invalid entry.
+                if data["status"] == "ERROR":
+                  utils.write(invalid(data), cache)
+                  return None
+
                 utils.write(utils.json_for(data), cache)
             else:
                 return None
