@@ -242,8 +242,11 @@ tls.headers = [
 
 
 ###
-# Compare
-# Assumes dap_domains is preloaded.
+# Check whether a domain is present in the list of DAP domains,
+# as provided through --dap-file.
+#
+# Assumes dap_domains is preloaded from --dap-file.
+###
 def dap(domain):
     logging.debug("[%s][dap]" % domain)
     logging.debug("\tChecking file.")
