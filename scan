@@ -86,8 +86,8 @@ def scan_domains(scanners, domains):
 
     # For each domain, run through each scanner.
     for domain in domains_from(domains):
-
         for scanner in scanners:
+            # A scanner can return multiple rows.
             for row in scanner.scan(domain, options):
                 if row:
                     handles[scanner]['writer'].writerow([domain] + row)
