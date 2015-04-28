@@ -2,10 +2,12 @@
 
 import os
 import glob
-import utils
+import scanners
+from scanners import utils
 import logging
 import csv
 import json
+
 
 # basic setup - logs, output dirs
 options = utils.options()
@@ -13,24 +15,53 @@ utils.configure_logging(options)
 utils.mkdir_p("cache")
 utils.mkdir_p("results")
 
-# Make individual command paths overrideable via env vars.
-site_inspector_cmd = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
-ssllabs_cmd = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
-mixed_cmd = os.environ.get("MIXED_CONTENT_SCAN_PATH", "mixed-content-scan")
 
-# Global cache of DAP domain data, if provided via --dap-file.
-dap_domains = None
+###
+# Entry point. `options` is a dict of CLI flags.
+###
+def run(options=None):
 
-def domains_from(arg):
-    if arg.endswith(".csv"):
-        with open(arg, newline='') as csvfile:
-            for row in csv.reader(csvfile):
-                if (not row[0]) or (row[0].lower().startswith("domain")):
-                    continue
-                yield row[0].lower()
-    else:
-        yield arg
+    if not options["_"]:
+        logging.error("Provide a CSV file, or domain name.")
+        exit()
 
+    domains = options["_"][0]
+
+    # Which scanners to run the domain through.
+    chosen = []
+
+    # Clear out existing result CSVs, to avoid inconsistent data.
+    for result in glob.glob("results/*.csv"):
+        os.remove(result)
+
+    # Inspect a domain and its endpoint behavior over HTTP and HTTPS.
+    if options.get("inspect"):
+        import scanners.inspect
+        if not utils.try_command(scanners.inspect.site_inspector_cmd):
+            logging.error("You need `site-inspector` to scan site details.")
+            exit()
+        chosen.append(scanners.inspect)
+
+    # Analyze a domain's TLS configuration in great detail.
+    if options.get("tls"):
+        import scanners.tls
+        if not utils.try_command(scanners.tls.ssllabs_cmd):
+            logging.error("You need `ssllabs-scan` to scan TLS details.")
+            exit()
+        chosen.append(scanners.tls)
+
+    # Check whether a domain participated in analytics.usa.gov.
+    # [Note: Should generalize this to something less gov-specific.]
+    if options.get("dap"):
+        import scanners.dap
+        dap_file = options.get("dap-csv")
+        if (not dap_file) or (not dap_file.endswith(".csv")) or (not os.path.exists(dap_file)):
+            logging.error("--dap-csv should point to a CSV file.")
+            exit()
+        scanners.dap.dap_domains = load_domains(dap_file)
+        chosen.append(scanners.dap)
+
+    scan_domains(chosen, domains)
 
 ###
 # Given the selected scanners, and input domains, run each domain
@@ -45,7 +76,8 @@ def scan_domains(scanners, domains):
     handles = {}
     all_headers = []
     for scanner in scanners:
-        scanner_file = open("results/%s.csv" % scanner.__name__, 'w', newline='')
+        name = scanner.__name__.split(".")[-1]  # e.g. 'inspect'
+        scanner_file = open("results/%s.csv" % name, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
         scanner_writer.writerow(["Domain"] + scanner.headers)
 
@@ -67,7 +99,7 @@ def scan_domains(scanners, domains):
         all_row = [domain]
 
         for scanner in scanners:
-            for row in scanner(domain):
+            for row in scanner.scan(domain, options):
                 if row:
                     all_row += row
                     handles[scanner]['writer'].writerow([domain] + row)
@@ -84,246 +116,17 @@ def scan_domains(scanners, domains):
 
     logging.warn("Results written to CSV.")
 
-###
-# Entry point. `options` is a dict of CLI flags.
-###
-def run(options=None):
-    global dap_domains
-
-    if not options["_"]:
-        logging.error("Provide a CSV file, or domain name.")
-        exit()
-
-    given = options["_"][0]
-
-    # Which scanners to run the domain through.
-    scanners = []
-
-    # Clear out existing result CSVs, to avoid inconsistent data.
-    for result in glob.glob("results/*.csv"):
-        os.remove(result)
-
-    # Inspect a domain and its endpoint behavior over HTTP and HTTPS.
-    if options.get("inspect"):
-        if not utils.try_command(site_inspector_cmd):
-            logging.error("You need `site-inspector` to scan site details.")
-            exit()
-        scanners.append(inspect)
-
-    # Analyze a domain's TLS configuration in great detail.
-    if options.get("tls"):
-        if not utils.try_command("ssllabs-scan"):
-            logging.error("You need `ssllabs-scan` to scan TLS details.")
-            exit()
-        scanners.append(tls)
-
-    # Check whether a domain participated in analytics.usa.gov.
-    # [Note: Should generalize this to something less gov-specific.]
-    if options.get("dap"):
-        dap_file = options.get("dap-csv")
-        if (not dap_file) or (not dap_file.endswith(".csv")) or (not os.path.exists(dap_file)):
-            logging.error("--dap-csv should point to a CSV file.")
-            exit()
-        dap_domains = load_domains(dap_file)
-        scanners.append(dap)
-
-    scan_domains(scanners, given)
-
-
-##
-# Inspect a domain's fundamentals using site-inspector.
-##
-def inspect(domain):
-    logging.debug("[%s][inspect]" % domain)
-
-    # cache JSON as it comes back from site-inspector
-    cache = cache_path(domain, "inspect")
-    if (options.get("force", False) is False) and (os.path.exists(cache)):
-        logging.debug("\tCached.")
-        raw = open(cache).read()
-        data = json.loads(raw)
-        if data.get('invalid'):
-            return None
-
+# Yield domain names from a single string, or a CSV of them.
+def domains_from(arg):
+    if arg.endswith(".csv"):
+        with open(arg, newline='') as csvfile:
+            for row in csv.reader(csvfile):
+                if (not row[0]) or (row[0].lower().startswith("domain")):
+                    continue
+                yield row[0].lower()
     else:
-        logging.debug("\t %s %s --http" % (site_inspector_cmd, domain))
-        raw = utils.scan([site_inspector_cmd, domain, "--http"])
-        if not raw:
-            utils.write(invalid({}), cache)
-            return None
-        utils.write(raw, cache)
-        data = json.loads(raw)
+        yield arg
 
-    # TODO: get this from a site-inspector field directly
-    canonical_https = data['endpoints']['https'][data['canonical_endpoint']]
-    # TODO: guarantee these as present in site-inspector
-    https_valid = canonical_https.get('https_valid', False)
-    https_bad_chain = canonical_https.get('https_bad_chain', False)
-    https_bad_name = canonical_https.get('https_bad_name', False)
-
-    yield [
-        data['canonical'], data['up'],
-        data['redirect'], data['redirect_to'],
-        https_valid, data['default_https'], data['downgrade_https'],
-        data['enforce_https'],
-        https_bad_chain, https_bad_name,
-        data['hsts'], data['hsts_header'], data['hsts_entire_domain'],
-        data['hsts_entire_domain_preload'],
-        data['broken_root'], data['broken_www']
-    ]
-
-inspect.headers = [
-    "Canonical", "Live",
-    "Redirect", "Redirect To",
-    "Valid HTTPS", "Defaults to HTTPS",
-    "Downgrades HTTPS", "Strictly Forces HTTPS",
-    "HTTPS Bad Chain", "HTTPS Bad Hostname",
-    "HSTS", "HSTS Header", "HSTS All Subdomains", "HSTS Preload Ready",
-    "Broken Root", "Broken WWW"
-]
-
-
-###
-# Inspect a site's valid TLS configuration using ssllabs-scan.
-#
-# If site inspection data exists for a domain, will check results
-# and only process domains with valid HTTPS, or broken chains.
-###
-def tls(domain):
-    logging.debug("[%s][tls]" % domain)
-
-    # If inspection data exists, check to see if we can skip.
-    inspection = data_for(domain, "inspect")
-    if inspection and (not inspection.get("support_https")):
-        logging.debug("\tSkipping, HTTPS not supported in inspection.")
-        yield None
-
-    else:
-        # cache reformatted JSON from ssllabs
-        cache = cache_path(domain, "tls")
-
-        force = options.get("force", False)
-
-        if (force is False) and (os.path.exists(cache)):
-            logging.debug("\tCached.")
-            raw = open(cache).read()
-            data = json.loads(raw)
-
-            if data.get('invalid'):
-                return None
-        else:
-            logging.debug("\t %s %s" % (ssllabs_cmd, domain))
-
-            usecache = str(not force).lower()
-
-            if options.get("debug"):
-                cmd = [ssllabs_cmd, "--usecache=%s" % usecache,
-                       "--verbosity=debug", domain]
-            else:
-                cmd = [ssllabs_cmd, "--usecache=%s" % usecache,
-                       "--quiet", domain]
-            raw = utils.scan(cmd)
-            if raw:
-                data = json.loads(raw)
-
-                # we only give ssllabs-scan one at a time,
-                # so we can de-pluralize this
-                data = data[0]
-
-                # if SSL Labs had an error hitting the site, cache this
-                # as an invalid entry.
-                if data["status"] == "ERROR":
-                  utils.write(invalid(data), cache)
-                  return None
-
-                utils.write(utils.json_for(data), cache)
-            else:
-                return None
-                # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
-
-        # can return multiple rows, one for each 'endpoint'
-        for endpoint in data['endpoints']:
-
-            # this meant it couldn't connect to the endpoint
-            if not endpoint.get("grade"):
-                continue
-
-            sslv3 = False
-            tlsv12 = False
-            for protocol in endpoint['details']['protocols']:
-                if ((protocol['name'] == "SSL") and
-                        (protocol['version'] == '3.0')):
-                    sslv3 = True
-                if ((protocol['name'] == "TLS") and
-                        (protocol['version'] == '1.2')):
-                    tlsv12 = True
-
-            spdy = False
-            h2 = False
-            npn = endpoint['details'].get('npnProtocols', None)
-            if npn:
-                spdy = ("spdy" in npn)
-                h2 = ("h2-" in npn)
-
-            yield [
-                endpoint['grade'],
-                endpoint['details']['cert']['sigAlg'],
-                endpoint['details']['key']['alg'],
-                endpoint['details']['key']['size'],
-                endpoint['details']['forwardSecrecy'],
-                endpoint['details']['ocspStapling'],
-                endpoint['details']['heartbleed'],
-                sslv3,
-                endpoint['details']['key'].get('debianFlaw', False),
-                tlsv12,
-                spdy,
-                endpoint['details']['sniRequired'],
-                h2
-            ]
-
-tls.headers = [
-    "Grade",  # unique to SSL Labs
-    "Signature Algorithm", "Key Type", "Key Size",  # strength
-    "Forward Secrecy", "OCSP Stapling",  # privacy
-    "Heartbleed", "SSLv3", "Debian Flaw",  # bad things
-    "TLSv1.2", "SPDY", "Requires SNI",  # forward
-    "HTTP/2",  # ever forward
-]
-
-
-###
-# Check whether a domain is present in the list of DAP domains,
-# as provided through --dap-file.
-#
-# Assumes dap_domains is preloaded from --dap-file.
-###
-def dap(domain):
-    logging.debug("[%s][dap]" % domain)
-    logging.debug("\tChecking file.")
-    # TODO: have this output JSON anyway.
-    yield [(domain in dap_domains)]
-
-dap.headers = ["Participates in DAP"]
-
-
-# Predictable cache path for a domain and operation.
-def cache_path(domain, operation):
-    return os.path.join(utils.data_dir(), operation, ("%s.json" % domain))
-
-# Used to quickly get cached data for a domain.
-def data_for(domain, operation):
-    path = cache_path(domain, operation)
-    if os.path.exists(path):
-        raw = open(path).read()
-        return json.loads(raw)
-    else:
-        return {}
-
-# marker for a cached invalid response
-def invalid(data=None):
-    if data is None: data = {}
-    data['invalid'] = True
-    return utils.json_for(data)
 
 # Load the first column of a CSV into memory as an array of strings.
 def load_domains(domain_csv):

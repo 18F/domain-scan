@@ -138,3 +138,23 @@ def scan(command):
     except subprocess.CalledProcessError:
         logging.warn("Error running %s." % (str(command)))
         return None
+
+
+# Predictable cache path for a domain and operation.
+def cache_path(domain, operation):
+    return os.path.join(data_dir(), operation, ("%s.json" % domain))
+
+# Used to quickly get cached data for a domain.
+def data_for(domain, operation):
+    path = cache_path(domain, operation)
+    if os.path.exists(path):
+        raw = open(path).read()
+        return json.loads(raw)
+    else:
+        return {}
+
+# marker for a cached invalid response
+def invalid(data=None):
+    if data is None: data = {}
+    data['invalid'] = True
+    return json_for(data)
