@@ -32,19 +32,57 @@ def domains_from(arg):
         yield arg
 
 
-# run a method over every domain, write row to output file
-def scan_domains(scanner, domains, output):
-    with open(output, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["Domain"] + scanner.headers)
+###
+# Given the selected scanners, and input domains, run each domain
+# through each scanner.
+#
+# Produces a CSV for each scan, with each domain and results.
+# Produces a CSV for all scans, with each domain and all results.
+###
+def scan_domains(scanners, domains):
 
-        for domain in domains_from(domains):
+    # Run through each scanner and open a file and CSV for each.
+    handles = {}
+    all_headers = []
+    for scanner in scanners:
+        scanner_file = open("results/%s.csv" % scanner.__name__, 'w', newline='')
+        scanner_writer = csv.writer(scanner_file)
+        scanner_writer.writerow(["Domain"] + scanner.headers)
+
+        handles[scanner] = {
+            'file': scanner_file,
+            'writer': scanner_writer
+        }
+
+        all_headers += scanner.headers
+
+    # Open an all.csv for combined results.
+    all_csvfile = open("results/all.csv", 'w', newline='')
+    all_writer = csv.writer(all_csvfile)
+    all_writer.writerow(["Domain"] + all_headers)
+
+    # For each domain, run through each scanner.
+    for domain in domains_from(domains):
+        # Accumulate results from each scanner.
+        all_row = [domain]
+
+        for scanner in scanners:
             for row in scanner(domain):
-                # TODO: handle None as empty row
                 if row:
-                    writer.writerow([domain] + row)
+                    all_row += row
+                    handles[scanner]['writer'].writerow([domain] + row)
 
-    logging.warn("Results written to %s" % output)
+                else:
+                    all_row += [None] * len(scanner.headers)
+
+        all_writer.writerow(all_row)
+
+    # Close up all the files.
+    all_csvfile.close()
+    for scanner in scanners:
+        handles[scanner]['file'].close()
+
+    logging.warn("Results written to CSV.")
 
 ###
 # Entry point. `options` is a dict of CLI flags.
@@ -58,7 +96,10 @@ def run(options=None):
 
     given = options["_"][0]
 
-    # clear out existing result CSVs, to avoid inconsistent data
+    # Which scanners to run the domain through.
+    scanners = []
+
+    # Clear out existing result CSVs, to avoid inconsistent data.
     for result in glob.glob("results/*.csv"):
         os.remove(result)
 
@@ -67,14 +108,14 @@ def run(options=None):
         if not utils.try_command(site_inspector_cmd):
             logging.error("You need `site-inspector` to scan site details.")
             exit()
-        scan_domains(inspect, given, 'results/inspect.csv')
+        scanners.append(inspect)
 
     # Analyze a domain's TLS configuration in great detail.
     if options.get("tls"):
         if not utils.try_command("ssllabs-scan"):
             logging.error("You need `ssllabs-scan` to scan TLS details.")
             exit()
-        scan_domains(tls, given, 'results/tls.csv')
+        scanners.append(tls)
 
     # Check whether a domain participated in analytics.usa.gov.
     # [Note: Should generalize this to something less gov-specific.]
@@ -84,8 +125,9 @@ def run(options=None):
             logging.error("--dap-csv should point to a CSV file.")
             exit()
         dap_domains = load_domains(dap_file)
-        scan_domains(dap, given, 'results/dap.csv')
+        scanners.append(dap)
 
+    scan_domains(scanners, given)
 
 
 ##
