@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import glob
 import utils
 import logging
 import csv
@@ -15,6 +16,8 @@ utils.mkdir_p("results")
 # make site-inspector path overrideable
 site_inspector_cmd = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
 
+# hold cached domain data
+dap_domains = None
 
 def domains_from(arg):
     if arg.endswith(".csv"):
@@ -40,34 +43,37 @@ def scan_domains(scanner, domains, output):
 
     logging.warn("Results written to %s" % output)
 
-
-def dependencies():
-    return
-
-
-# marker for a cached invalid response
-def invalid(data=None):
-    if data is None: data = {}
-    data['invalid'] = True
-    return utils.json_for(data)
-
-
 def run(options=None):
+    global dap_domains
 
     if not options["_"]:
         logging.error("Provide a CSV file, or domain name.")
         exit()
 
-    if not utils.try_command(site_inspector_cmd):
-        logging.error("You need `site-inspector` to scan site details.")
-        exit()
-    scan_domains(inspect, options["_"][0], 'results/inspect.csv')
+    # clear out existing result CSVs, to avoid inconsistent data
+    for result in glob.glob("results/*.csv"):
+        os.remove(result)
+
+    if options.get("inspect"):
+        if not utils.try_command(site_inspector_cmd):
+            logging.error("You need `site-inspector` to scan site details.")
+            exit()
+        scan_domains(inspect, options["_"][0], 'results/inspect.csv')
 
     if options.get("tls"):
         if not utils.try_command("ssllabs-scan"):
             logging.error("You need `ssllabs-scan` to scan TLS details.")
             exit()
         scan_domains(tls, 'results/inspect.csv', 'results/tls.csv')
+
+    if options.get("dap"):
+        dap_file = options.get("dap-csv")
+        if (not dap_file) or (not dap_file.endswith(".csv")) or (not os.path.exists(dap_file)):
+            logging.error("--dap-csv should point to a CSV file.")
+            exit()
+        dap_domains = load_domains(dap_file)
+        scan_domains(dap, options["_"][0], 'results/dap.csv')
+
 
 
 ##
@@ -232,6 +238,13 @@ tls.headers = [
 ]
 
 
+# Assumes dap_domains is preloaded.
+def dap(domain, other=None):
+    logging.debug("[%s][dap]" % domain)
+    logging.debug("\tChecking file.")
+    yield [domain, (domain in dap_domains)]
+dap.headers = ["Domain", "Participates in DAP"]
+
 ###
 # Run a mixed content scan on the domain.
 #
@@ -292,6 +305,21 @@ mixed.headers = [
 def cache_path(domain, operation):
     return os.path.join(utils.data_dir(), operation, ("%s.json" % domain))
 
+# marker for a cached invalid response
+def invalid(data=None):
+    if data is None: data = {}
+    data['invalid'] = True
+    return utils.json_for(data)
+
+# Load the first column of a CSV into memory as an array of strings.
+def load_domains(domain_csv):
+    domains = []
+    with open(domain_csv, newline='') as csvfile:
+        for row in csv.reader(csvfile):
+            if (not row[0]) or (row[0].lower().startswith("domain")):
+                continue
+            domains.append(row[0].lower())
+    return domains
 
 if __name__ == '__main__':
     run(options)
