@@ -154,9 +154,9 @@ def inspect(domain):
         utils.write(raw, cache)
         data = json.loads(raw)
 
-    # always returns 1 row
-
+    # TODO: get this from a site-inspector field directly
     canonical_https = data['endpoints']['https'][data['canonical_endpoint']]
+    # TODO: guarantee these as present in site-inspector
     https_valid = canonical_https.get('https_valid', False)
     https_bad_chain = canonical_https.get('https_bad_chain', False)
     https_bad_name = canonical_https.get('https_bad_name', False)
@@ -300,6 +300,7 @@ tls.headers = [
 def dap(domain):
     logging.debug("[%s][dap]" % domain)
     logging.debug("\tChecking file.")
+    # TODO: have this output JSON anyway.
     yield [(domain in dap_domains)]
 
 dap.headers = ["Participates in DAP"]
