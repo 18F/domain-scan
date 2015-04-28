@@ -36,12 +36,21 @@ def run(options=None):
     scans = []
 
     for name in options.get("scan").split(","):
-        scanner = importlib.import_module("scanners.%s" % name)
+        try:
+            scanner = importlib.import_module("scanners.%s" % name)
+        except ImportError:
+            logging.error("Scanner not found: %s" % name)
+            exit()
+
+        # If the scanner has a canonical command, make sure it exists.
         if scanner.command and (not utils.try_command(scanner.command)):
             logging.error("[%s] Command not found: %s" % (name, scanner.cmd))
             exit()
+
+        # Scanners can have an optional init/validation hook.
         if scanner.init and (not scanner.init(options)):
             exit()
+
         scans.append(scanner)
 
     scan_domains(scans, domains)
