@@ -46,6 +46,9 @@ def scan_domains(scanner, domains, output):
 
     logging.warn("Results written to %s" % output)
 
+###
+# Entry point. `options` is a dict of CLI flags.
+###
 def run(options=None):
     global dap_domains
 
@@ -258,64 +261,6 @@ def dap(domain):
     yield [domain, (domain in dap_domains)]
 
 dap.headers = ["Domain", "Participates in DAP"]
-
-
-###
-# Run a mixed content scan on the domain.
-#
-# If inspection details are present, limits scan to live
-# domains. If HTTPS is canonical, then uses the `https://`
-# version of the domain.
-#
-# TODO: This is still incomplete. Which protocol to use
-# when inspection is not done prior is an open question.
-###
-def mixed(domain):
-    logging.debug("[%s][mixed]" % domain)
-
-    # If inspection data exists, check to see if we can skip.
-    inspection = data_for(domain, "inspect")
-    if inspection and (not inspection.get("up")):
-        logging.debug("\tSkipping, domain not up in inspection.")
-        yield None
-
-    else:
-        # cache restructured data from mixed-content-scam
-
-        cache = cache_path(domain, "mixed")
-        if (os.path.exists(cache)):
-            logging.debug("\tCached.")
-            raw = open(cache).read()
-        else:
-            # Only use HTTPS if it's forced. Otherwise, assume the domain
-            # still needs to evaluate what mixed content appears on the
-            # HTTP version.
-            #
-            # Use the canonical domain, as calculated by site-inspector,
-            # to pick what URL to scan.
-            effective = other[0]
-            if (other[3] == "True") and (other[4] == "True"):
-                effective = "https://%s" % effective
-            else:
-                effective = "http://%s" % effective
-
-            logging.debug("\t %s --format=json %s" % (mixed_cmd, effective))
-
-            cmd = [mixed_cmd, "--format=json", effective]
-            raw = utils.scan(cmd)
-            if raw:
-                # read line by line, store two dicts - by page, by resource
-
-                # data = json.loads(raw)
-                utils.write(raw, cache)
-            else:
-                return None
-                # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
-
-
-mixed.headers = [
-    "Domain", "Pages", "Resources"
-]
 
 
 # Predictable cache path for a domain and operation.
