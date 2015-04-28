@@ -36,13 +36,13 @@ def domains_from(arg):
 def scan_domains(scanner, domains, output):
     with open(output, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(scanner.headers)
+        writer.writerow(["Domain"] + scanner.headers)
 
         for domain in domains_from(domains):
             for row in scanner(domain):
                 # TODO: handle None as empty row
                 if row:
-                    writer.writerow(row)
+                    writer.writerow([domain] + row)
 
     logging.warn("Results written to %s" % output)
 
@@ -120,7 +120,7 @@ def inspect(domain):
     https_bad_name = canonical_https.get('https_bad_name', False)
 
     yield [
-        domain, data['canonical'], data['up'],
+        data['canonical'], data['up'],
         data['redirect'], data['redirect_to'],
         https_valid, data['default_https'], data['downgrade_https'],
         data['enforce_https'],
@@ -131,7 +131,7 @@ def inspect(domain):
     ]
 
 inspect.headers = [
-    "Domain", "Canonical", "Live",
+    "Canonical", "Live",
     "Redirect", "Redirect To",
     "Valid HTTPS", "Defaults to HTTPS",
     "Downgrades HTTPS", "Strictly Forces HTTPS",
@@ -224,7 +224,7 @@ def tls(domain):
                 h2 = ("h2-" in npn)
 
             yield [
-                domain, endpoint['grade'],
+                endpoint['grade'],
                 endpoint['details']['cert']['sigAlg'],
                 endpoint['details']['key']['alg'],
                 endpoint['details']['key']['size'],
@@ -240,7 +240,7 @@ def tls(domain):
             ]
 
 tls.headers = [
-    "Domain", "Grade",
+    "Grade",  # unique to SSL Labs
     "Signature Algorithm", "Key Type", "Key Size",  # strength
     "Forward Secrecy", "OCSP Stapling",  # privacy
     "Heartbleed", "SSLv3", "Debian Flaw",  # bad things
@@ -258,9 +258,9 @@ tls.headers = [
 def dap(domain):
     logging.debug("[%s][dap]" % domain)
     logging.debug("\tChecking file.")
-    yield [domain, (domain in dap_domains)]
+    yield [(domain in dap_domains)]
 
-dap.headers = ["Domain", "Participates in DAP"]
+dap.headers = ["Participates in DAP"]
 
 
 # Predictable cache path for a domain and operation.
