@@ -3,15 +3,20 @@ from scanners import utils
 import json
 import os
 
+
+###
+# == tls ==
+#
+# Inspect a site's valid TLS configuration using ssllabs-scan.
+#
+# If data exists for a domain from `inspect`, will check results
+# and only process domains with valid HTTPS, or broken chains.
+###
+
+
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
 init = None
 
-###
-# Inspect a site's valid TLS configuration using ssllabs-scan.
-#
-# If site inspection data exists for a domain, will check results
-# and only process domains with valid HTTPS, or broken chains.
-###
 def scan(domain, options):
     logging.debug("[%s][tls]" % domain)
 

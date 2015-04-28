@@ -3,12 +3,18 @@ from scanners import utils
 import json
 import os
 
+
+##
+# == inspect ==
+#
+# Evaluate HTTP/HTTPS/HSTS configuration using site-inspector.
+##
+
+
 command = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
 init = None
 
-##
-# Inspect a domain's fundamentals using site-inspector.
-##
+
 def scan(domain, options):
     logging.debug("[%s][inspect]" % domain)
 
