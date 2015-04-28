@@ -30,10 +30,6 @@ def run(options=None):
     # Which scanners to run the domain through.
     chosen = []
 
-    # Clear out existing result CSVs, to avoid inconsistent data.
-    for result in glob.glob("results/*.csv"):
-        os.remove(result)
-
     # Inspect a domain and its endpoint behavior over HTTP and HTTPS.
     if options.get("inspect"):
         import scanners.inspect
@@ -70,6 +66,10 @@ def run(options=None):
 # Produces a CSV for each scan, with each domain and results.
 ###
 def scan_domains(scanners, domains):
+
+    # Clear out existing result CSVs, to avoid inconsistent data.
+    for result in glob.glob("results/*.csv"):
+        os.remove(result)
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
