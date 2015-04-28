@@ -4,6 +4,7 @@ import subprocess
 import sys
 import traceback
 import json
+import csv
 import logging
 import datetime
 
@@ -158,3 +159,13 @@ def invalid(data=None):
     if data is None: data = {}
     data['invalid'] = True
     return json_for(data)
+
+# Load the first column of a CSV into memory as an array of strings.
+def load_domains(domain_csv):
+    domains = []
+    with open(domain_csv, newline='') as csvfile:
+        for row in csv.reader(csvfile):
+            if (not row[0]) or (row[0].lower().startswith("domain")):
+                continue
+            domains.append(row[0].lower())
+    return domains

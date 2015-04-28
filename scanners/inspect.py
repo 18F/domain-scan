@@ -3,7 +3,8 @@ from scanners import utils
 import json
 import os
 
-site_inspector_cmd = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
+command = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
+init = None
 
 ##
 # Inspect a domain's fundamentals using site-inspector.
@@ -21,8 +22,8 @@ def scan(domain, options):
             return None
 
     else:
-        logging.debug("\t %s %s --http" % (site_inspector_cmd, domain))
-        raw = utils.scan([site_inspector_cmd, domain, "--http"])
+        logging.debug("\t %s %s --http" % (command, domain))
+        raw = utils.scan([command, domain, "--http"])
         if not raw:
             utils.write(invalid({}), cache)
             return None

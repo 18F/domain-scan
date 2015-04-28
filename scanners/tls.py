@@ -3,7 +3,8 @@ from scanners import utils
 import json
 import os
 
-ssllabs_cmd = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
+command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
+init = None
 
 ###
 # Inspect a site's valid TLS configuration using ssllabs-scan.
@@ -34,15 +35,15 @@ def scan(domain, options):
             if data.get('invalid'):
                 return None
         else:
-            logging.debug("\t %s %s" % (ssllabs_cmd, domain))
+            logging.debug("\t %s %s" % (command, domain))
 
             usecache = str(not force).lower()
 
             if options.get("debug"):
-                cmd = [ssllabs_cmd, "--usecache=%s" % usecache,
+                cmd = [command, "--usecache=%s" % usecache,
                        "--verbosity=debug", domain]
             else:
-                cmd = [ssllabs_cmd, "--usecache=%s" % usecache,
+                cmd = [command, "--usecache=%s" % usecache,
                        "--quiet", domain]
             raw = utils.scan(cmd)
             if raw:
