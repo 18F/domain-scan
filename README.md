@@ -1,14 +1,12 @@
 ## An HTTPS scanner
 
-Scans domains for:
+Scans domains for data on their:
 
-* Whether the domain exists and has valid HTTPS enabled.
-* Whether HTTP Strict Transport Security (HSTS) is enabled.
-* TLS configuration details.
-* (Coming soon) Mixed content reports.
+* HTTP, HTTPS, and [HSTS](https://https.cio.gov/hsts/) configuration, using [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
+* Detailed TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan).
+* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (Government-specific.)
 
 Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
-
 
 ### Usage
 
@@ -38,16 +36,6 @@ Next, every domain site-inspector saw as _live_ and _HTTPS-enabled_ will be run 
 * Results stored in JSON per-domain in `cache/tls/[domain].json`.
 * Results stored in CSV for all domains at `results/tls.csv`.
 
-
-### TODO
-
-* Look at SSLyze instead of SSL Labs, for local scanning and the lack of Terms and Conditions.
-* Mixed content scanning.
-* Check invalid HTTPS as well, save cert details.
-* Save server hostname (e.g. e248.akamai.net)
-* Check for HTTP Public Key Pinning headers.
-* Mark HSTS qualities: long max-age? subdomains? preload?
-* better independent queueing of individual tasks (docker? moxie? celery?)
 
 ### Public domain
 
