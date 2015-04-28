@@ -27,7 +27,14 @@ def init(options):
 def scan(domain, options):
     logging.debug("[%s][analytics]" % domain)
     logging.debug("\tChecking file.")
-    # TODO: have this output JSON anyway.
-    yield [(domain in analytics_domains)]
+
+    data = {
+        'participating': (domain in analytics_domains)
+    }
+
+    cache = utils.cache_path(domain, "analytics")
+    utils.write(utils.json_for(data), cache)
+
+    yield [data['participating']]
 
 headers = ["Participates in Analytics"]
