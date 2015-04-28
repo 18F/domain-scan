@@ -68,13 +68,11 @@ def run(options=None):
 # through each scanner.
 #
 # Produces a CSV for each scan, with each domain and results.
-# Produces a CSV for all scans, with each domain and all results.
 ###
 def scan_domains(scanners, domains):
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
-    all_headers = []
     for scanner in scanners:
         name = scanner.__name__.split(".")[-1]  # e.g. 'inspect'
         scanner_file = open("results/%s.csv" % name, 'w', newline='')
@@ -86,31 +84,15 @@ def scan_domains(scanners, domains):
             'writer': scanner_writer
         }
 
-        all_headers += scanner.headers
-
-    # Open an all.csv for combined results.
-    all_csvfile = open("results/all.csv", 'w', newline='')
-    all_writer = csv.writer(all_csvfile)
-    all_writer.writerow(["Domain"] + all_headers)
-
     # For each domain, run through each scanner.
     for domain in domains_from(domains):
-        # Accumulate results from each scanner.
-        all_row = [domain]
 
         for scanner in scanners:
             for row in scanner.scan(domain, options):
                 if row:
-                    all_row += row
                     handles[scanner]['writer'].writerow([domain] + row)
 
-                else:
-                    all_row += [None] * len(scanner.headers)
-
-        all_writer.writerow(all_row)
-
     # Close up all the files.
-    all_csvfile.close()
     for scanner in scanners:
         handles[scanner]['file'].close()
 
