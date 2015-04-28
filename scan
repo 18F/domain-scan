@@ -13,10 +13,12 @@ utils.configure_logging(options)
 utils.mkdir_p("cache")
 utils.mkdir_p("results")
 
-# make site-inspector path overrideable
+# Make individual command paths overrideable via env vars.
 site_inspector_cmd = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
+ssllabs_cmd = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
+mixed_cmd = os.environ.get("MIXED_CONTENT_SCAN_PATH", "mixed-content-scan")
 
-# hold cached domain data
+# Global cache of DAP domain data, if provided via --dap-file.
 dap_domains = None
 
 def domains_from(arg):
@@ -57,19 +59,22 @@ def run(options=None):
     for result in glob.glob("results/*.csv"):
         os.remove(result)
 
-    # --inspect:
+    # Inspect a domain and its endpoint behavior over HTTP and HTTPS.
     if options.get("inspect"):
         if not utils.try_command(site_inspector_cmd):
             logging.error("You need `site-inspector` to scan site details.")
             exit()
         scan_domains(inspect, given, 'results/inspect.csv')
 
+    # Analyze a domain's TLS configuration in great detail.
     if options.get("tls"):
         if not utils.try_command("ssllabs-scan"):
             logging.error("You need `ssllabs-scan` to scan TLS details.")
             exit()
         scan_domains(tls, given, 'results/tls.csv')
 
+    # Check whether a domain participated in analytics.usa.gov.
+    # [Note: Should generalize this to something less gov-specific.]
     if options.get("dap"):
         dap_file = options.get("dap-csv")
         if (not dap_file) or (not dap_file.endswith(".csv")) or (not os.path.exists(dap_file)):
@@ -162,15 +167,15 @@ def tls(domain):
             if data.get('invalid'):
                 return None
         else:
-            logging.debug("\t ssllabs-scan %s" % domain)
+            logging.debug("\t %s %s" % (ssllabs_cmd, domain))
 
             usecache = str(not force).lower()
 
             if options.get("debug"):
-                cmd = ["ssllabs-scan", "--usecache=%s" % usecache,
+                cmd = [ssllabs_cmd, "--usecache=%s" % usecache,
                        "--verbosity=debug", domain]
             else:
-                cmd = ["ssllabs-scan", "--usecache=%s" % usecache,
+                cmd = [ssllabs_cmd, "--usecache=%s" % usecache,
                        "--quiet", domain]
             raw = utils.scan(cmd)
             if raw:
@@ -294,9 +299,9 @@ def mixed(domain):
             else:
                 effective = "http://%s" % effective
 
-            logging.debug("\t mixed-content-scan --format=json %s" % effective)
+            logging.debug("\t %s --format=json %s" % (mixed_cmd, effective))
 
-            cmd = ["mixed-content-scan", "--format=json", effective]
+            cmd = [mixed_cmd, "--format=json", effective]
             raw = utils.scan(cmd)
             if raw:
                 # read line by line, store two dicts - by page, by resource
