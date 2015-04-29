@@ -31,7 +31,7 @@ def scan(domain, options):
         logging.debug("\t %s %s --http" % (command, domain))
         raw = utils.scan([command, domain, "--http"])
         if not raw:
-            utils.write(invalid({}), cache)
+            utils.write(utils.invalid({}), cache)
             return None
         utils.write(raw, cache)
         data = json.loads(raw)
