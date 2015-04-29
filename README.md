@@ -1,53 +1,57 @@
 ## An HTTPS scanner
 
-Scans domains for:
+Scans domains for data on their:
 
-* Whether the domain exists and has valid HTTPS enabled.
-* Whether HTTP Strict Transport Security (HSTS) is enabled.
-* TLS configuration details.
-* (Coming soon) Mixed content reports.
+* HTTP, HTTPS, and [HSTS](https://https.cio.gov/hsts/) configuration, using [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
+* Detailed TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan).
+* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (Government-specific for now.)
 
 Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
-
 
 ### Usage
 
 Requires **Python 3**. Tested on 3.4.2.
 
-Scan a domain.
+Scan a domain. You must specify at least one "scanner" with `--scan`.
 
 ```bash
-./scan konklone.com
+./scan konklone.com --scan=inspect
 ```
 
-Scan a list of domains from a CSV. CSV header rows will be ignored if the first cell starts with "Domain" (case-insensitive).
+Scan a list of domains from a CSV. The CSV's header row will be ignored if the first cell starts with "Domain" (case-insensitive).
 
 ```bash
-./scan domains.csv
+./scan domains.csv --scan=inspect
 ```
 
-## Order of events
+Run multiple scanners on each domain:
 
-First, every given domain is run through [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
+```bash
+./scan whitehouse.gov --scan=inspect,tls
+```
 
-* Results stored in JSON per-domain in `cache/inspect/[domain].json`.
-* Results stored in CSV for all domains at `results/inspect.csv`.
+**Options:**
 
-Next, every domain site-inspector saw as _live_ and _HTTPS-enabled_ will be run through [`ssllabs-scan`](https://github.com/ssllabs/ssllabs-scan), which uses the SSL Labs API and is subject to their [Terms and Conditions](https://github.com/ssllabs/ssllabs-scan/blob/master/ssllabs-api-docs.md#terms-and-conditions).
+* `--scan` - **Required.** Comma-separated names of one or more scanners.
+* `--debug` - Print out more stuff.
 
-* Results stored in JSON per-domain in `cache/tls/[domain].json`.
-* Results stored in CSV for all domains at `results/tls.csv`.
+**Scanners:**
 
+* `inspect` - HTTP/HTTPS/HSTS configuration.
+* `tls` - TLS configuration.
+* `analytics` - Participation in an analytics program.
 
-### TODO
+### Output
 
-* Look at SSLyze instead of SSL Labs, for local scanning and the lack of Terms and Conditions.
-* Mixed content scanning.
-* Check invalid HTTPS as well, save cert details.
-* Save server hostname (e.g. e248.akamai.net)
-* Check for HTTP Public Key Pinning headers.
-* Mark HSTS qualities: long max-age? subdomains? preload?
-* better independent queueing of individual tasks (docker? moxie? celery?)
+Full scan data about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
+
+* Example: `cache/inspect/whitehouse.gov.json`
+
+Highlights from the scan data about all domains are saved in the `results/` directory, named after each scan, in CSV.
+
+* Example: `results/inspect.csv`
+
+It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
 
 ### Public domain
 
