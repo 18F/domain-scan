@@ -30,16 +30,18 @@ Run multiple scanners on each domain:
 ./scan whitehouse.gov --scan=inspect,tls
 ```
 
-**Options:**
-
-* `--scan` - **Required.** Comma-separated names of one or more scanners.
-* `--debug` - Print out more stuff.
-
 **Scanners:**
 
 * `inspect` - HTTP/HTTPS/HSTS configuration.
 * `tls` - TLS configuration.
 * `analytics` - Participation in an analytics program.
+
+**Options:**
+
+* `--scan` - **Required.** Comma-separated names of one or more scanners.
+* `--debug` - Print out more stuff.
+* `--force` - Ignore cached data and force scans to hit the network.
+* `--analytics` - Required if using the `analytics` scanner. Point this to the CSV of participating domains.
 
 ### Output
 
