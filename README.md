@@ -1,4 +1,4 @@
-## An HTTPS scanner
+## A domain scanner
 
 Scans domains for data on their:
 
