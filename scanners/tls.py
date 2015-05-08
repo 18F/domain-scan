@@ -62,8 +62,8 @@ def scan(domain, options):
                 # if SSL Labs had an error hitting the site, cache this
                 # as an invalid entry.
                 if data["status"] == "ERROR":
-                  utils.write(utils.invalid(data), cache)
-                  return None
+                    utils.write(utils.invalid(data), cache)
+                    return None
 
                 utils.write(utils.json_for(data), cache)
             else:
