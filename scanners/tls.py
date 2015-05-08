@@ -118,4 +118,3 @@ headers = [
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
     "HTTP/2",  # ever forward
 ]
-
