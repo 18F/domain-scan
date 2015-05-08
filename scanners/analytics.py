@@ -17,8 +17,11 @@ def init(options):
     global analytics_domains
 
     analytics_file = options.get("analytics")
-    if (not analytics_file) or (not analytics_file.endswith(".csv")) or (not os.path.exists(analytics_file)):
-        logging.error("--analytics should point to a CSV of participating domains.")
+    if ((not analytics_file) or
+            (not analytics_file.endswith(".csv")) or
+            (not os.path.exists(analytics_file))):
+        no_csv = "--analytics should point to a CSV of participating domains."
+        logging.error(no_csv)
         return False
 
     analytics_domains = utils.load_domains(analytics_file)
