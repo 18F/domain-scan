@@ -42,7 +42,8 @@ def run(options=None):
 
         # If the scanner has a canonical command, make sure it exists.
         if scanner.command and (not utils.try_command(scanner.command)):
-            logging.error("[%s] Command not found: %s" % (name, scanner.cmd))
+            logging.error("[%s] Command not found: %s" %
+                          (name, scanner.command))
             exit()
 
         # Scanners can have an optional init/validation hook.
