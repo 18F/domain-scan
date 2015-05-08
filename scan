@@ -55,6 +55,7 @@ def run(options=None):
 
     scan_domains(scans, domains)
 
+
 ###
 # Given the selected scanners, and input domains, run each domain
 # through each scanner.
@@ -93,6 +94,7 @@ def scan_domains(scanners, domains):
         handles[scanner]['file'].close()
 
     logging.warn("Results written to CSV.")
+
 
 # Yield domain names from a single string, or a CSV of them.
 def domains_from(arg):

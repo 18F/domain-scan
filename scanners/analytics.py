@@ -12,6 +12,7 @@ import os
 command = None
 analytics_domains = None
 
+
 def init(options):
     global analytics_domains
 
@@ -23,6 +24,7 @@ def init(options):
     analytics_domains = utils.load_domains(analytics_file)
 
     return True
+
 
 def scan(domain, options):
     logging.debug("[%s][analytics]" % domain)

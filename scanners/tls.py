@@ -17,6 +17,7 @@ import os
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
 init = None
 
+
 def scan(domain, options):
     logging.debug("[%s][tls]" % domain)
 
