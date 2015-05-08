@@ -158,7 +158,8 @@ def data_for(domain, operation):
 
 # marker for a cached invalid response
 def invalid(data=None):
-    if data is None: data = {}
+    if data is None:
+        data = {}
     data['invalid'] = True
     return json_for(data)
 
