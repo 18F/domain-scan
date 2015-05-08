@@ -2,12 +2,10 @@
 
 import os
 import glob
-import scanners
 from scanners import utils
 import logging
 import importlib
 import csv
-import json
 
 
 # basic setup - logs, output dirs
