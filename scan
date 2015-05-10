@@ -2,12 +2,10 @@
 
 import os
 import glob
-import scanners
 from scanners import utils
 import logging
 import importlib
 import csv
-import json
 
 
 # basic setup - logs, output dirs
@@ -44,7 +42,8 @@ def run(options=None):
 
         # If the scanner has a canonical command, make sure it exists.
         if scanner.command and (not utils.try_command(scanner.command)):
-            logging.error("[%s] Command not found: %s" % (name, scanner.cmd))
+            logging.error("[%s] Command not found: %s" %
+                          (name, scanner.command))
             exit()
 
         # Scanners can have an optional init/validation hook.
@@ -54,6 +53,7 @@ def run(options=None):
         scans.append(scanner)
 
     scan_domains(scans, domains)
+
 
 ###
 # Given the selected scanners, and input domains, run each domain
@@ -93,6 +93,7 @@ def scan_domains(scanners, domains):
         handles[scanner]['file'].close()
 
     logging.warn("Results written to CSV.")
+
 
 # Yield domain names from a single string, or a CSV of them.
 def domains_from(arg):

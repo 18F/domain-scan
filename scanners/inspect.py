@@ -63,4 +63,3 @@ headers = [
     "HSTS", "HSTS Header", "HSTS All Subdomains", "HSTS Preload Ready",
     "Broken Root", "Broken WWW"
 ]
-
