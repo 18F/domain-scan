@@ -93,16 +93,34 @@ def scan(domain, options):
                 spdy = ("spdy" in npn)
                 h2 = ("h2-" in npn)
 
+            def ccs_map(n):
+                return {
+                    -1: "N/A (Error)",
+                    0: "N/A (Unknown)",
+                    1: "No (not vulnerable)",
+                    2: "No (not exploitable)",
+                    3: "Yes"
+                }[n]
+
+            def fs_map(n):
+                return {
+                    0: "0 - No",
+                    1: "1 - Some",
+                    2: "2 - Modern",
+                    4: "3 - Robust"
+                }[n]
+
             yield [
                 endpoint['grade'],
                 endpoint['details']['cert']['sigAlg'],
                 endpoint['details']['key']['alg'],
                 endpoint['details']['key']['size'],
-                endpoint['details']['forwardSecrecy'],
+                fs_map(endpoint['details']['forwardSecrecy']),
                 endpoint['details']['ocspStapling'],
-                endpoint['details']['heartbleed'],
+                endpoint['details'].get('fallbackScsv', "N/A"),
+                endpoint['details'].get('freak'),
+                ccs_map(endpoint['details']['openSslCcs']),
                 sslv3,
-                endpoint['details']['key'].get('debianFlaw', False),
                 tlsv12,
                 spdy,
                 endpoint['details']['sniRequired'],
@@ -113,7 +131,9 @@ headers = [
     "Grade",  # unique to SSL Labs
     "Signature Algorithm", "Key Type", "Key Size",  # strength
     "Forward Secrecy", "OCSP Stapling",  # privacy
-    "Heartbleed", "SSLv3", "Debian Flaw",  # bad things
+    "Fallback SCSV",  # good things
+    "FREAK",
+    "CVE-2014-0224", "SSLv3",  # bad things
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
     "HTTP/2",  # ever forward
 ]
