@@ -17,6 +17,7 @@ import os
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
 init = None
 
+
 def scan(domain, options):
     logging.debug("[%s][tls]" % domain)
 
@@ -61,8 +62,8 @@ def scan(domain, options):
                 # if SSL Labs had an error hitting the site, cache this
                 # as an invalid entry.
                 if data["status"] == "ERROR":
-                  utils.write(utils.invalid(data), cache)
-                  return None
+                    utils.write(utils.invalid(data), cache)
+                    return None
 
                 utils.write(utils.json_for(data), cache)
             else:
@@ -137,4 +138,3 @@ headers = [
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
     "HTTP/2",  # ever forward
 ]
-

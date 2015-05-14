@@ -145,6 +145,7 @@ def scan(command):
 def cache_path(domain, operation):
     return os.path.join(data_dir(), operation, ("%s.json" % domain))
 
+
 # Used to quickly get cached data for a domain.
 def data_for(domain, operation):
     path = cache_path(domain, operation)
@@ -154,11 +155,14 @@ def data_for(domain, operation):
     else:
         return {}
 
+
 # marker for a cached invalid response
 def invalid(data=None):
-    if data is None: data = {}
+    if data is None:
+        data = {}
     data['invalid'] = True
     return json_for(data)
+
 
 # Load the first column of a CSV into memory as an array of strings.
 def load_domains(domain_csv):
