@@ -10,7 +10,9 @@ Can be used with any domain, or CSV where domains are the first column, such as 
 
 ### Usage
 
-Requires **Python 3**. Tested on 3.4.2.
+If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this github repository, and running `docker-compose up` and then `docker-compose run scan <domain> --scan=<scanner>`. The results will be in the `results` folder.
+
+Otherwise, requires **Python 3**. Tested on 3.4.2.
 
 Scan a domain. You must specify at least one "scanner" with `--scan`.
 
