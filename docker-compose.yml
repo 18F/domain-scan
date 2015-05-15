@@ -1,0 +1,4 @@
+scan:
+  build: .
+  volumes:
+  - ./:/tmp
