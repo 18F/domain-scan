@@ -119,8 +119,6 @@ def scan(domain, options):
                 fs_map(endpoint['details']['forwardSecrecy']),
                 endpoint['details']['ocspStapling'],
                 endpoint['details'].get('fallbackScsv', "N/A"),
-                endpoint['details'].get('freak'),
-                ccs_map(endpoint['details']['openSslCcs']),
                 sslv3,
                 tlsv12,
                 spdy,
@@ -133,8 +131,7 @@ headers = [
     "Signature Algorithm", "Key Type", "Key Size",  # strength
     "Forward Secrecy", "OCSP Stapling",  # privacy
     "Fallback SCSV",  # good things
-    "FREAK",
-    "CVE-2014-0224", "SSLv3",  # bad things
+    "SSLv3",  # bad things
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
     "HTTP/2",  # ever forward
 ]
