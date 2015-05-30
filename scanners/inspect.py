@@ -42,6 +42,9 @@ def scan(domain, options):
     https_valid = canonical_https.get('https_valid', False)
     https_bad_chain = canonical_https.get('https_bad_chain', False)
     https_bad_name = canonical_https.get('https_bad_name', False)
+    # TODO: site-inspector should float this up
+    hsts_details = canonical_https.get('hsts_details', {})
+    max_age = hsts_details.get('max_age', None)
 
     yield [
         data['canonical'], data['up'],
@@ -49,7 +52,9 @@ def scan(domain, options):
         https_valid, data['default_https'], data['downgrade_https'],
         data['enforce_https'],
         https_bad_chain, https_bad_name,
-        data['hsts'], data['hsts_header'], data['hsts_entire_domain'],
+        data['hsts'], data['hsts_header'],
+        max_age,
+        data['hsts_entire_domain'],
         data['hsts_entire_domain_preload'],
         data['broken_root'], data['broken_www']
     ]
@@ -60,6 +65,7 @@ headers = [
     "Valid HTTPS", "Defaults to HTTPS",
     "Downgrades HTTPS", "Strictly Forces HTTPS",
     "HTTPS Bad Chain", "HTTPS Bad Hostname",
-    "HSTS", "HSTS Header", "HSTS All Subdomains", "HSTS Preload Ready",
+    "HSTS", "HSTS Header", "HSTS Max Age",
+    "HSTS All Subdomains", "HSTS Preload Ready",
     "Broken Root", "Broken WWW"
 ]
