@@ -94,31 +94,15 @@ def scan(domain, options):
                 spdy = ("spdy" in npn)
                 h2 = ("h2-" in npn)
 
-            def ccs_map(n):
-                return {
-                    -1: "N/A (Error)",
-                    0: "N/A (Unknown)",
-                    1: "No (not vulnerable)",
-                    2: "No (not exploitable)",
-                    3: "Yes"
-                }[n]
-
-            def fs_map(n):
-                return {
-                    0: "0 - No",
-                    1: "1 - Some",
-                    2: "2 - Modern",
-                    4: "3 - Robust"
-                }[n]
-
             yield [
                 endpoint['grade'],
                 endpoint['details']['cert']['sigAlg'],
                 endpoint['details']['key']['alg'],
                 endpoint['details']['key']['size'],
-                fs_map(endpoint['details']['forwardSecrecy']),
+                endpoint['details']['forwardSecrecy'],
                 endpoint['details']['ocspStapling'],
                 endpoint['details'].get('fallbackScsv', "N/A"),
+                endpoint['details']['supportsRc4'],
                 sslv3,
                 tlsv12,
                 spdy,
@@ -131,7 +115,7 @@ headers = [
     "Signature Algorithm", "Key Type", "Key Size",  # strength
     "Forward Secrecy", "OCSP Stapling",  # privacy
     "Fallback SCSV",  # good things
-    "SSLv3",  # bad things
+    "RC4", "SSLv3",  # old things
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
-    "HTTP/2",  # ever forward
+    "HTTP/2"  # ever forward
 ]
