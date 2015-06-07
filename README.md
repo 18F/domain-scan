@@ -85,8 +85,9 @@ The results will be in the `results` folder.
 
 Some high-priority TODOs here:
 
-* **Parallelization.** There's no risk of DoS to target domains, because it's spread out naturally. The SSL Labs API has parallelization paramaters and guidelines for this kind of batch work.
+* **Parallelization.** There's no risk of DoS to target domains, because it's spread out naturally. The SSL Labs API used by the `tls` scanner has parameters and guidelines for batch work to avoid over-hammering their service.
 * **JSON output**. Refactor scanners to return a dict instead of a row. Have scanners specify both JSON-style field headers *and* CSV-style column headers in a 2-dimensional array. Use this to make it so JSON and CSV can both be serialized with appropriate fields and in the right order. Include JSON results in the `results/` dir.
+* **Handle network loss gracefully.** Right now, the scanner will assume that a domain is "down" if the network is down, and cache that. That makes trusting the results of a batch run iffy. I don't know the best way to distinguish between a domain being unreachable, and the network *making* the domain unreachable.
 * **Upgrade to site-inspector 2.x.** This repo depends on site-inspector 1.0.2, which is behind the times. But, site-inspector 2 needs more testing and work first. site-inspector 2 also is not backwards-compatible, in CLI syntax or in result format.
 
 ### Public domain
