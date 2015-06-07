@@ -4,20 +4,26 @@ Scans domains for data on their:
 
 * HTTP, HTTPS, and [HSTS](https://https.cio.gov/hsts/) configuration, using [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
 * Detailed TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan).
-* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (Government-specific for now.)
+* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (This one's U.S. government-specific for now, but can be ignored.)
 
-Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
+Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/tree/gh-pages/dotgov-domains).
+
+### Requirements
+
+* **Python 3**.
+* **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
+* **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
+
+Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
+
+Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
 
 ### Usage
-
-If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this github repository, and running `docker-compose up` and then `docker-compose run scan <domain> --scan=<scanner>`. The results will be in the `results` folder.
-
-Otherwise, requires **Python 3**. Tested on 3.4.2.
 
 Scan a domain. You must specify at least one "scanner" with `--scan`.
 
 ```bash
-./scan konklone.com --scan=inspect
+./scan whitehouse.gov --scan=inspect
 ```
 
 Scan a list of domains from a CSV. The CSV's header row will be ignored if the first cell starts with "Domain" (case-insensitive).
@@ -56,6 +62,30 @@ Highlights from the scan data about all domains are saved in the `results/` dire
 * Example: `results/inspect.csv`
 
 It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
+
+### Using with Docker
+
+If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this GitHub repository and running:
+
+```bash
+docker-compose up
+```
+
+Then to scan, prefix commands with `docker-compose run`, like:
+
+```bash
+docker-compose run scan <domain> --scan=<scanner>
+```
+
+The results will be in the `results` folder.
+
+### TODOs
+
+Some high-priority TODOs here:
+
+* **Parallelization.** There's no risk of DoS to target domains, because it's spread out naturally. The SSL Labs API has parallelization paramaters and guidelines for this kind of batch work.
+* **JSON output**. Refactor scanners to return a dict instead of a row. Have scanners specify both JSON-style field headers *and* CSV-style column headers in a 2-dimensional array. Use this to make it so JSON and CSV can both be serialized with appropriate fields and in the right order. Include JSON results in the `results/` dir.
+* **Upgrade to site-inspector 2.x.** This repo depends on site-inspector 1.0.2, which is behind the times. But, site-inspector 2 needs more testing and work first. site-inspector 2 also is not backwards-compatible, in CLI syntax or in result format.
 
 ### Public domain
 
