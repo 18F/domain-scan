@@ -50,6 +50,7 @@ Run multiple scanners on each domain:
 
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
 * `--debug` - Print out more stuff.
+* `--output` - Where to output results data. Defaults to `./results/`.
 * `--force` - Ignore cached data and force scans to hit the network.
 * `--analytics` - Required if using the `analytics` scanner. Point this to the CSV of participating domains.
 
@@ -59,9 +60,11 @@ Full scan data about each domain is saved in the `cache/` directory, named after
 
 * Example: `cache/inspect/whitehouse.gov.json`
 
-Highlights from the scan data about all domains are saved in the `results/` directory, named after each scan, in CSV.
+Highlights from the scan data about all domains are saved in the output directory (which defaults to `./results/`) in CSV form, named after each scan.
 
 * Example: `results/inspect.csv`
+
+You can override the output directory by specifying `--output`.
 
 It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
 
@@ -78,8 +81,6 @@ Then to scan, prefix commands with `docker-compose run`, like:
 ```bash
 docker-compose run scan <domain> --scan=<scanner>
 ```
-
-The results will be in the `results` folder.
 
 ### TODOs
 

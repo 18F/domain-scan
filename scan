@@ -10,9 +10,10 @@ import csv
 
 # basic setup - logs, output dirs
 options = utils.options()
+results_dir = options.get("output", "results")
 utils.configure_logging(options)
-utils.mkdir_p("cache")
-utils.mkdir_p("results")
+utils.mkdir_p(utils.cache_dir())
+utils.mkdir_p(results_dir)
 
 
 ###
@@ -64,14 +65,14 @@ def run(options=None):
 def scan_domains(scanners, domains):
 
     # Clear out existing result CSVs, to avoid inconsistent data.
-    for result in glob.glob("results/*.csv"):
+    for result in glob.glob("%s/*.csv" % results_dir):
         os.remove(result)
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
     for scanner in scanners:
         name = scanner.__name__.split(".")[-1]  # e.g. 'inspect'
-        scanner_file = open("results/%s.csv" % name, 'w', newline='')
+        scanner_file = open("%s/%s.csv" % (results_dir, name), 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
         scanner_writer.writerow(["Domain"] + scanner.headers)
 

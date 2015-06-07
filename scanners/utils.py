@@ -98,9 +98,8 @@ def write(content, destination, binary=False):
     f.close()
 
 
-def data_dir():
+def cache_dir():
     return "cache"
-
 
 def notify(body):
     try:
@@ -143,7 +142,7 @@ def scan(command):
 
 # Predictable cache path for a domain and operation.
 def cache_path(domain, operation):
-    return os.path.join(data_dir(), operation, ("%s.json" % domain))
+    return os.path.join(cache_dir(), operation, ("%s.json" % domain))
 
 
 # Used to quickly get cached data for a domain.
