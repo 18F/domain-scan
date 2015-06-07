@@ -50,18 +50,20 @@ Run multiple scanners on each domain:
 
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
 * `--debug` - Print out more stuff.
-* `--output` - Where to output results data. Defaults to `./results/`.
+* `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
 * `--force` - Ignore cached data and force scans to hit the network.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
 * `--analytics` - Required if using the `analytics` scanner. Point this to the CSV of participating domains.
 
 ### Output
 
+All output files are placed into `cache/` and `results/` directories, whose location defaults to the current directory (`./`). Override the output home with `--output`.
+
 * **Cached full scan data** about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
 
 Example: `cache/inspect/whitehouse.gov.json`
 
-* **Formal output data** in CSV form about all domains are saved in the output directory (which defaults to `./results/`) in CSV form, named after each scan.
+* **Formal output data** in CSV form about all domains are saved in the `results/` directory in CSV form, named after each scan.
 
 Example: `results/inspect.csv`
 
@@ -69,7 +71,7 @@ You can override the output directory by specifying `--output`.
 
 It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
 
-* **Scan metadata** with the start time, end time, and scan command will be placed in the output directory as `meta.json`.
+* **Scan metadata** with the start time, end time, and scan command will be placed in the `results/` directory as `meta.json`.
 
 Example: `results/meta.json`
 
