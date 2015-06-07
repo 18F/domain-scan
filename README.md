@@ -56,17 +56,21 @@ Run multiple scanners on each domain:
 
 ### Output
 
-Full scan data about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
+* **Cached full scan data** about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
 
-* Example: `cache/inspect/whitehouse.gov.json`
+Example: `cache/inspect/whitehouse.gov.json`
 
-Highlights from the scan data about all domains are saved in the output directory (which defaults to `./results/`) in CSV form, named after each scan.
+* **Formal output data** in CSV form about all domains are saved in the output directory (which defaults to `./results/`) in CSV form, named after each scan.
 
-* Example: `results/inspect.csv`
+Example: `results/inspect.csv`
 
 You can override the output directory by specifying `--output`.
 
 It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
+
+* **Scan metadata** with the start time, end time, and scan command will be placed in the output directory as `meta.json`.
+
+Example: `results/meta.json`
 
 ### Using with Docker
 
