@@ -97,9 +97,14 @@ def write(content, destination, binary=False):
     f.write(content)
     f.close()
 
+def report_dir():
+    return options().get("output", "./")
 
 def cache_dir():
-    return "cache"
+    return os.path.join(report_dir(), "cache")
+
+def results_dir():
+    return os.path.join(report_dir(), "results")
 
 def notify(body):
     try:

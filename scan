@@ -12,11 +12,10 @@ import csv
 
 # basic setup - logs, output dirs
 options = utils.options()
-results_dir = options.get("output", "results")
 domain_suffix = options.get("suffix")
 utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
-utils.mkdir_p(results_dir)
+utils.mkdir_p(utils.results_dir())
 
 # some metadata about the scan itself
 start_time = utils.utc_timestamp()
@@ -71,14 +70,14 @@ def run(options=None):
 def scan_domains(scanners, domains):
 
     # Clear out existing result CSVs, to avoid inconsistent data.
-    for result in glob.glob("%s/*.csv" % results_dir):
+    for result in glob.glob("%s/*.csv" % utils.results_dir()):
         os.remove(result)
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
     for scanner in scanners:
         name = scanner.__name__.split(".")[-1]  # e.g. 'inspect'
-        scanner_file = open("%s/%s.csv" % (results_dir, name), 'w', newline='')
+        scanner_file = open("%s/%s.csv" % (utils.results_dir(), name), 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
         scanner_writer.writerow(["Domain"] + scanner.headers)
 
@@ -107,7 +106,7 @@ def scan_domains(scanners, domains):
         'end_time': utils.utc_timestamp(),
         'command': start_command
     }
-    utils.write(utils.json_for(metadata), "%s/meta.json" % results_dir)
+    utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
 
 
 # Yield domain names from a single string, or a CSV of them.
