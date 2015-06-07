@@ -6,6 +6,8 @@ Scans domains for data on their:
 * Detailed TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan).
 * Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (This one's U.S. government-specific for now, but can be ignored.)
 
+Most of the work is farmed out to other tools. The point of this scanner is to coordinate those tools and produce consistent data output.
+
 Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/tree/gh-pages/dotgov-domains).
 
 ### Requirements
