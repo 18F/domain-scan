@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import glob
 from scanners import utils
+import datetime
 import logging
 import importlib
 import csv
@@ -15,6 +17,9 @@ utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(results_dir)
 
+# some metadata about the scan itself
+start_time = utils.utc_timestamp()
+start_command = str.join(" ", sys.argv)
 
 ###
 # Entry point. `options` is a dict of CLI flags.
@@ -94,6 +99,14 @@ def scan_domains(scanners, domains):
         handles[scanner]['file'].close()
 
     logging.warn("Results written to CSV.")
+
+    # Save metadata.
+    metadata = {
+        'start_time': start_time,
+        'end_time': utils.utc_timestamp(),
+        'command': start_command
+    }
+    utils.write(utils.json_for(metadata), "%s/meta.json" % results_dir)
 
 
 # Yield domain names from a single string, or a CSV of them.

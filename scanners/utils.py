@@ -7,7 +7,7 @@ import json
 import csv
 import logging
 import datetime
-
+import strict_rfc3339
 
 # Wrapper to a run() method to catch exceptions.
 def run(run_method, additional=None):
@@ -162,6 +162,9 @@ def invalid(data=None):
     data['invalid'] = True
     return json_for(data)
 
+# RFC 3339 timestamp for the current time when called
+def utc_timestamp():
+    return strict_rfc3339.now_to_rfc3339_utcoffset()
 
 # Load the first column of a CSV into memory as an array of strings.
 def load_domains(domain_csv):
