@@ -13,6 +13,7 @@ import csv
 # basic setup - logs, output dirs
 options = utils.options()
 results_dir = options.get("output", "results")
+domain_suffix = options.get("suffix")
 utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(results_dir)
@@ -116,7 +117,11 @@ def domains_from(arg):
             for row in csv.reader(csvfile):
                 if (not row[0]) or (row[0].lower().startswith("domain")):
                     continue
-                yield row[0].lower()
+                domain = row[0].lower()
+                if domain_suffix:
+                    yield "%s.%s" % (domain, domain_suffix)
+                else:
+                    yield domain
     else:
         yield arg
 

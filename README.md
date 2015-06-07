@@ -52,6 +52,7 @@ Run multiple scanners on each domain:
 * `--debug` - Print out more stuff.
 * `--output` - Where to output results data. Defaults to `./results/`.
 * `--force` - Ignore cached data and force scans to hit the network.
+* `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
 * `--analytics` - Required if using the `analytics` scanner. Point this to the CSV of participating domains.
 
 ### Output
