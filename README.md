@@ -37,6 +37,7 @@ Run multiple scanners on each domain:
 * `inspect` - HTTP/HTTPS/HSTS configuration.
 * `tls` - TLS configuration.
 * `analytics` - Participation in an analytics program.
+* `googleanalytics` - Google Analytics code and settings.
 
 **Options:**
 
