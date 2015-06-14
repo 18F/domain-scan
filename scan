@@ -8,7 +8,7 @@ import datetime
 import logging
 import importlib
 import csv
-
+from concurrent.futures import ThreadPoolExecutor
 
 # basic setup - logs, output dirs
 options = utils.options()
@@ -86,13 +86,23 @@ def scan_domains(scanners, domains):
             'writer': scanner_writer
         }
 
-    # For each domain, run through each scanner.
-    for domain in domains_from(domains):
-        for scanner in scanners:
-            # A scanner can return multiple rows.
-            for row in scanner.scan(domain, options):
-                if row:
-                    handles[scanner]['writer'].writerow([domain] + row)
+    # Used to make a convenience wrapper for executor.map.
+    # params is (domain, options)
+    def process_scan(params):
+        scanner, domain, options = params
+        # A scanner can return multiple rows.
+
+        for row in scanner.scan(domain, options):
+            if row:
+                handles[scanner]['writer'].writerow([domain] + row)
+
+
+    # For each scanner, run through each domain.
+    # Use a unique process pool per-scanner.
+    for scanner in scanners:
+        with ThreadPoolExecutor(max_workers=100) as executor:
+            tasks = ((scanner, domain, options) for domain in domains_from(domains))
+            executor.map(process_scan, tasks)
 
     # Close up all the files.
     for scanner in scanners:
