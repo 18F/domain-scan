@@ -40,6 +40,8 @@ Run multiple scanners on each domain:
 ./scan whitehouse.gov --scan=inspect,tls
 ```
 
+It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**. To disable this and run sequentially through each domain, use `--serial`.
+
 **Scanners:**
 
 * `inspect` - HTTP/HTTPS/HSTS configuration.
@@ -49,7 +51,8 @@ Run multiple scanners on each domain:
 **Options:**
 
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
-* `--debug` - Print out more stuff.
+* `--serial` - Disable parallelization, force each task to be done simultaneously. Helpful for testing and debugging.
+* `--debug` - Print out more stuff. Useful with `--serial`.
 * `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
 * `--force` - Ignore cached data and force scans to hit the network.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.

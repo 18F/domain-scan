@@ -12,7 +12,6 @@ import os
 command = None
 analytics_domains = None
 
-
 def init(options):
     global analytics_domains
 

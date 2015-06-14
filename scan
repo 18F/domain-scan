@@ -86,8 +86,7 @@ def scan_domains(scanners, domains):
             'writer': scanner_writer
         }
 
-    # Used to make a convenience wrapper for executor.map.
-    # params is (domain, options)
+    # The task wrapper that's parallelized using executor.map.
     def process_scan(params):
         scanner, domain, options = params
         # A scanner can return multiple rows.
@@ -97,10 +96,18 @@ def scan_domains(scanners, domains):
                 handles[scanner]['writer'].writerow([domain] + row)
 
 
-    # For each scanner, run through each domain.
-    # Use a unique process pool per-scanner.
+    # Run each scanner (unique process pool) over each domain.
+    # User can force --serial, and scanners can override default of 100.
     for scanner in scanners:
-        with ThreadPoolExecutor(max_workers=100) as executor:
+
+        if options.get("serial"):
+            workers = 1
+        elif hasattr(scanner, "workers"):
+            workers = scanner.workers
+        else:
+            workers = 100
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, options) for domain in domains_from(domains))
             executor.map(process_scan, tasks)
 

@@ -14,7 +14,6 @@ import os
 command = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
 init = None
 
-
 def scan(domain, options):
     logging.debug("[%s][inspect]" % domain)
 
