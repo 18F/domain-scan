@@ -28,8 +28,7 @@ RUN /bin/bash -l -c "rbenv global 2.1.4"
 RUN /bin/bash -l -c "rbenv rehash"
 # Install Bundler for each version of ruby
 RUN /bin/bash -l -c "gem install bundler"
-RUN /bin/bash -l -c "gem install specific_install"
-RUN /bin/bash -l -c "gem specific_install -l http://github.com/benbalter/site-inspector.git -b erics-mode"
+RUN /bin/bash -l -c "gem install site-inspector -v 1.0.2"
 
 # Install Go
 RUN apt-get update && apt-get install -y \
