@@ -129,7 +129,7 @@ def scan_domains(scanners, domains):
 # Yield domain names from a single string, or a CSV of them.
 def domains_from(arg):
     if arg.endswith(".csv"):
-        with open(arg, newline='') as csvfile:
+        with open(arg, encoding='utf-8', newline='') as csvfile:
             for row in csv.reader(csvfile):
                 if (not row[0]) or (row[0].lower().startswith("domain")):
                     continue
