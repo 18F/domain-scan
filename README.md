@@ -40,7 +40,15 @@ Run multiple scanners on each domain:
 ./scan whitehouse.gov --scan=inspect,tls
 ```
 
-It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**. To disable this and run sequentially through each domain, use `--serial`.
+##### Parallelization
+
+It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**.
+
+By default, each scanner will run up to 100 parallel tasks. Some scanners may limit this. For example, the `tls` scanner, which hits the SSL Labs API, maxes out at 5 tasks at once.
+
+To disable this and run sequentially through each domain (1 worker), use `--serial`.
+
+##### Options
 
 **Scanners:**
 
