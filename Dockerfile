@@ -5,11 +5,11 @@
 FROM      ubuntu:14.04
 MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 
-COPY . /tmp/ 
+COPY . /tmp/
 WORKDIR /tmp
 
-#RUN apt-get update && apt-get install -y python3-pip
-#RUN pip3 install -r requirements.txt
+RUN apt-get update && apt-get install -y python3-pip
+RUN pip3 install -r requirements.txt
 
 # Install ruby
 RUN apt-get update && apt-get install -y libc6-dev libssl-doc build-essential curl git zlib1g-dev libssl-dev libreadline-dev libyaml-dev libxml2-dev libxslt-dev
