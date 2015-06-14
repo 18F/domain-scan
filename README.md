@@ -44,7 +44,9 @@ Run multiple scanners on each domain:
 
 It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**.
 
-By default, each scanner will run up to 100 parallel tasks. Some scanners may limit this. For example, the `tls` scanner, which hits the SSL Labs API, maxes out at 5 tasks at once.
+By default, each scanner will run up to 10 parallel tasks, which you can override with `--workers`.
+
+Some scanners may limit this. For example, the `tls` scanner, which hits the SSL Labs API, maxes out at 5 tasks at once (which cannot be overridden with `--workers`).
 
 To disable this and run sequentially through each domain (1 worker), use `--serial`.
 
@@ -61,6 +63,7 @@ To disable this and run sequentially through each domain (1 worker), use `--seri
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
 * `--serial` - Disable parallelization, force each task to be done simultaneously. Helpful for testing and debugging.
 * `--debug` - Print out more stuff. Useful with `--serial`.
+* `--workers` - Limit parallel threads per-scanner to a number.
 * `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
 * `--force` - Ignore cached data and force scans to hit the network.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.

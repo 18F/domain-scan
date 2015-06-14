@@ -105,7 +105,7 @@ def scan_domains(scanners, domains):
         elif hasattr(scanner, "workers"):
             workers = scanner.workers
         else:
-            workers = 100
+            workers = int(options.get("workers", 10))
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, options) for domain in domains_from(domains))
