@@ -65,7 +65,7 @@ To disable this and run sequentially through each domain (1 worker), use `--seri
 * `--debug` - Print out more stuff. Useful with `--serial`.
 * `--workers` - Limit parallel threads per-scanner to a number.
 * `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
-* `--force` - Ignore cached data and force scans to hit the network.
+* `--force` - Ignore cached data and force scans to hit the network. For the `tls` scanner, this also tells SSL Labs to ignore its server-side cache.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
 * `--analytics` - Required if using the `analytics` scanner. Point this to the CSV of participating domains.
 
