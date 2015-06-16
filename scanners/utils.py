@@ -7,7 +7,7 @@ import json
 import csv
 import logging
 import datetime
-
+import strict_rfc3339
 
 # Wrapper to a run() method to catch exceptions.
 def run(run_method, additional=None):
@@ -97,10 +97,14 @@ def write(content, destination, binary=False):
     f.write(content)
     f.close()
 
+def report_dir():
+    return options().get("output", "./")
 
-def data_dir():
-    return "cache"
+def cache_dir():
+    return os.path.join(report_dir(), "cache")
 
+def results_dir():
+    return os.path.join(report_dir(), "results")
 
 def notify(body):
     try:
@@ -143,7 +147,7 @@ def scan(command):
 
 # Predictable cache path for a domain and operation.
 def cache_path(domain, operation):
-    return os.path.join(data_dir(), operation, ("%s.json" % domain))
+    return os.path.join(cache_dir(), operation, ("%s.json" % domain))
 
 
 # Used to quickly get cached data for a domain.
@@ -163,6 +167,9 @@ def invalid(data=None):
     data['invalid'] = True
     return json_for(data)
 
+# RFC 3339 timestamp for the current time when called
+def utc_timestamp():
+    return strict_rfc3339.now_to_rfc3339_utcoffset()
 
 # Load the first column of a CSV into memory as an array of strings.
 def load_domains(domain_csv):

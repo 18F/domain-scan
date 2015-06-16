@@ -5,11 +5,11 @@
 FROM      ubuntu:14.04
 MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 
-COPY . /tmp/ 
+COPY . /tmp/
 WORKDIR /tmp
 
-#RUN apt-get update && apt-get install -y python3-pip
-#RUN pip3 install -r requirements.txt
+RUN apt-get update && apt-get install -y python3-pip
+RUN pip3 install -r requirements.txt
 
 # Install ruby
 RUN apt-get update && apt-get install -y libc6-dev libssl-doc build-essential curl git zlib1g-dev libssl-dev libreadline-dev libyaml-dev libxml2-dev libxslt-dev
@@ -28,8 +28,7 @@ RUN /bin/bash -l -c "rbenv global 2.1.4"
 RUN /bin/bash -l -c "rbenv rehash"
 # Install Bundler for each version of ruby
 RUN /bin/bash -l -c "gem install bundler"
-RUN /bin/bash -l -c "gem install specific_install"
-RUN /bin/bash -l -c "gem specific_install -l http://github.com/benbalter/site-inspector.git -b erics-mode"
+RUN /bin/bash -l -c "gem install site-inspector -v 1.0.2"
 
 # Install Go
 RUN apt-get update && apt-get install -y \

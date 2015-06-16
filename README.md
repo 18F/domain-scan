@@ -4,20 +4,28 @@ Scans domains for data on their:
 
 * HTTP, HTTPS, and [HSTS](https://https.cio.gov/hsts/) configuration, using [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
 * Detailed TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan).
-* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (Government-specific for now.)
+* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (This one's U.S. government-specific for now, but can be ignored.)
 
-Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
+Most of the work is farmed out to other tools. The point of this scanner is to coordinate those tools and produce consistent data output.
+
+Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/tree/gh-pages/dotgov-domains).
+
+### Requirements
+
+* **Python 3**.
+* **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
+* **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
+
+Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
+
+Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
 
 ### Usage
-
-If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this github repository, and running `docker-compose up` and then `docker-compose run scan <domain> --scan=<scanner>`. The results will be in the `results` folder.
-
-Otherwise, requires **Python 3**. Tested on 3.4.2.
 
 Scan a domain. You must specify at least one "scanner" with `--scan`.
 
 ```bash
-./scan konklone.com --scan=inspect
+./scan whitehouse.gov --scan=inspect
 ```
 
 Scan a list of domains from a CSV. The CSV's header row will be ignored if the first cell starts with "Domain" (case-insensitive).
@@ -32,6 +40,18 @@ Run multiple scanners on each domain:
 ./scan whitehouse.gov --scan=inspect,tls
 ```
 
+##### Parallelization
+
+It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**.
+
+By default, each scanner will run up to 10 parallel tasks, which you can override with `--workers`.
+
+Some scanners may limit this. For example, the `tls` scanner, which hits the SSL Labs API, maxes out at 5 tasks at once (which cannot be overridden with `--workers`).
+
+To disable this and run sequentially through each domain (1 worker), use `--serial`.
+
+##### Options
+
 **Scanners:**
 
 * `inspect` - HTTP/HTTPS/HSTS configuration.
@@ -42,21 +62,56 @@ Run multiple scanners on each domain:
 **Options:**
 
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
-* `--debug` - Print out more stuff.
-* `--force` - Ignore cached data and force scans to hit the network.
+* `--serial` - Disable parallelization, force each task to be done simultaneously. Helpful for testing and debugging.
+* `--debug` - Print out more stuff. Useful with `--serial`.
+* `--workers` - Limit parallel threads per-scanner to a number.
+* `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
+* `--force` - Ignore cached data and force scans to hit the network. For the `tls` scanner, this also tells SSL Labs to ignore its server-side cache.
+* `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
 * `--analytics` - Required if using the `analytics` scanner. Point this to the CSV of participating domains.
 
 ### Output
 
-Full scan data about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
+All output files are placed into `cache/` and `results/` directories, whose location defaults to the current directory (`./`). Override the output home with `--output`.
 
-* Example: `cache/inspect/whitehouse.gov.json`
+* **Cached full scan data** about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
 
-Highlights from the scan data about all domains are saved in the `results/` directory, named after each scan, in CSV.
+Example: `cache/inspect/whitehouse.gov.json`
 
-* Example: `results/inspect.csv`
+* **Formal output data** in CSV form about all domains are saved in the `results/` directory in CSV form, named after each scan.
+
+Example: `results/inspect.csv`
+
+You can override the output directory by specifying `--output`.
 
 It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
+
+* **Scan metadata** with the start time, end time, and scan command will be placed in the `results/` directory as `meta.json`.
+
+Example: `results/meta.json`
+
+### Using with Docker
+
+If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this GitHub repository and running:
+
+```bash
+docker-compose up
+```
+
+Then to scan, prefix commands with `docker-compose run`, like:
+
+```bash
+docker-compose run scan <domain> --scan=<scanner>
+```
+
+### TODOs
+
+Some high-priority TODOs here:
+
+* **Parallelization.** There's no risk of DoS to target domains, because it's spread out naturally. The SSL Labs API used by the `tls` scanner has parameters and guidelines for batch work to avoid over-hammering their service.
+* **JSON output**. Refactor scanners to return a dict instead of a row. Have scanners specify both JSON-style field headers *and* CSV-style column headers in a 2-dimensional array. Use this to make it so JSON and CSV can both be serialized with appropriate fields and in the right order. Include JSON results in the `results/` dir.
+* **Handle network loss gracefully.** Right now, the scanner will assume that a domain is "down" if the network is down, and cache that. That makes trusting the results of a batch run iffy. I don't know the best way to distinguish between a domain being unreachable, and the network *making* the domain unreachable.
+* **Upgrade to site-inspector 2.x.** This repo depends on site-inspector 1.0.2, which is behind the times. But, site-inspector 2 needs more testing and work first. site-inspector 2 also is not backwards-compatible, in CLI syntax or in result format.
 
 ### Public domain
 
