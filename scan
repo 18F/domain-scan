@@ -87,8 +87,9 @@ def scan_domains(scanners, domains):
             for row in scanner.scan(domain, options):
                 if row:
                     handles[scanner]['writer'].writerow([domain] + row)
-        if scanner.__name__ == 'scanners.googleanalytics':
+        if hasattr(scanner, "clean_up"):
             scanner.clean_up()
+
 
     # Close up all the files.
     for scanner in scanners:
