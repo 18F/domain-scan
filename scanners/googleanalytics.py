@@ -26,24 +26,27 @@ class GAChecker:
     def run_checker_script(self):
         """ Runs the GA checker script """
         self.browser.execute_script("""
-if (typeof ga === "function") {
-    console.log('ga_version: Google Analytics Universal');
-    console.log('ga_ua_code: ' + ga.getAll()[0].get('trackingId'));
-    console.log('ga_anon_ip: ' + ga.getAll()[0].get('anonymizeIp'));
-    console.log('ga_force_ssl: ' + ga.getAll()[0].get('forceSSL'));
+var data = {};
+if (typeof ga === 'function') {
+    data['ga_version'] = 'Google Analytics Universal';
+    data['ga_ua_code'] = ga.getAll()[0].get('trackingId');
+    data['ga_anon_ip'] = ga.getAll()[0].get('anonymizeIp');
+    data['ga_force_ssl'] = ga.getAll()[0].get('forceSSL');
 }
 else if (typeof _sendPageview === "function") {
-    console.log('ga_version: Google Analytics Legacy');
-    console.log('ga_ua_code: ' + _gat._getTrackerByName()._getAccount());
-    console.log('ga_anon_ip: Google Analytics Legacy');
-    console.log('ga_force_ssl: Google Analytics Legacy');
+
+    data['ga_version'] = 'Google Analytics Legacy';
+    data['ga_ua_code'] =_gat._getTrackerByName()._getAccount();
+    data['ga_anon_ip'] = 'Google Analytics Legacy';
+    data['ga_force_ssl'] = 'Google Analytics Legacy';
 }
 else {
-    console.log('ga_version: No Google Analytics');
-    console.log('ga_ua_code: No Google Analytics');
-    console.log('ga_anon_ip: No Google Analytics');
-    console.log('ga_force_ssl: No Google Analytics');
-}
+    data['ga_version'] = 'No Google Analytics'
+    data['ga_ua_code'] = 'No Google Analytics'
+    data['ga_anon_ip'] = 'No Google Analytics'
+    data['ga_force_ssl'] = 'No Google Analytics'
+};
+console.log(JSON.stringify(data));
         """)
 
     def clean_message(self, element, message):
@@ -52,19 +55,10 @@ else {
 
     def parse_log(self):
         """ Check the log for the GA version """
-        data = {}
         for item in self.browser.get_log('browser'):
-            message = item.get('message', '')
-            if "ga_version:" in message:
-                data['ga_version'] = self.clean_message('ga_version', message)
-            elif "ga_ua_code:" in message:
-                data['ga_ua_code'] = self.clean_message('ga_ua_code', message)
-            elif "ga_anon_ip" in message:
-                data['ga_anon_ip'] = self.clean_message('ga_anon_ip', message)
-            elif "ga_force_ssl" in message:
-                data['ga_force_ssl'] = self.clean_message(
-                    'ga_force_ssl', message)
-        return data
+            message = item.get('message', '').strip(' (:)')
+            if 'ga_version' in message:
+                return json.loads(message)
 
     def organize_data(self, data):
         """ Organize data for export """
