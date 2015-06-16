@@ -1,7 +1,6 @@
 import logging
 import os
 import json
-import time
 
 from scanners import utils
 from selenium import webdriver
@@ -94,15 +93,10 @@ console.log(JSON.stringify(data));
         self.browser.quit()
 
 
-scanner = GAChecker()
-
-
 def scan(domain, options):
-
-    return [scanner.scan(domain, options)]
-
-
-def clean_up():
-    scanner.browser.quit()
+    scanner = GAChecker()
+    data = scanner.scan(domain, options)
+    scanner.quit_browser()
+    return [data]
 
 headers = ['ga_version', 'ga_ua_code', 'ga_anon_ip', 'ga_force_ssl']
