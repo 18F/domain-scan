@@ -21,7 +21,6 @@ class GAChecker:
     def get_url(self, url):
         """ Get URL fron browser """
         self.browser.get(url)
-        time.sleep(3)
 
     def run_checker_script(self):
         """ Runs the GA checker script """
