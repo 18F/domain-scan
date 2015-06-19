@@ -50,6 +50,8 @@ Some scanners may limit this. For example, the `tls` scanner, which hits the SSL
 
 To disable this and run sequentially through each domain (1 worker), use `--serial`.
 
+Parallelization will also cause the resulting domains to be written in an unpredictable order. If the row order is important to you, disable parallelization, or use the `--sort` parameter to sort the resulting CSVs once the scans have completed. (**Note:** Using `--sort` will cause the entire dataset to be read into memory.)
+
 ##### Options
 
 **Scanners:**
