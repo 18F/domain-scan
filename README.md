@@ -61,6 +61,7 @@ To disable this and run sequentially through each domain (1 worker), use `--seri
 **Options:**
 
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
+* `--sort` - Sort result CSVs by domain name, alphabetically. (**Note:** this causes the entire dataset to be read into memory.)
 * `--serial` - Disable parallelization, force each task to be done simultaneously. Helpful for testing and debugging.
 * `--debug` - Print out more stuff. Useful with `--serial`.
 * `--workers` - Limit parallel threads per-scanner to a number.
