@@ -50,4 +50,9 @@ ENV GOPATH /go
 ENV PATH /go/bin:$PATH
 RUN go get github.com/ssllabs/ssllabs-scan
 
+# Install Node and Phantomas
+RUN apt-get update && apt-get install -y nodejs npm libfontconfig1
+RUN ln -s /usr/bin/nodejs /usr/bin/node
+RUN npm install --global phantomas
+
 ENTRYPOINT ["/tmp/scan"]
