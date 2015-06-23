@@ -2,6 +2,9 @@ import logging
 from scanners import utils
 import json
 import os
+import base64
+import urllib.request
+import re
 
 
 ###
@@ -17,6 +20,27 @@ import os
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
 init = None
 workers = 5
+
+def get_chrome_preload_list():
+    preload_list_url = ('https://chromium.googlesource.com/chromium/src/net/+'
+                        '/master/http/transport_security_state_static.json')
+    with urllib.request.urlopen(preload_list_url + '?format=text') as response:
+        raw = response.read()
+
+    # To avoid parsing the contents of the file out of the source tree viewer's
+    # HTML, we download it as a raw file. googlesource.com Base64-encodes the
+    # file to avoid potential content injection issues, so we need to decode it
+    # before using it. https://code.google.com/p/gitiles/issues/detail?id=7
+    raw = base64.b64decode(raw).decode('utf-8')
+
+    # The .json file contains '//' comments, which are not actually valid JSON,
+    # and confuse Python's JSON decoder. Begone, foul comments!
+    raw = ''.join([ re.sub(r'//.*$', '', line)
+                    for line in raw.splitlines() ])
+
+    preload_list_json = json.loads(raw)
+    return { entry['name'] for entry in preload_list_json['entries'] }
+
 
 def scan(domain, options):
     logging.debug("[%s][tls]" % domain)
@@ -70,6 +94,10 @@ def scan(domain, options):
                 return None
                 # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
 
+        # TODO: The Chrome preload list changes relatively infrequently, so we
+        # should probably cache it. Loading it for every `scan` is inefficient.
+        chrome_preload_list = get_chrome_preload_list()
+
         # can return multiple rows, one for each 'endpoint'
         for endpoint in data['endpoints']:
 
@@ -107,7 +135,8 @@ def scan(domain, options):
                 tlsv12,
                 spdy,
                 endpoint['details']['sniRequired'],
-                h2
+                h2,
+                domain in chrome_preload_list,
             ]
 
 headers = [
@@ -117,5 +146,6 @@ headers = [
     "Fallback SCSV",  # good things
     "RC4", "SSLv3",  # old things
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
-    "HTTP/2"  # ever forward
+    "HTTP/2",  # ever forward
+    "In Chrome Preload List"
 ]
