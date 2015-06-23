@@ -59,6 +59,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `inspect` - HTTP/HTTPS/HSTS configuration.
 * `tls` - TLS configuration.
 * `analytics` - Participation in an analytics program.
+* `googleanalytics` - Google Analytics code and settings.
 
 **Options:**
 

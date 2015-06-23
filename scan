@@ -4,7 +4,6 @@ import os
 import sys
 import glob
 from scanners import utils
-import datetime
 import logging
 import importlib
 import shutil
@@ -25,6 +24,8 @@ start_command = str.join(" ", sys.argv)
 ###
 # Entry point. `options` is a dict of CLI flags.
 ###
+
+
 def run(options=None):
 
     if not options["_"]:
@@ -98,7 +99,6 @@ def scan_domains(scanners, domains):
             if row:
                 handles[scanner]['writer'].writerow([domain] + row)
 
-
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 100.
     for scanner in scanners:
@@ -129,7 +129,6 @@ def scan_domains(scanners, domains):
         'command': start_command
     }
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
-
 
 
 # Yield domain names from a single string, or a CSV of them.
