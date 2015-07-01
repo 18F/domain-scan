@@ -25,7 +25,7 @@ def scan(domain, options):
     inspection = utils.data_for(domain, "inspect")
     if inspection and (not inspection.get("support_https")):
         logging.debug("\tSkipping, HTTPS not supported in inspection.")
-        yield None
+        return None
 
     else:
         # cache reformatted JSON from ssllabs
