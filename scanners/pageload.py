@@ -18,10 +18,17 @@ init = None
 def scan(domain, options):
     logging.debug("[%s][pageload]" % domain)
 
-    # TODO: canonical endpoint
-    if not (domain.startswith('http://') or
-            domain.startswith('https://')):
-        url = 'http://' + domain
+    # phantomas needs a URL, not just a domain.
+    if not (domain.startswith('http://') or domain.startswith('https://')):
+
+        # If we have data from inspect, use the canonical endpoint.
+        inspection = utils.data_for(domain, "inspect")
+        if inspection and inspection.get("canonical"):
+            url = inspection.get("canonical")
+
+        # Otherwise, well, whatever.
+        else:
+            url = 'http://' + domain
     else:
         url = domain
 
@@ -40,8 +47,6 @@ def scan(domain, options):
     data = json.loads(raw)
     utils.write(utils.json_for(data), cache)
 
-
-    # TODO: write to cache
     # TODO: handle invalid response
 
     yield [data['metrics'][metric] for metric in interesting_metrics]
