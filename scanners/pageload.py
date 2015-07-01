@@ -15,6 +15,10 @@ import os
 command = os.environ.get("PHANTOMAS_PATH", "phantomas")
 init = None
 
+# Since these are finely time-sensitive metrics, I think we want
+# to make the default number of workers small.
+workers = 2
+
 def scan(domain, options):
     logging.debug("[%s][pageload]" % domain)
 
