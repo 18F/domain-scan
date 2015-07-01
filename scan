@@ -44,7 +44,7 @@ def run(options=None):
         try:
             scanner = importlib.import_module("scanners.%s" % name)
         except ImportError:
-            logging.error("Scanner not found: %s" % name)
+            logging.error("[%s] Scanner not found, or had an error during loading." % name)
             exit()
 
         # If the scanner has a canonical command, make sure it exists.

@@ -1,6 +1,17 @@
 import logging
 
-from phantomas import Phantomas, PhantomasError
+try:
+    from phantomas import Phantomas, PhantomasError
+except ImportError as ex:
+    logging.warn("\nPhantomas not installed.\n")
+    raise ex
+
+
+##
+# == pageload ==
+#
+# Evaluate page laod time information using Phantomas.
+##
 
 command = Phantomas.CMD
 init = None
