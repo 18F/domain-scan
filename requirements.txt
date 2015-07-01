@@ -1,3 +1,2 @@
 ipython
 strict-rfc3339
-phantomas
