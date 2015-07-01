@@ -13,12 +13,15 @@ Can be used with any domain, or CSV where domains are the first column, such as 
 ### Requirements
 
 * **Python 3**.
-* **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
-* **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
+* `inspect` scanner: **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
+* `tls` scanner: **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
+* `pageload` scanner: **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
 
 Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
 
 Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
+
+Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
 ### Usage
 
