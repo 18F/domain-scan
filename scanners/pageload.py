@@ -45,8 +45,8 @@ def scan(domain, options):
 
     # If no cache, or we should run anyway, do the scan.
     else:
-        logging.debug("\t %s %s" % (command, url))
-        raw = utils.scan([command, url, "--reporter=json"])
+        logging.debug("\t %s %s --reporter=json --ignore-ssl-errors" % (command, url))
+        raw = utils.scan([command, url, "--reporter=json", "--ignore-ssl-errors"])
         if not raw:
             utils.write(utils.invalid({}), cache)
             return None
