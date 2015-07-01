@@ -32,22 +32,28 @@ def scan(domain, options):
     else:
         url = domain
 
-    # TODO: check cache first
-
     # We'll cache prettified JSON from the output.
     cache = utils.cache_path(domain, "pageload")
 
-    logging.debug("\t %s %s" % (command, url))
-    raw = utils.scan([command, url, "--reporter=json"])
-    if not raw:
-        logging.warn("No response from phantomas.")
-        return None
+    # If we've got it cached, use that.
+    if (options.get("force", False) is False) and (os.path.exists(cache)):
+        logging.debug("\tCached.")
+        raw = open(cache).read()
+        data = json.loads(raw)
+        if data.get('invalid'):
+            return None
 
-    # It had better be JSON, which we can cache in prettified form.
-    data = json.loads(raw)
-    utils.write(utils.json_for(data), cache)
+    # If no cache, or we should run anyway, do the scan.
+    else:
+        logging.debug("\t %s %s" % (command, url))
+        raw = utils.scan([command, url, "--reporter=json"])
+        if not raw:
+            utils.write(utils.invalid({}), cache)
+            return None
 
-    # TODO: handle invalid response
+        # It had better be JSON, which we can cache in prettified form.
+        data = json.loads(raw)
+        utils.write(utils.json_for(data), cache)
 
     yield [data['metrics'][metric] for metric in interesting_metrics]
 
