@@ -16,12 +16,15 @@ import re
 # and only process domains with valid HTTPS, or broken chains.
 ###
 
-
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
-init = None
 workers = 5
 
+chrome_preload_list = None
+
+
 def get_chrome_preload_list():
+    logging.debug("Fetching chrome preload list...")
+
     preload_list_url = ('https://chromium.googlesource.com/chromium/src/net/+'
                         '/master/http/transport_security_state_static.json')
     with urllib.request.urlopen(preload_list_url + '?format=text') as response:
@@ -40,6 +43,17 @@ def get_chrome_preload_list():
 
     preload_list_json = json.loads(raw)
     return { entry['name'] for entry in preload_list_json['entries'] }
+
+
+def init(options):
+    """
+    Download the Chrome preload list at the beginning of the scan, and
+    re-use it for each scan. It is unnecessary to re-download the list for each
+    scan because it changes infrequently.
+    """
+    global chrome_preload_list
+    chrome_preload_list = get_chrome_preload_list()
+    return True
 
 
 def scan(domain, options):
@@ -93,10 +107,6 @@ def scan(domain, options):
             else:
                 return None
                 # raise Exception("Invalid data from ssllabs-scan: %s" % raw)
-
-        # TODO: The Chrome preload list changes relatively infrequently, so we
-        # should probably cache it. Loading it for every `scan` is inefficient.
-        chrome_preload_list = get_chrome_preload_list()
 
         # can return multiple rows, one for each 'endpoint'
         for endpoint in data['endpoints']:
