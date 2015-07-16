@@ -14,7 +14,6 @@ import re
 
 
 command = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
-init = None
 
 chrome_preload_list = None
 
