@@ -5,8 +5,6 @@ import requests
 import time
 
 command = None
-init = None
-
 
 def starttls_check_url(domain):
     return 'https://starttls.info/api/check/%s' % domain
