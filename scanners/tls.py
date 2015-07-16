@@ -2,9 +2,6 @@ import logging
 from scanners import utils
 import json
 import os
-import base64
-import urllib.request
-import re
 
 
 ###
@@ -18,42 +15,6 @@ import re
 
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
 workers = 5
-
-chrome_preload_list = None
-
-
-def get_chrome_preload_list():
-    logging.debug("Fetching Chrome preload list from source...")
-
-    preload_list_url = 'https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.json'
-    preload_list_url_as_text = preload_list_url + '?format=text'
-    with urllib.request.urlopen(preload_list_url_as_text) as response:
-        raw = response.read()
-
-    # To avoid parsing the contents of the file out of the source tree viewer's
-    # HTML, we download it as a raw file. googlesource.com Base64-encodes the
-    # file to avoid potential content injection issues, so we need to decode it
-    # before using it. https://code.google.com/p/gitiles/issues/detail?id=7
-    raw = base64.b64decode(raw).decode('utf-8')
-
-    # The .json file contains '//' comments, which are not actually valid JSON,
-    # and confuse Python's JSON decoder. Begone, foul comments!
-    raw = ''.join([ re.sub(r'//.*$', '', line)
-                    for line in raw.splitlines() ])
-
-    preload_list_json = json.loads(raw)
-    return { entry['name'] for entry in preload_list_json['entries'] }
-
-
-def init(options):
-    """
-    Download the Chrome preload list at the beginning of the scan, and
-    re-use it for each scan. It is unnecessary to re-download the list for each
-    scan because it changes infrequently.
-    """
-    global chrome_preload_list
-    chrome_preload_list = get_chrome_preload_list()
-    return True
 
 
 def scan(domain, options):
@@ -145,8 +106,7 @@ def scan(domain, options):
                 tlsv12,
                 spdy,
                 endpoint['details']['sniRequired'],
-                h2,
-                domain in chrome_preload_list,
+                h2
             ]
 
 headers = [
@@ -156,6 +116,5 @@ headers = [
     "Fallback SCSV",  # good things
     "RC4", "SSLv3",  # old things
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
-    "HTTP/2",  # ever forward
-    "In Chrome Preload List"
+    "HTTP/2"  # ever forward
 ]
