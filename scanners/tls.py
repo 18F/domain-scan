@@ -23,11 +23,11 @@ chrome_preload_list = None
 
 
 def get_chrome_preload_list():
-    logging.debug("Fetching chrome preload list...")
+    logging.debug("Fetching Chrome preload list from source...")
 
-    preload_list_url = ('https://chromium.googlesource.com/chromium/src/net/+'
-                        '/master/http/transport_security_state_static.json')
-    with urllib.request.urlopen(preload_list_url + '?format=text') as response:
+    preload_list_url = 'https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.json'
+    preload_list_url_as_text = preload_list_url + '?format=text'
+    with urllib.request.urlopen(preload_list_url_as_text) as response:
         raw = response.read()
 
     # To avoid parsing the contents of the file out of the source tree viewer's
