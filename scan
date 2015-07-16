@@ -55,6 +55,7 @@ def run(options=None):
 
         # Scanners can have an optional init/validation hook.
         if scanner.init and (not scanner.init(options)):
+            logging.error("[%s] Scanner's init hook returned false." % name)
             exit()
 
         scans.append(scanner)
