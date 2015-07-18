@@ -16,15 +16,28 @@ def poll_starttls_info_status(domain):
     given `domain` is 'DONE'.
 
     We poll every 5 seconds.
-
-    # TODO: set a maximum poll time after which we stop trying and report an error
     """
     poll_interval = 5
+    max_poll = 300    # 5 minutes
+    time_elapsed = 0
+
     while True:
+        if time_elapsed >= max_poll:
+            logging.error("Timed out polling for updated info from starttls.info for %s" % domain)
+            break
+
+        logging.debug("Checking starttls.info status for %s" % domain)
+
+        start_time = time.clock()
+
         r = requests.get(starttls_check_url(domain))
         if r.json()['status'] == 'DONE':
             return r
-        time.sleep(poll_interval)
+
+        finish_time = time.clock()
+        sleep_time = max(0, poll_interval - (finish_time - start_time))
+        time.sleep(sleep_time)
+        time_elapsed += time.clock() - start_time
 
 
 def refresh_starttls_results(domain):
