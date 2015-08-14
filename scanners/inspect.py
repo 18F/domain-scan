@@ -34,9 +34,9 @@ def get_chrome_preload_list():
 
     # The .json file contains '//' comments, which are not actually valid JSON,
     # and confuse Python's JSON decoder. Begone, foul comments!
-    raw = ''.join([ re.sub(r'//.*$', '', line)
+    raw = ''.join([ re.sub(r'^\s*//.*$', '', line)
                     for line in raw.splitlines() ])
-
+    
     preload_list_json = json.loads(raw)
     return { entry['name'] for entry in preload_list_json['entries'] }
 
