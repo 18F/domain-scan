@@ -48,7 +48,7 @@ def run(options=None):
             exit()
 
         # If the scanner has a canonical command, make sure it exists.
-        if scanner.command and (not utils.try_command(scanner.command)):
+        if hasattr(scanner, "command") and scanner.command and (not utils.try_command(scanner.command)):
             logging.error("[%s] Command not found: %s" %
                           (name, scanner.command))
             exit()
