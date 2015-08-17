@@ -2,6 +2,7 @@ import logging
 from scanners import utils
 import json
 import os
+import sys
 import urllib.request
 import urllib.parse
 import base64
@@ -43,22 +44,48 @@ def scan(domain, options):
     		(base_original == base_redirect) and 
     		(sub_original != sub_redirect)
     	)
+    else:
+        redirected_external = False
+        redirected_subdomain = False
 
+    
     yield [
-    	redirected_external,
-    	redirected_subdomain,
-    	None,
-    	None
+        inspection["up"],
+        redirected_external,
+        redirected_subdomain,
+        any_numbers(subdomains_for(domain)),
+        all_numbers(subdomains_for(domain)),
+        any_numbers(subbest_domain_for(domain)),
+        all_numbers(subbest_domain_for(domain))
     ]
 
 
 headers = [
-	"Redirects Externally",
+    "Live",
+    "Redirects Externally",
     "Redirects To Subdomain",
+    "Any Numbers",
     "All Numbers",
-    "Any Numbers"
+    "Any Numbers (Leftmost)",
+    "All Numbers (Leftmost)"
 ]
+
+# does a number appear anywhere in this thing
+def any_numbers(string):
+    return (re.search(r'\d', string) is not None)
+
+# is it all numbers (and dots)
+def all_numbers(string):
+    return (re.search(r'^[\d\.]+$', string) is not None)
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):
 	return str.join(".", subdomain.split(".")[-2:])
+
+# return everything to the left of the base domain
+def subdomains_for(subdomain):
+    return str.join(".", subdomain.split(".")[:-2])
+
+# return the leftmost subdomain
+def subbest_domain_for(subdomain):
+    return subdomain.split(".")[0]
