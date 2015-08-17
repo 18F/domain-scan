@@ -22,8 +22,8 @@ def scan(domain, options):
     # If inspection data exists, check to see if we can skip.
     inspection = utils.data_for(domain, "inspect")
     if not inspection:
-    	logging.debug("\tSkipping, wasn't inspected.")
-    	return None
+        logging.debug("\tSkipping, wasn't inspected.")
+        return None
 
     if not inspection.get("up"):
         logging.debug("\tSkipping, subdomain wasn't up during inspection.")
@@ -33,17 +33,18 @@ def scan(domain, options):
     endpoint = inspection["endpoints"][inspection.get("canonical_protocol")]["root"]
     if endpoint.get("redirect_to"):
 
-    	sub_original = domain
-    	base_original = base_domain_for(domain)
+        sub_original = domain
+        base_original = base_domain_for(domain)
 
-    	sub_redirect = urllib.parse.urlparse(endpoint["redirect_to"]).hostname
-    	base_redirect = base_domain_for(sub_redirect)
-    	
-    	redirected_external = base_original != base_redirect
-    	redirected_subdomain = (
-    		(base_original == base_redirect) and 
-    		(sub_original != sub_redirect)
-    	)
+        sub_redirect = urllib.parse.urlparse(endpoint["redirect_to"]).hostname
+        sub_redirect = re.sub("^www.", "", sub_redirect) # discount www redirects
+        base_redirect = base_domain_for(sub_redirect)
+        
+        redirected_external = base_original != base_redirect
+        redirected_subdomain = (
+            (base_original == base_redirect) and 
+            (sub_original != sub_redirect)
+        )
     else:
         redirected_external = False
         redirected_subdomain = False
@@ -80,7 +81,7 @@ def all_numbers(string):
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):
-	return str.join(".", subdomain.split(".")[-2:])
+    return str.join(".", subdomain.split(".")[-2:])
 
 # return everything to the left of the base domain
 def subdomains_for(subdomain):
