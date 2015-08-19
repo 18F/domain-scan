@@ -63,6 +63,7 @@ def scan(domain, options):
         matched_wild = False
     
     yield [
+        base_original,
         inspection["up"],
         redirected_external,
         redirected_subdomain,
@@ -73,6 +74,7 @@ def scan(domain, options):
 
 
 headers = [
+    "Base Domain",
     "Live",
     "Redirects Externally",
     "Redirects To Subdomain",
