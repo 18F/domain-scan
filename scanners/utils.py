@@ -144,6 +144,14 @@ def scan(command):
         logging.warn("Error running %s." % (str(command)))
         return None
 
+# Turn shell on, when shell=False won't work.
+def unsafe_execute(command):
+    try:
+        response = subprocess.check_output(command, shell=True)
+        return str(response, encoding='UTF-8')
+    except subprocess.CalledProcessError:
+        logging.warn("Error running %s." % (str(command)))
+        return None
 
 # Predictable cache path for a domain and operation.
 def cache_path(domain, operation):

@@ -54,13 +54,21 @@ def scan(domain, options):
         redirected_external = False
         redirected_subdomain = False
 
-    # status_code = 
+    status_code = endpoint.get("status", None)
+    wildcard = check_wildcard(domain, options)
+    
+    if (wildcard['wild']) and (wildcard['wild'] == wildcard['itself']):
+        matched_wild = True
+    else:
+        matched_wild = False
     
     yield [
         inspection["up"],
         redirected_external,
         redirected_subdomain,
         any_numbers(subdomains_for(domain)),
+        status_code,
+        matched_wild
     ]
 
 
@@ -69,6 +77,8 @@ headers = [
     "Redirects Externally",
     "Redirects To Subdomain",
     "Any Numbers",
+    "HTTP Status Code",
+    "Matched Wildcard DNS"
 ]
 
 # does a number appear anywhere in this thing
@@ -82,3 +92,49 @@ def base_domain_for(subdomain):
 # return everything to the left of the base domain
 def subdomains_for(subdomain):
     return str.join(".", subdomain.split(".")[:-2])
+
+# return wildcard domain for a given subdomain
+# e.g. abc.mountains.gov -> *.mountains.gov
+def wildcard_for(subdomain):
+    return "*." + str.join(".", subdomain.split(".")[1:])
+
+def check_wildcard(subdomain, options):
+
+    wildcard = wildcard_for(subdomain)
+
+    cache = utils.cache_path(subdomain, "subdomains")
+    if (options.get("force", False) is False) and (os.path.exists(cache)):
+        logging.debug("\tCached.")
+        raw = open(cache).read()
+        data = json.loads(raw)
+
+    else:
+        logging.debug("\t dig +short '%s'" % wildcard)
+        raw_wild = utils.unsafe_execute("dig +short '%s'" % wildcard)
+
+        if raw_wild == "":
+            raw_wild = None
+            raw_self = None
+        else:
+            logging.debug("\t dig +short '%s'" % subdomain)
+            raw_self = utils.unsafe_execute("dig +short '%s'" % subdomain)
+
+        if raw_wild:
+            parsed_wild = raw_wild.split("\n")
+            parsed_wild.sort()
+        else:
+            parsed_wild = None
+
+        if raw_self:
+            parsed_self = raw_self.split("\n")
+            parsed_self.sort()
+        else:
+            parsed_self = None
+
+        data = {'response': {'wild': parsed_wild, 'itself': parsed_self}}
+        utils.write(
+            utils.json_for(data),
+            cache
+        )
+
+    return data['response']
