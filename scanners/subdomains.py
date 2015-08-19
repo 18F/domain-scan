@@ -19,6 +19,11 @@ import re
 def scan(domain, options):
     logging.debug("[%s][subdomains]" % domain)
 
+    # This only looks at subdomains, remove second-level root's and www's.
+    if re.sub("^www.", "", domain) == base_domain_for(domain):
+        logging.debug("\tSkipping, second-level domain.")
+        return None
+
     # If inspection data exists, check to see if we can skip.
     inspection = utils.data_for(domain, "inspect")
     if not inspection:
@@ -49,15 +54,13 @@ def scan(domain, options):
         redirected_external = False
         redirected_subdomain = False
 
+    # status_code = 
     
     yield [
         inspection["up"],
         redirected_external,
         redirected_subdomain,
         any_numbers(subdomains_for(domain)),
-        all_numbers(subdomains_for(domain)),
-        any_numbers(subbest_domain_for(domain)),
-        all_numbers(subbest_domain_for(domain))
     ]
 
 
@@ -66,18 +69,11 @@ headers = [
     "Redirects Externally",
     "Redirects To Subdomain",
     "Any Numbers",
-    "All Numbers",
-    "Any Numbers (Leftmost)",
-    "All Numbers (Leftmost)"
 ]
 
 # does a number appear anywhere in this thing
 def any_numbers(string):
     return (re.search(r'\d', string) is not None)
-
-# is it all numbers (and dots)
-def all_numbers(string):
-    return (re.search(r'^[\d\.]+$', string) is not None)
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):
@@ -86,7 +82,3 @@ def base_domain_for(subdomain):
 # return everything to the left of the base domain
 def subdomains_for(subdomain):
     return str.join(".", subdomain.split(".")[:-2])
-
-# return the leftmost subdomain
-def subbest_domain_for(subdomain):
-    return subdomain.split(".")[0]
