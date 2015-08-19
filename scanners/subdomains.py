@@ -34,12 +34,12 @@ def scan(domain, options):
         logging.debug("\tSkipping, subdomain wasn't up during inspection.")
         return None
 
+    base_original = base_domain_for(domain)
+    sub_original = domain
+
     # If the subdomain redirects anywhere, see if it redirects within the domain
     endpoint = inspection["endpoints"][inspection.get("canonical_protocol")]["root"]
     if endpoint.get("redirect_to"):
-
-        sub_original = domain
-        base_original = base_domain_for(domain)
 
         sub_redirect = urllib.parse.urlparse(endpoint["redirect_to"]).hostname
         sub_redirect = re.sub("^www.", "", sub_redirect) # discount www redirects
