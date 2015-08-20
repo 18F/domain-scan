@@ -37,8 +37,40 @@ def scan(domain, options):
     base_original = base_domain_for(domain)
     sub_original = domain
 
-    # If the subdomain redirects anywhere, see if it redirects within the domain
+    # Default to canonical endpoint, but if that didn't detect right, find the others
     endpoint = inspection["endpoints"][inspection.get("canonical_protocol")]["root"]
+    protocol = inspection.get("canonical_protocol")
+
+    if endpoint.get("status", None) == 0:
+        endpoint = inspection["endpoints"]["http"]["www"]
+        protocol = "http"
+
+    if endpoint.get("status", None) == 0:
+        endpoint = inspection["endpoints"]["https"]["root"]
+        protocol = "https"
+
+    if endpoint.get("status", None) == 0:
+        endpoint = inspection["endpoints"]["https"]["www"]
+        protocol = "https"
+
+    # this should have been the default default, but check anyway
+    if endpoint.get("status", None) == 0:
+        endpoint = inspection["endpoints"]["http"]["root"]
+        protocol = "http"
+
+    if endpoint.get("status", None) == 0:
+        logging.debug("\tSkipping, really down somehow, status code 0 for all.")
+        return None
+
+    # bad hostname for cert?
+    if (protocol == "https") and (endpoint.get("https_bad_name", False) == True):
+        bad_cert_name = True
+    else:
+        bad_cert_name = False
+
+
+
+    # If the subdomain redirects anywhere, see if it redirects within the domain
     if endpoint.get("redirect_to"):
 
         sub_redirect = urllib.parse.urlparse(endpoint["redirect_to"]).hostname
@@ -68,6 +100,7 @@ def scan(domain, options):
         redirected_external,
         redirected_subdomain,
         any_numbers(subdomains_for(domain)),
+        bad_cert_name,
         status_code,
         matched_wild
     ]
@@ -79,6 +112,7 @@ headers = [
     "Redirects Externally",
     "Redirects To Subdomain",
     "Any Numbers",
+    "Bad Cert Hostname",
     "HTTP Status Code",
     "Matched Wildcard DNS"
 ]
