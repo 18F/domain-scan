@@ -11,18 +11,71 @@ import re
 ##
 # == subdomains ==
 #
-# Say whether a subdomain redirects within the domain but to another subdomain.
-# Say whether a subdomain has all numbers in its leftmost subdomain.
-# Say whether a subdomain has any numbers in its leftmost subdomain.
+# This scanner takes a CSV full of *potential* subdomains (e.g. a list of DNS requests)
+# and produces a resulting subdomains.csv of likely "public websites".
+#
+# Given three input files:
+#
+# 1. CSV of potential subdomains (the main input CSV)
+# 2. CSV of subdomains to be excluded (e.g. from manual review)
+# 3. CSV of second-levels with a metadata field in 3rd column (e.g. .gov domain list)
+#
+# This scanner filters out:
+#
+# * subdomains that didn't get the "inspect" scanner run on them
+# * subdomains that weren't reachable by HTTP/HTTPS over the public internet
+# * subdomains that matched a wildcard DNS record AND whose "canonical" endpoint 
+#   returned a *non-200* status code. 200 status codes should be manually reviewed.
+# * subdomains which appear on the provided exclusion list (input CSV #2)
+# 
+# And includes fields for:
+#
+# * Subdomain's parent second-level domain
+# * Subdomain's parent second-level domain's metadata (input CSV #3)
+# * Whether the subdomain appears to redirect to another second-level domain
+# * Whether the subdomain appears to redirect to another subdomain within the same second-level
+# * The HTTP status code returned by the subdomain's "canonical" endpoint (best guess)
+# * Whether the subdomain appears to match a wildcard DNS record
+#
 ##
+
+exclude_list = None
+parents_list = None
+
+def init(options):
+    """
+    Download the Chrome preload list at the beginning of the scan, and
+    re-use it for each scan. It is unnecessary to re-download the list for each
+    scan because it changes infrequently.
+    """
+    global exclude_list
+    global parents_list
+    exclude_path = options.get("subdomains-exclude", None)
+    parents_path = options.get("subdomains-parents", None)
+
+    if (exclude_path is None) or (parents_path is None):
+        logging.warn("Specify CSVs with --subdomains-exclude and --subdomains-parents.")
+        return False
+
+    exclude_list = utils.load_domains(exclude_path)
+    parents_list = utils.load_domains(parents_path)
+    return True
 
 def scan(domain, options):
     logging.debug("[%s][subdomains]" % domain)
 
+    base_original = base_domain_for(domain)
+    sub_original = domain
+
+    if domain in exclude_list:
+        logging.debug("\tSkipping, excluded through manual review.")
+        return None
+
     # This only looks at subdomains, remove second-level root's and www's.
-    if re.sub("^www.", "", domain) == base_domain_for(domain):
+    if re.sub("^www.", "", domain) == base_original:
         logging.debug("\tSkipping, second-level domain.")
         return None
+
 
     # If inspection data exists, check to see if we can skip.
     inspection = utils.data_for(domain, "inspect")
@@ -33,9 +86,6 @@ def scan(domain, options):
     if not inspection.get("up"):
         logging.debug("\tSkipping, subdomain wasn't up during inspection.")
         return None
-
-    base_original = base_domain_for(domain)
-    sub_original = domain
 
     # Default to canonical endpoint, but if that didn't detect right, find the others
     endpoint = inspection["endpoints"][inspection.get("canonical_protocol")]["root"]
@@ -96,11 +146,8 @@ def scan(domain, options):
     
     yield [
         base_original,
-        inspection["up"],
         redirected_external,
         redirected_subdomain,
-        any_numbers(subdomains_for(domain)),
-        bad_cert_name,
         status_code,
         matched_wild
     ]
@@ -108,18 +155,12 @@ def scan(domain, options):
 
 headers = [
     "Base Domain",
-    "Live",
     "Redirects Externally",
     "Redirects To Subdomain",
-    "Any Numbers",
-    "Bad Cert Hostname",
     "HTTP Status Code",
     "Matched Wildcard DNS"
 ]
 
-# does a number appear anywhere in this thing
-def any_numbers(string):
-    return (re.search(r'\d', string) is not None)
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):
@@ -134,13 +175,19 @@ def subdomains_for(subdomain):
 def wildcard_for(subdomain):
     return "*." + str.join(".", subdomain.split(".")[1:])
 
+
+# Not awesome - uses an unsafe shell execution of `dig` to look up DNS,
+# as I couldn't figure out a way to get "+short" to play nice with
+# the more secure execution methods available to me. Since this system
+# isn't expected to process untrusted input, this should be okay.
+
 def check_wildcard(subdomain, options):
 
     wildcard = wildcard_for(subdomain)
 
     cache = utils.cache_path(subdomain, "subdomains")
     if (options.get("force", False) is False) and (os.path.exists(cache)):
-        logging.debug("\tCached.")
+        logging.debug("\tDNS info cached.")
         raw = open(cache).read()
         data = json.loads(raw)
 
