@@ -16,7 +16,7 @@ def get_exitcode_stdout_stderr(cmd):
     proc = Popen(args, stdout=PIPE, stderr=PIPE)
     out, err = proc.communicate()
     exitcode = proc.returncode
-    #
+
     return exitcode, out, err
 
 
@@ -25,27 +25,24 @@ workers = 1
 
 PA11Y_STANDARD = 'WCAG2AA'
 
+headers = [
+    "type",
+    "typeCode",
+    "code",
+    "message",
+    "context",
+    "selector"
+]
+
 def scan(domain, options):
+    print(options)
     command = "pa11y --standard %s --reporter json %s" % (PA11Y_STANDARD, domain)
     exitcode, out, err = get_exitcode_stdout_stderr(command)
     
     reports = json.loads(out.decode("utf-8"))
-    
-    notices = len([r for r in reports if r['type'] == 'notice'])
-    errors = len([r for r in reports if r['type'] == 'error'])
-    warnings = len([r for r in reports if r['type'] == 'warning'])
-        
-    yield [
-        PA11Y_STANDARD,
-        warnings,
-        errors,
-        notices
-    ]
-    
 
-headers = [
-    "Standard",
-    "Warnings",
-    "Errors",
-    "Notices"
-]
+    for report in reports:
+        result = []
+        for header in headers:
+            result.append(report.get(header))
+        yield result
