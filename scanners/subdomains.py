@@ -122,10 +122,15 @@ def scan(domain, options):
         endpoint = inspection["endpoints"]["http"]["root"]
         protocol = "http"
 
-    if endpoint.get("status", None) == 0:
+    # If it's a 0 status code, I guess it's down.
+    # If it's non-200, we filter out by default.
+    status = endpoint.get("status", None)
+
+    if status == 0:
         logging.debug("\tSkipping, really down somehow, status code 0 for all.")
         return None
 
+    
     # bad hostname for cert?
     if (protocol == "https") and (endpoint.get("https_bad_name", False) == True):
         bad_cert_name = True
@@ -158,6 +163,10 @@ def scan(domain, options):
     else:
         matched_wild = False
 
+    # If it matches a wildcard domain, and the status code we found was non-200, 
+    # the signal-to-noise is just too low to include it.
+    if matched_wild and (not str(status).startswith('2')):
+        logging.debug("\tSkipping, wildcard DNS match with %i status code." % status)
 
     yield [
         base_original,
