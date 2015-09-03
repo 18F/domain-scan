@@ -167,6 +167,7 @@ def scan(domain, options):
     # the signal-to-noise is just too low to include it.
     if matched_wild and (not str(status).startswith('2')):
         logging.debug("\tSkipping, wildcard DNS match with %i status code." % status)
+        return None
 
     yield [
         base_original,
