@@ -180,11 +180,17 @@ def utc_timestamp():
     return strict_rfc3339.now_to_rfc3339_utcoffset()
 
 # Load the first column of a CSV into memory as an array of strings.
-def load_domains(domain_csv):
+def load_domains(domain_csv, whole_rows=False):
     domains = []
     with open(domain_csv, newline='') as csvfile:
         for row in csv.reader(csvfile):
             if (not row[0]) or (row[0].lower().startswith("domain")):
                 continue
-            domains.append(row[0].lower())
+
+            row[0] = row[0].lower()
+            
+            if whole_rows:
+                domains.append(row)
+            else:
+                domains.append(row[0])
     return domains

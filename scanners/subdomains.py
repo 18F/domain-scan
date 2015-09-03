@@ -41,6 +41,12 @@ import re
 
 exclude_list = None
 parents_list = None
+domain_map = {}
+
+# Which column (0-indexed) has the parent domain metadata field that should be passed on.
+# In the US government's case, this is the 3rd column, the agency name.
+# This could be made a variable if others want to use this scanner.
+base_metadata_index = 2
 
 def init(options):
     """
@@ -57,8 +63,14 @@ def init(options):
         logging.warn("Specify CSVs with --subdomains-exclude and --subdomains-parents.")
         return False
 
+    # list of subdomains to manually exclude
     exclude_list = utils.load_domains(exclude_path)
-    parents_list = utils.load_domains(parents_path)
+
+    # make a map of {'domain.gov': 'name of owner'}
+    parents_list = utils.load_domains(parents_path, whole_rows=True)
+    for domain_info in parents_list:
+        domain_map[domain_info[0]] = domain_info[2]
+
     return True
 
 def scan(domain, options):
@@ -66,6 +78,8 @@ def scan(domain, options):
 
     base_original = base_domain_for(domain)
     sub_original = domain
+
+    base_metadata = domain_map.get(base_original, None)
 
     if domain in exclude_list:
         logging.debug("\tSkipping, excluded through manual review.")
@@ -143,9 +157,11 @@ def scan(domain, options):
         matched_wild = True
     else:
         matched_wild = False
-    
+
+
     yield [
         base_original,
+        base_metadata,
         redirected_external,
         redirected_subdomain,
         status_code,
@@ -155,6 +171,7 @@ def scan(domain, options):
 
 headers = [
     "Base Domain",
+    "Base Domain Info",
     "Redirects Externally",
     "Redirects To Subdomain",
     "HTTP Status Code",
