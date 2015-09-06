@@ -4,6 +4,7 @@ import json
 import os
 
 from bs4 import BeautifulSoup
+import dateutil.parser
 
 ###
 # == sslyze ==
@@ -79,6 +80,8 @@ def scan(domain, options):
 		data['key_type'], data['key_length'],
 		data['leaf_signature'], data['any_sha1'],
 
+		data['not_before'], data['not_after'],
+
 		data['any_dhe'],
 
 		data['any_rc4'],
@@ -90,7 +93,9 @@ headers = [
 	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 	
 	"Key Type", "Key Length",
-	"Signature Algorithm", "SHA-1 in Chain", 
+	"Signature Algorithm", "SHA-1 in Served Chain", 
+
+	"Not Before", "Not After",
 
 	"Any Forward Secrecy",
 
@@ -135,12 +140,21 @@ def parse_sslyze(xml):
 	else:
 		data['served_issuer'] = "(None found)"
 
+	leaf = target.select_one("certificateChain certificate[position=leaf]")
+
 	# Key algorithm and length for leaf certificate only.
-	data['key_type'] = target.select_one("certificateChain certificate[position=leaf] subjectPublicKeyInfo publicKeyAlgorithm").text
-	data['key_length'] = int(target.select_one("certificateChain certificate[position=leaf] subjectPublicKeyInfo publicKeySize").text)
+	data['key_type'] = leaf.select_one("subjectPublicKeyInfo publicKeyAlgorithm").text
+	data['key_length'] = int(leaf.select_one("subjectPublicKeyInfo publicKeySize").text)
 
 	# Signature of the leaf certificate only.
-	data['leaf_signature'] = target.select_one("certificateChain certificate[position=leaf] signatureAlgorithm").text
+	data['leaf_signature'] = leaf.select_one("signatureAlgorithm").text
+
+	# Beginning and expiration dates of the leaf certificate
+	before_date = leaf.select_one("validity notBefore").text
+	after_date = leaf.select_one("validity notAfter").text
+	data['not_before'] = dateutil.parser.parse(before_date)
+	data['not_after'] = dateutil.parser.parse(after_date)
+
 
 	# Look at only served leaf and intermediate certificates
 	signatures = target.select("certificateChain certificate[position=leaf],certificate[position=intermediate] signatureAlgorithm")
@@ -175,3 +189,4 @@ def parse_sslyze(xml):
 # return base domain for a subdomain
 def base_domain_for(subdomain):
     return str.join(".", subdomain.split(".")[-2:])
+

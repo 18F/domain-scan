@@ -2,5 +2,7 @@ ipython
 requests
 strict-rfc3339
 
+# to support sslyze scanner
 lxml
 BeautifulSoup4
+python-dateutil
