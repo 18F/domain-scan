@@ -109,16 +109,16 @@ def results_dir():
 def notify(body):
     try:
         if isinstance(body, Exception):
-            body = format_exception(body)
+            body = format_last_exception()
 
         logging.error(body)  # always print it
 
-    except Exception as exception:
+    except Exception:
         print("Exception logging message to admin, halting as to avoid loop")
-        print(format_exception(exception))
+        print(format_last_exception())
 
 
-def format_exception(exception):
+def format_last_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     return "\n".join(traceback.format_exception(exc_type, exc_value,
                                                 exc_traceback))
@@ -136,9 +136,9 @@ def try_command(command):
         return False
 
 
-def scan(command):
+def scan(command, env=None):
     try:
-        response = subprocess.check_output(command, shell=False)
+        response = subprocess.check_output(command, shell=False, env=env)
         return str(response, encoding='UTF-8')
     except subprocess.CalledProcessError:
         logging.warn("Error running %s." % (str(command)))
@@ -146,8 +146,8 @@ def scan(command):
 
 
 # Predictable cache path for a domain and operation.
-def cache_path(domain, operation):
-    return os.path.join(cache_dir(), operation, ("%s.json" % domain))
+def cache_path(domain, operation, ext="json"):
+    return os.path.join(cache_dir(), operation, ("%s.%s" % (domain, ext)))
 
 
 # Used to quickly get cached data for a domain.
