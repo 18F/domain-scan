@@ -75,6 +75,12 @@ def scan(domain, options):
 	yield [
 		base_domain_for(domain),
 		data['sslv2'], data['sslv3'], data['tlsv1.0'], data['tlsv1.1'], data['tlsv1.2'], 
+
+		data['key_type'], data['key_length'],
+		data['leaf_signature'], data['any_sha1'],
+
+		data['any_dhe'],
+
 		data['any_rc4'],
 		data['served_issuer'], data['ocsp_stapling']
 	]
@@ -83,8 +89,10 @@ headers = [
 	"Base Domain",
 	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 	
-	"Signature Algorithm", "SHA-1 in Chain", 
 	"Key Type", "Key Length",
+	"Signature Algorithm", "SHA-1 in Chain", 
+
+	"Any Forward Secrecy",
 
 	"Any RC4",
 	"Highest Served Issuer", "OCSP Stapling"
@@ -118,7 +126,14 @@ def parse_sslyze(xml):
 	# This is an attempt at finding the CA name, but won't work if the served
 	# chain is incomplete. I'll take what I can get without doing path chasing.
 	certificates = target.select("certificateChain certificate")
-	data['served_issuer'] = certificates[-1].select_one("issuer commonName").text
+	issuer = certificates[-1].select_one("issuer commonName")
+	if not issuer:
+		issuer = certificates[-1].select_one("issuer organizationalUnitName")
+
+	if issuer and issuer.text:
+		data['served_issuer'] = issuer.text
+	else:
+		data['served_issuer'] = "(None found)"
 
 	# Key algorithm and length for leaf certificate only.
 	data['key_type'] = target.select_one("certificateChain certificate[position=leaf] subjectPublicKeyInfo publicKeyAlgorithm").text
@@ -135,13 +150,20 @@ def parse_sslyze(xml):
 			any_sha1 = True
 	data['any_sha1'] = any_sha1
 
-	# Look at accepted cipher suites for the text 'RC4'.
+	
 	accepted_ciphers = target.select("acceptedCipherSuites cipherSuite")
+	
+	# Look at accepted cipher suites for RC4 or DHE
 	any_rc4 = False
+	any_dhe = False
 	for cipher in accepted_ciphers:
-		if "RC4" in cipher:
+		if "RC4" in cipher.text:
 			any_rc4 = True
+		if cipher.text.startswith("DHE-") or cipher.text.startswith("ECDHE-"):
+			any_dhe = True
 	data['any_rc4'] = any_rc4
+	data['any_dhe'] = any_dhe
+
 
 	return data
 
