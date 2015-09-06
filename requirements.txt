@@ -1,3 +1,6 @@
 ipython
 requests
 strict-rfc3339
+
+lxml
+BeautifulSoup4
