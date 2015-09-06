@@ -1,25 +1,35 @@
 ## A domain scanner
 
-Scans domains for data on their:
+Scans domains for data on their HTTPS configuration and assorted other things.
 
-* HTTP, HTTPS, and [HSTS](https://https.cio.gov/hsts/) configuration, using [`site-inspector`](https://github.com/benbalter/site-inspector-ruby).
-* Detailed TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan).
-* Whether a domain participates in the [Digital Analytics Program](https://analytics.usa.gov). (This one's U.S. government-specific for now, but can be ignored.)
+**Most of the work is farmed out to other command line tools.** The point of this project is to **coordinate** those tools and produce **consistent data output**.
 
-Most of the work is farmed out to other tools. The point of this scanner is to coordinate those tools and produce consistent data output.
-
-Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/tree/gh-pages/dotgov-domains).
+Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
 
 ### Requirements
 
-* **Python 3**.
-* `inspect` scanner: **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
-* `tls` scanner: **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
-* `pageload` scanner: **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
+The requirements here can be quite diverse, because this tool is just a coordinator for other tools. Communication between tools is handled via CLI and STDOUT.
+
+The overall tool requires **Python 3**. To install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+The individual scanners each require their own dependencies. You only need to have the dependencies installed for the scanners you plan to use.
+
+* `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
+* `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
+* `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, downloaded from [their latest compiled release](https://github.com/nabla-c0d3/sslyze/releases).
+* `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
+
+##### Setting tool paths
 
 Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
 
 Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
+
+Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.9` is passed by default, override version with `SSLYZE_PYENV`.
 
 Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
@@ -60,11 +70,12 @@ Parallelization will also cause the resulting domains to be written in an unpred
 **Scanners:**
 
 * `inspect` - HTTP/HTTPS/HSTS configuration.
-* `tls` - TLS configuration.
+* `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
+* `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
 * `analytics` - Participation in an analytics program.
 * `pageload` - Page load and rendering metrics.
 
-**Options:**
+**General options:**
 
 * `--scan` - **Required.** Comma-separated names of one or more scanners.
 * `--sort` - Sort result CSVs by domain name, alphabetically. (**Note:** this causes the entire dataset to be read into memory.)
@@ -74,7 +85,10 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
 * `--force` - Ignore cached data and force scans to hit the network. For the `tls` scanner, this also tells SSL Labs to ignore its server-side cache.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
-* `--analytics` - Required if using the `analytics` scanner. Point this to either a file **or** a URL that contains a CSV of participating domains.
+
+**Scanner-specific options**
+
+* `--analytics` - For the `analytics` scanner. Point this to either a file **or** a URL that contains a CSV of participating domains.
 
 ### Output
 
@@ -116,7 +130,7 @@ Some high-priority TODOs here:
 
 * **JSON output**. Refactor scanners to return a dict instead of a row. Have scanners specify both JSON-style field headers *and* CSV-style column headers in a 2-dimensional array. Use this to make it so JSON and CSV can both be serialized with appropriate fields and in the right order. Include JSON results in the `results/` dir.
 * **Handle network loss gracefully.** Right now, the scanner will assume that a domain is "down" if the network is down, and cache that. That makes trusting the results of a batch run iffy. I don't know the best way to distinguish between a domain being unreachable, and the network *making* the domain unreachable.
-* **Upgrade to site-inspector 2.x.** This repo depends on site-inspector 1.0.2, which is behind the times. But, site-inspector 2 needs more testing and work first. site-inspector 2 also is not backwards-compatible, in CLI syntax or in result format.
+* **Upgrade to site-inspector 3.x.** This repo depends on site-inspector 1.0.2, which is behind the times. But, site-inspector 3 needs more testing and work first. site-inspector 2 also is not backwards-compatible, in CLI syntax or in result format.
 
 ### Public domain
 
