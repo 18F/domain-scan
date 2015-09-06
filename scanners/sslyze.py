@@ -153,13 +153,17 @@ def parse_sslyze(xml):
 	
 	accepted_ciphers = target.select("acceptedCipherSuites cipherSuite")
 	
-	# Look at accepted cipher suites for RC4 or DHE
+	# Look at accepted cipher suites for RC4 or DHE.
+	# This is imperfect, as the advertising of RC4 could discriminate based on client.
+	# DHE and ECDHE may not remain the only forward secret options for TLS.
 	any_rc4 = False
 	any_dhe = False
 	for cipher in accepted_ciphers:
-		if "RC4" in cipher.text:
+		name = cipher["name"]
+
+		if "RC4" in name:
 			any_rc4 = True
-		if cipher.text.startswith("DHE-") or cipher.text.startswith("ECDHE-"):
+		if name.startswith("DHE-") or name.startswith("ECDHE-"):
 			any_dhe = True
 	data['any_rc4'] = any_rc4
 	data['any_dhe'] = any_dhe
