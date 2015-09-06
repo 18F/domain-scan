@@ -73,13 +73,14 @@ def scan(domain, options):
 	utils.write(utils.json_for(data), utils.cache_path(domain, "sslyze"))
 
 	yield [
+		base_domain_for(domain),
 		data['sslv2'], data['sslv3'], data['tlsv1.0'], data['tlsv1.1'], data['tlsv1.2'], 
-		
 		data['any_rc4'],
 		data['served_issuer'], data['ocsp_stapling']
 	]
 
 headers = [
+	"Base Domain",
 	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 	
 	"Signature Algorithm", "SHA-1 in Chain", 
@@ -145,11 +146,6 @@ def parse_sslyze(xml):
 	return data
 
 
-# headers = [
-# 	"Signature Algorithm", "Key Type", "Key Size",  # strength
-# 	"Forward Secrecy", "OCSP Stapling",  # privacy
-# 	"Fallback SCSV",  # good things
-# 	"RC4", "SSLv3",  # old things
-# 	"TLSv1.2", "SPDY", "Requires SNI",  # forward
-# 	"HTTP/2"  # ever forward
-# ]
+# return base domain for a subdomain
+def base_domain_for(subdomain):
+    return str.join(".", subdomain.split(".")[-2:])
