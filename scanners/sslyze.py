@@ -28,6 +28,13 @@ def scan(domain, options):
 		logging.debug("\tSkipping, HTTPS not supported in inspection.")
 		return None
 
+	# Optional: if inspect data says canonical endpoint uses www and this domain
+	# doesn't have it, add it.
+	if inspection and (inspection.get("canonical_endpoint") == "www") and (not domain.startswith("www.")):
+		scan_domain = "www.%s" % domain
+	else:
+		scan_domain = domain
+
 	# cache XML from sslyze
 	cache_xml = utils.cache_path(domain, "sslyze", ext="xml")
 	# because sslyze manages its own output (can't yet print to stdout),
@@ -42,7 +49,8 @@ def scan(domain, options):
 
 	else:
 		logging.debug("\t %s %s" % (command, domain))
-		raw = utils.scan([command, "--regular", "--quiet", domain, "--xml_out=%s" % cache_xml], env=command_env)
+		# use scan_domain (possibly www-prefixed) to do actual scan
+		raw = utils.scan([command, "--regular", "--quiet", scan_domain, "--xml_out=%s" % cache_xml], env=command_env)
 		
 		if raw is None:
 			# TODO: save standard invalid XML data...?
