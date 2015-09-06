@@ -82,7 +82,7 @@ def scan(domain, options):
 
 		data['not_before'], data['not_after'],
 
-		data['any_dhe'],
+		data['any_dhe'], data['weakest_dh'],
 
 		data['any_rc4'],
 		data['served_issuer'], data['ocsp_stapling']
@@ -97,7 +97,7 @@ headers = [
 
 	"Not Before", "Not After",
 
-	"Any Forward Secrecy",
+	"Any Forward Secrecy", "Weakest DH Group Size",
 
 	"Any RC4",
 	"Highest Served Issuer", "OCSP Stapling"
@@ -174,14 +174,26 @@ def parse_sslyze(xml):
 	any_dhe = False
 	for cipher in accepted_ciphers:
 		name = cipher["name"]
-
 		if "RC4" in name:
 			any_rc4 = True
 		if name.startswith("DHE-") or name.startswith("ECDHE-"):
 			any_dhe = True
+
 	data['any_rc4'] = any_rc4
 	data['any_dhe'] = any_dhe
 
+	# Find the weakest available DH group size, if any are available.
+	weakest_dh = 1234567890 # nonsense maximum
+	groups = target.select("acceptedCipherSuites cipherSuite keyExchange[Type=DH]")
+	for group in groups:
+		size = int(group["GroupSize"])
+		if size < weakest_dh:
+			weakest_dh = size
+
+	if weakest_dh == 1234567890:
+		weakest_dh = None
+
+	data['weakest_dh'] = weakest_dh
 
 	return data
 
