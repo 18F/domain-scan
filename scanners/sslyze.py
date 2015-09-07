@@ -75,34 +75,42 @@ def scan(domain, options):
 
 	yield [
 		base_domain_for(domain),
-		data['sslv2'], data['sslv3'], data['tlsv1.0'], data['tlsv1.1'], data['tlsv1.2'], 
 
-		data['key_type'], data['key_length'],
-		data['leaf_signature'], data['any_sha1'],
+		data['protocols']['sslv2'], data['protocols']['sslv3'], 
+		data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'], 
+		data['protocols']['tlsv1.2'], 
 
-		data['not_before'], data['not_after'],
+		data['config']['any_dhe'], data['config']['all_dhe'],
+		data['config']['weakest_dh'],
+		data['config']['any_rc4'], data['config']['all_rc4'],
 
-		data['any_dhe'], data['all_dhe'],
-		data['weakest_dh'],
+		data['config'].get('ocsp_stapling'),
+		
+		data['certs'].get('key_type'), data['certs'].get('key_length'),
+		data['certs'].get('leaf_signature'), data['certs'].get('any_sha1'),
+		data['certs'].get('not_before'), data['certs'].get('not_after'),
+		data['certs'].get('served_issuer'), 
 
-		data['any_rc4'], data['all_rc4'],
-		data['served_issuer'], data['ocsp_stapling']
+		data.get('errors')
 	]
 
 headers = [
 	"Base Domain",
-	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
-	
-	"Key Type", "Key Length",
-	"Signature Algorithm", "SHA-1 in Served Chain", 
 
-	"Not Before", "Not After",
+	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 
 	"Any Forward Secrecy", "All Forward Secrecy", 
 	"Weakest DH Group Size",
-
 	"Any RC4", "All RC4",
-	"Highest Served Issuer", "OCSP Stapling"
+
+	"OCSP Stapling",
+
+	"Key Type", "Key Length",
+	"Signature Algorithm", "SHA-1 in Served Chain", 
+	"Not Before", "Not After",
+	"Highest Served Issuer", 
+
+	"Errors"
 ]
 
 # Get the relevant fields out of sslyze's XML format. I couldn't find this documented
@@ -119,56 +127,25 @@ def parse_sslyze(xml):
 
 	# Protocol version support.
 	data = {
-		'sslv2': (target.find('sslv2')["isProtocolSupported"] == 'True'),
-		'sslv3': (target.find('sslv3')["isProtocolSupported"] == 'True'),
-		'tlsv1.0': (target.find('tlsv1')["isProtocolSupported"] == 'True'),
-		'tlsv1.1': (target.find('tlsv1_1')["isProtocolSupported"] == 'True'),
-		'tlsv1.2': (target.find('tlsv1_2')["isProtocolSupported"] == 'True')
+		'protocols': {
+			'sslv2': (target.find('sslv2')["isProtocolSupported"] == 'True'),
+			'sslv3': (target.find('sslv3')["isProtocolSupported"] == 'True'),
+			'tlsv1.0': (target.find('tlsv1')["isProtocolSupported"] == 'True'),
+			'tlsv1.1': (target.find('tlsv1_1')["isProtocolSupported"] == 'True'),
+			'tlsv1.2': (target.find('tlsv1_2')["isProtocolSupported"] == 'True')
+		},
+
+		'config': {},
+
+		'certs': {},
+
+		'errors': None
 	}
 
 	# Whether OCSP stapling is enabled.
 	ocsp = target.select_one('ocspStapling')
 	if ocsp:
-		data['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
-	else:
-		data['ocsp_stapling'] = None
-
-	# Find the issuer of the last served cert.
-	# This is an attempt at finding the CA name, but won't work if the served
-	# chain is incomplete. I'll take what I can get without doing path chasing.
-	certificates = target.select("certificateChain certificate")
-	issuer = certificates[-1].select_one("issuer commonName")
-	if not issuer:
-		issuer = certificates[-1].select_one("issuer organizationalUnitName")
-
-	if issuer and issuer.text:
-		data['served_issuer'] = issuer.text
-	else:
-		data['served_issuer'] = "(None found)"
-
-	leaf = target.select_one("certificateChain certificate[position=leaf]")
-
-	# Key algorithm and length for leaf certificate only.
-	data['key_type'] = leaf.select_one("subjectPublicKeyInfo publicKeyAlgorithm").text
-	data['key_length'] = int(leaf.select_one("subjectPublicKeyInfo publicKeySize").text)
-
-	# Signature of the leaf certificate only.
-	data['leaf_signature'] = leaf.select_one("signatureAlgorithm").text
-
-	# Beginning and expiration dates of the leaf certificate
-	before_date = leaf.select_one("validity notBefore").text
-	after_date = leaf.select_one("validity notAfter").text
-	data['not_before'] = dateutil.parser.parse(before_date)
-	data['not_after'] = dateutil.parser.parse(after_date)
-
-
-	# Look at only served leaf and intermediate certificates
-	signatures = target.select("certificateChain certificate[position=leaf],certificate[position=intermediate] signatureAlgorithm")
-	any_sha1 = False
-	for signature in signatures:
-		if "sha1With" in signature.text:
-			any_sha1 = True
-	data['any_sha1'] = any_sha1
+		data['config']['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
 
 	
 	accepted_ciphers = target.select("acceptedCipherSuites cipherSuite")
@@ -192,10 +169,10 @@ def parse_sslyze(xml):
 		else:
 			all_dhe = False
 
-	data['any_rc4'] = any_rc4
-	data['all_rc4'] = all_rc4
-	data['any_dhe'] = any_dhe
-	data['all_dhe'] = all_dhe
+	data['config']['any_rc4'] = any_rc4
+	data['config']['all_rc4'] = all_rc4
+	data['config']['any_dhe'] = any_dhe
+	data['config']['all_dhe'] = all_dhe
 
 	# Find the weakest available DH group size, if any are available.
 	weakest_dh = 1234567890 # nonsense maximum
@@ -208,7 +185,52 @@ def parse_sslyze(xml):
 	if weakest_dh == 1234567890:
 		weakest_dh = None
 
-	data['weakest_dh'] = weakest_dh
+	data['config']['weakest_dh'] = weakest_dh
+
+
+	# If there was an exception parsing the certificate, catch it before fetching cert info.
+	if target.select_one("certinfo[exception]") is not None:
+		data['errors'] = target.select_one("certinfo[exception]")["exception"]
+
+	else:
+
+		# Find the issuer of the last served cert.
+		# This is an attempt at finding the CA name, but won't work if the served
+		# chain is incomplete. I'll take what I can get without doing path chasing.
+		certificates = target.select("certificateChain certificate")
+		issuer = certificates[-1].select_one("issuer commonName")
+		if not issuer:
+			issuer = certificates[-1].select_one("issuer organizationalUnitName")
+
+		if issuer and issuer.text:
+			data['certs']['served_issuer'] = issuer.text
+		else:
+			data['certs']['served_issuer'] = "(None found)"
+
+		leaf = target.select_one("certificateChain certificate[position=leaf]")
+
+		# Key algorithm and length for leaf certificate only.
+		data['certs']['key_type'] = leaf.select_one("subjectPublicKeyInfo publicKeyAlgorithm").text
+		data['certs']['key_length'] = int(leaf.select_one("subjectPublicKeyInfo publicKeySize").text)
+
+		# Signature of the leaf certificate only.
+		data['certs']['leaf_signature'] = leaf.select_one("signatureAlgorithm").text
+
+		# Beginning and expiration dates of the leaf certificate
+		before_date = leaf.select_one("validity notBefore").text
+		after_date = leaf.select_one("validity notAfter").text
+		data['certs']['not_before'] = dateutil.parser.parse(before_date)
+		data['certs']['not_after'] = dateutil.parser.parse(after_date)
+
+
+		# Look at only served leaf and intermediate certificates
+		signatures = target.select("certificateChain certificate[position=leaf],certificate[position=intermediate] signatureAlgorithm")
+		any_sha1 = False
+		for signature in signatures:
+			if "sha1With" in signature.text:
+				any_sha1 = True
+		data['certs']['any_sha1'] = any_sha1
+
 
 	return data
 
