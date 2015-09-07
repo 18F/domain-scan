@@ -125,7 +125,11 @@ def parse_sslyze(xml):
 	}
 
 	# Whether OCSP stapling is enabled.
-	data['ocsp_stapling'] = (target.select_one('ocspStapling')["isSupported"] == 'True')
+	ocsp = target.select_one('ocspStapling')
+	if ocsp:
+		data['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
+	else:
+		data['ocsp_stapling'] = None
 
 	# Find the issuer of the last served cert.
 	# This is an attempt at finding the CA name, but won't work if the served
