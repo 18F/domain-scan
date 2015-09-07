@@ -99,7 +99,7 @@ def scan_domains(scanners, domains):
         try:
             rows = list(scanner.scan(domain, options))
         except:
-            print(utils.format_last_exception())
+            logging.warn(utils.format_last_exception())
 
         if rows:
             for row in rows:
