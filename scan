@@ -48,7 +48,7 @@ def run(options=None):
             exit()
 
         # If the scanner has a canonical command, make sure it exists.
-        if scanner.command and (not utils.try_command(scanner.command)):
+        if hasattr(scanner, "command") and scanner.command and (not utils.try_command(scanner.command)):
             logging.error("[%s] Command not found: %s" %
                           (name, scanner.command))
             exit()
@@ -93,12 +93,17 @@ def scan_domains(scanners, domains):
     # The task wrapper that's parallelized using executor.map.
     def process_scan(params):
         scanner, domain, options = params
-        # A scanner can return multiple rows.
 
-        for row in scanner.scan(domain, options):
+        # A scanner can return multiple rows.
+        try:
+            rows = list(scanner.scan(domain, options))
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print("\tERROR: %s\n\t%s" % (exc_type, exc_value))
+
+        for row in rows:
             if row:
                 handles[scanner]['writer'].writerow([domain] + row)
-
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.
