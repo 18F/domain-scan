@@ -74,7 +74,7 @@ def scan(domain, options):
 	utils.write(utils.json_for(data), utils.cache_path(domain, "sslyze"))
 
 	yield [
-		base_domain_for(domain),
+		utils.base_domain_for(domain),
 
 		data['protocols']['sslv2'], data['protocols']['sslv3'], 
 		data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'], 
@@ -233,9 +233,4 @@ def parse_sslyze(xml):
 
 
 	return data
-
-
-# return base domain for a subdomain
-def base_domain_for(subdomain):
-    return str.join(".", subdomain.split(".")[-2:])
 

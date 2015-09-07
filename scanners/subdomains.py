@@ -76,7 +76,7 @@ def init(options):
 def scan(domain, options):
     logging.debug("[%s][subdomains]" % domain)
 
-    base_original = base_domain_for(domain)
+    base_original = utils.base_domain_for(domain)
     sub_original = domain
 
     base_metadata = domain_map.get(base_original, None)
@@ -144,7 +144,7 @@ def scan(domain, options):
 
         sub_redirect = urllib.parse.urlparse(endpoint["redirect_to"]).hostname
         sub_redirect = re.sub("^www.", "", sub_redirect) # discount www redirects
-        base_redirect = base_domain_for(sub_redirect)
+        base_redirect = utils.base_domain_for(sub_redirect)
         
         redirected_external = base_original != base_redirect
         redirected_subdomain = (
@@ -188,10 +188,6 @@ headers = [
     "Matched Wildcard DNS"
 ]
 
-
-# return base domain for a subdomain
-def base_domain_for(subdomain):
-    return str.join(".", subdomain.split(".")[-2:])
 
 # return everything to the left of the base domain
 def subdomains_for(subdomain):

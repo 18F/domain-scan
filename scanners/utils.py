@@ -179,6 +179,10 @@ def invalid(data=None):
 def utc_timestamp():
     return strict_rfc3339.now_to_rfc3339_utcoffset()
 
+# return base domain for a subdomain
+def base_domain_for(subdomain):
+    return str.join(".", subdomain.split(".")[-2:])
+
 # Load the first column of a CSV into memory as an array of strings.
 def load_domains(domain_csv, whole_rows=False):
     domains = []
