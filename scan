@@ -83,7 +83,7 @@ def scan_domains(scanners, domains):
         scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
-        scanner_writer.writerow(["Domain"] + scanner.headers)
+        scanner_writer.writerow(["Domain", "Base Domain"] + scanner.headers)
 
         handles[scanner] = {
             'file': scanner_file,
@@ -104,7 +104,7 @@ def scan_domains(scanners, domains):
         if rows:
             for row in rows:
                 if row:
-                    handles[scanner]['writer'].writerow([domain] + row)
+                    handles[scanner]['writer'].writerow([domain, utils.base_domain_for(domain)] + row)
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.

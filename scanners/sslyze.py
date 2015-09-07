@@ -74,8 +74,6 @@ def scan(domain, options):
 	utils.write(utils.json_for(data), utils.cache_path(domain, "sslyze"))
 
 	yield [
-		utils.base_domain_for(domain),
-
 		data['protocols']['sslv2'], data['protocols']['sslv3'], 
 		data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'], 
 		data['protocols']['tlsv1.2'], 
@@ -95,8 +93,6 @@ def scan(domain, options):
 	]
 
 headers = [
-	"Base Domain",
-
 	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 
 	"Any Forward Secrecy", "All Forward Secrecy", 
