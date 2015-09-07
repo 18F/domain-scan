@@ -82,9 +82,10 @@ def scan(domain, options):
 
 		data['not_before'], data['not_after'],
 
-		data['any_dhe'], data['weakest_dh'],
+		data['any_dhe'], data['all_dhe'],
+		data['weakest_dh'],
 
-		data['any_rc4'],
+		data['any_rc4'], data['all_rc4'],
 		data['served_issuer'], data['ocsp_stapling']
 	]
 
@@ -97,9 +98,10 @@ headers = [
 
 	"Not Before", "Not After",
 
-	"Any Forward Secrecy", "Weakest DH Group Size",
+	"Any Forward Secrecy", "All Forward Secrecy", 
+	"Weakest DH Group Size",
 
-	"Any RC4",
+	"Any RC4", "All RC4",
 	"Highest Served Issuer", "OCSP Stapling"
 ]
 
@@ -176,15 +178,24 @@ def parse_sslyze(xml):
 	# DHE and ECDHE may not remain the only forward secret options for TLS.
 	any_rc4 = False
 	any_dhe = False
+	all_rc4 = True
+	all_dhe = True
 	for cipher in accepted_ciphers:
 		name = cipher["name"]
 		if "RC4" in name:
 			any_rc4 = True
+		else:
+			all_rc4 = False
+
 		if name.startswith("DHE-") or name.startswith("ECDHE-"):
 			any_dhe = True
+		else:
+			all_dhe = False
 
 	data['any_rc4'] = any_rc4
+	data['all_rc4'] = all_rc4
 	data['any_dhe'] = any_dhe
+	data['all_dhe'] = all_dhe
 
 	# Find the weakest available DH group size, if any are available.
 	weakest_dh = 1234567890 # nonsense maximum
