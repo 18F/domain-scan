@@ -109,16 +109,16 @@ def results_dir():
 def notify(body):
     try:
         if isinstance(body, Exception):
-            body = format_exception(body)
+            body = format_last_exception()
 
         logging.error(body)  # always print it
 
-    except Exception as exception:
+    except Exception:
         print("Exception logging message to admin, halting as to avoid loop")
-        print(format_exception(exception))
+        print(format_last_exception())
 
 
-def format_exception(exception):
+def format_last_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     return "\n".join(traceback.format_exception(exc_type, exc_value,
                                                 exc_traceback))
@@ -136,9 +136,9 @@ def try_command(command):
         return False
 
 
-def scan(command):
+def scan(command, env=None):
     try:
-        response = subprocess.check_output(command, shell=False)
+        response = subprocess.check_output(command, shell=False, env=env)
         return str(response, encoding='UTF-8')
     except subprocess.CalledProcessError:
         logging.warn("Error running %s." % (str(command)))
@@ -154,8 +154,8 @@ def unsafe_execute(command):
         return None
 
 # Predictable cache path for a domain and operation.
-def cache_path(domain, operation):
-    return os.path.join(cache_dir(), operation, ("%s.json" % domain))
+def cache_path(domain, operation, ext="json"):
+    return os.path.join(cache_dir(), operation, ("%s.%s" % (domain, ext)))
 
 
 # Used to quickly get cached data for a domain.
@@ -178,6 +178,10 @@ def invalid(data=None):
 # RFC 3339 timestamp for the current time when called
 def utc_timestamp():
     return strict_rfc3339.now_to_rfc3339_utcoffset()
+
+# return base domain for a subdomain
+def base_domain_for(subdomain):
+    return str.join(".", subdomain.split(".")[-2:])
 
 # Load the first column of a CSV into memory as an array of strings.
 def load_domains(domain_csv, whole_rows=False):
