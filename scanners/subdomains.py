@@ -22,6 +22,7 @@ import re
 #
 # This scanner filters out:
 #
+# * second-level domains (or www subdomains)
 # * subdomains that didn't get the "inspect" scanner run on them
 # * subdomains that weren't reachable by HTTP/HTTPS over the public internet
 # * subdomains that matched a wildcard DNS record AND whose "canonical" endpoint 
@@ -30,7 +31,6 @@ import re
 # 
 # And includes fields for:
 #
-# * Subdomain's parent second-level domain
 # * Subdomain's parent second-level domain's metadata (input CSV #3)
 # * Whether the subdomain appears to redirect to another second-level domain
 # * Whether the subdomain appears to redirect to another subdomain within the same second-level
@@ -170,7 +170,6 @@ def scan(domain, options):
         return None
 
     yield [
-        base_original,
         base_metadata,
         redirected_external,
         redirected_subdomain,
@@ -180,7 +179,6 @@ def scan(domain, options):
 
 
 headers = [
-    "Base Domain",
     "Base Domain Info",
     "Redirects Externally",
     "Redirects To Subdomain",
