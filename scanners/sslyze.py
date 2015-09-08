@@ -80,9 +80,9 @@ def scan(domain, options):
 		data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'], 
 		data['protocols']['tlsv1.2'], 
 
-		data['config']['any_dhe'], data['config']['all_dhe'],
-		data['config']['weakest_dh'],
-		data['config']['any_rc4'], data['config']['all_rc4'],
+		data['config'].get('any_dhe'), data['config'].get('all_dhe'),
+		data['config'].get('weakest_dh'),
+		data['config'].get('any_rc4'), data['config'].get('all_rc4'),
 
 		data['config'].get('ocsp_stapling'),
 		
@@ -150,42 +150,43 @@ def parse_sslyze(xml):
 	
 	accepted_ciphers = target.select("acceptedCipherSuites cipherSuite")
 	
-	# Look at accepted cipher suites for RC4 or DHE.
-	# This is imperfect, as the advertising of RC4 could discriminate based on client.
-	# DHE and ECDHE may not remain the only forward secret options for TLS.
-	any_rc4 = False
-	any_dhe = False
-	all_rc4 = True
-	all_dhe = True
-	for cipher in accepted_ciphers:
-		name = cipher["name"]
-		if "RC4" in name:
-			any_rc4 = True
-		else:
-			all_rc4 = False
+	if len(accepted_ciphers) > 0:
+		# Look at accepted cipher suites for RC4 or DHE.
+		# This is imperfect, as the advertising of RC4 could discriminate based on client.
+		# DHE and ECDHE may not remain the only forward secret options for TLS.
+		any_rc4 = False
+		any_dhe = False
+		all_rc4 = True
+		all_dhe = True
+		for cipher in accepted_ciphers:
+			name = cipher["name"]
+			if "RC4" in name:
+				any_rc4 = True
+			else:
+				all_rc4 = False
 
-		if name.startswith("DHE-") or name.startswith("ECDHE-"):
-			any_dhe = True
-		else:
-			all_dhe = False
+			if name.startswith("DHE-") or name.startswith("ECDHE-"):
+				any_dhe = True
+			else:
+				all_dhe = False
 
-	data['config']['any_rc4'] = any_rc4
-	data['config']['all_rc4'] = all_rc4
-	data['config']['any_dhe'] = any_dhe
-	data['config']['all_dhe'] = all_dhe
+		data['config']['any_rc4'] = any_rc4
+		data['config']['all_rc4'] = all_rc4
+		data['config']['any_dhe'] = any_dhe
+		data['config']['all_dhe'] = all_dhe
 
-	# Find the weakest available DH group size, if any are available.
-	weakest_dh = 1234567890 # nonsense maximum
-	groups = target.select("acceptedCipherSuites cipherSuite keyExchange[Type=DH]")
-	for group in groups:
-		size = int(group["GroupSize"])
-		if size < weakest_dh:
-			weakest_dh = size
+		# Find the weakest available DH group size, if any are available.
+		weakest_dh = 1234567890 # nonsense maximum
+		groups = target.select("acceptedCipherSuites cipherSuite keyExchange[Type=DH]")
+		for group in groups:
+			size = int(group["GroupSize"])
+			if size < weakest_dh:
+				weakest_dh = size
 
-	if weakest_dh == 1234567890:
-		weakest_dh = None
+		if weakest_dh == 1234567890:
+			weakest_dh = None
 
-	data['config']['weakest_dh'] = weakest_dh
+		data['config']['weakest_dh'] = weakest_dh
 
 
 	# If there was an exception parsing the certificate, catch it before fetching cert info.
