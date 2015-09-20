@@ -66,8 +66,6 @@ RUN pip3 install -r requirements.txt
 # Get RVM.
 RUN gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 RUN curl -sSL https://get.rvm.io | bash -s stable --ruby=2.1.5
-      # && apt-get clean \
-      # && rm -rf /var/lib/apt/lists/*
 RUN /bin/bash -l -c "rvm --default use 2.1.5"
 
 # Install Bundler for each version of ruby
