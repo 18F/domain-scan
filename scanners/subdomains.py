@@ -174,7 +174,15 @@ def scan(domain, options):
     endpoint_url = "%s://%s%s" % (protocol, real_prefix, sub_original)
     network = network_check(sub_original, endpoint_url, options)
     matched_wild = network['matched_wild']
+    
     content = network['content']
+    if content:
+        try:
+            hashed = hashlib.sha256(bytearray(content, "utf-8")).hexdigest()
+        except:
+            hashed = None
+    else:
+        hashed = None
 
     # If it matches a wildcard domain, and the status code we found was non-200, 
     # the signal-to-noise is just too low to include it.
@@ -187,7 +195,8 @@ def scan(domain, options):
         redirected_external,
         redirected_subdomain,
         status_code,
-        matched_wild
+        matched_wild,
+        hashed
     ]
 
 
@@ -196,7 +205,8 @@ headers = [
     "Redirects Externally",
     "Redirects To Subdomain",
     "HTTP Status Code",
-    "Matched Wildcard DNS"
+    "Matched Wildcard DNS",
+    "Content SHA-256"
 ]
 
 
