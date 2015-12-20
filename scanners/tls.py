@@ -14,7 +14,7 @@ import os
 ###
 
 command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
-workers = 5
+workers = 1
 
 
 def scan(domain, options):
