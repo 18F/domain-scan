@@ -54,6 +54,12 @@ def scan(domain, options):
             if raw:
                 data = json.loads(raw)
 
+                # if SSL Labs gave us back an error response, cache this
+                # as an invalid entry.
+                if len(data) < 1:
+                    utils.write(utils.invalid({'response': data}), cache)
+                    return None
+
                 # we only give ssllabs-scan one at a time,
                 # so we can de-pluralize this
                 data = data[0]
