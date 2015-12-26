@@ -25,13 +25,21 @@ The individual scanners each require their own dependencies. You only need to ha
 
 ##### Setting tool paths
 
-Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
+By default, domain-scan will expect the paths to any executables to be on the system PATH.
 
-Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
+If you need to point it to a local directory instead, you'll need to set environment variables to override this.
 
-Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.9` is passed by default, override version with `SSLYZE_PYENV`.
+You can set environment variables in a variety of ways -- this tool's developers use [`autoenv`](https://github.com/kennethreitz/autoenv) to manage environment variables with a `.env` file.
 
-Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
+However you set them:
+
+* Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
+
+* Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
+
+* Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.9` is passed by default, override version with `SSLYZE_PYENV`.
+
+* Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
 ### Usage
 
