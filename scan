@@ -30,11 +30,11 @@ def run(options=None):
 
     if not options["_"]:
         logging.error("Provide a CSV file, or domain name.")
-        exit()
+        exit(1)
 
     if not options.get("scan"):
         logging.error("--scan must be one or more scanners.")
-        exit()
+        exit(1)
 
 
     # `domains` can be either a path or a domain name.
@@ -52,7 +52,7 @@ def run(options=None):
         except:
             logging.error("Domains URL not downloaded successfully.")
             print(utils.format_last_exception())
-            exit()
+            exit(1)
 
         domains = domains_path
 
@@ -66,18 +66,18 @@ def run(options=None):
         except ImportError:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logging.error("[%s] Scanner not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (name, exc_type, exc_value))
-            exit()
+            exit(1)
 
         # If the scanner has a canonical command, make sure it exists.
         if hasattr(scanner, "command") and scanner.command and (not utils.try_command(scanner.command)):
             logging.error("[%s] Command not found: %s" %
                           (name, scanner.command))
-            exit()
+            exit(1)
 
         # Scanners can have an optional init/validation hook.
         if hasattr(scanner, "init") and scanner.init and (not scanner.init(options)):
             logging.error("[%s] Scanner's init hook returned false." % name)
-            exit()
+            exit(1)
 
         scans.append(scanner)
 
