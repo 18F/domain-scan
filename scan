@@ -6,6 +6,7 @@ import glob
 from scanners import utils
 import datetime
 import logging
+import requests
 import importlib
 import shutil
 import csv
@@ -35,7 +36,26 @@ def run(options=None):
         logging.error("--scan must be one or more scanners.")
         exit()
 
+
+    # `domains` can be either a path or a domain name.
+    # It can also be a URL, and if it is we want to download it now,
+    # and then adjust the value to be the path of the cached download.
     domains = options["_"][0]
+
+    if domains.startswith("http:") or domains.startswith("https:"):
+
+        domains_path = os.path.join(utils.cache_dir(), "domains.csv")
+
+        try:
+            response = requests.get(domains)
+            utils.write(response.text, domains_path)
+        except:
+            logging.error("Domains URL not downloaded successfully.")
+            print(utils.format_last_exception())
+            exit()
+
+        domains = domains_path
+
 
     # Which scanners to run the domain through.
     scans = []
