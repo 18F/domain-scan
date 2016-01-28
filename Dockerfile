@@ -113,7 +113,6 @@ ENV PATH /go/bin:$PATH
 # Node
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
-<<<<<<< HEAD
 ###
 # Installation
 ###
