@@ -1,4 +1,4 @@
-# VERSION 0.1.1
+# VERSION 0.1.2
 
 # USAGE
 
@@ -18,14 +18,14 @@ RUN \
         --no-install-recommends \
         --no-install-suggests \
       build-essential=11.6ubuntu6 \
-      curl=7.35.0-1ubuntu2.5 \
-      git=1:1.9.1-1ubuntu0.1 \
+      curl=7.35.0-1ubuntu2.6 \
+      git=1:1.9.1-1ubuntu0.2 \
       libc6-dev=2.19-0ubuntu6.6 \
       libfontconfig1=2.11.0-0ubuntu4.1 \
       libreadline-dev=6.3-4ubuntu2 \
-      libssl-dev=1.0.1f-1ubuntu2.15 \
-      libssl-doc=1.0.1f-1ubuntu2.15 \
-      libxml2-dev=2.9.1+dfsg1-3ubuntu4.4 \
+      libssl-dev=1.0.1f-1ubuntu2.16 \
+      libssl-doc=1.0.1f-1ubuntu2.16 \
+      libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
       libxslt1-dev=1.1.28-2build1 \
       libyaml-dev=0.1.4-3ubuntu3.1 \
       make=3.81-8.2ubuntu3 \
@@ -33,7 +33,7 @@ RUN \
       npm=1.3.10~dfsg-1 \
       python3-dev=3.4.0-0ubuntu2 \
       python3-pip=1.5.4-1ubuntu3 \
-      unzip=6.0-9ubuntu1.3 \
+      unzip=6.0-9ubuntu1.5 \
       wget=1.15-1ubuntu1.14.04.1 \
       zlib1g-dev=1:1.2.8.dfsg-1ubuntu1 \
 
@@ -42,7 +42,7 @@ RUN \
       automake=1:1.14.1-2ubuntu1 \
       bison=2:3.0.2.dfsg-2 \
       gawk=1:4.0.1+dfsg-2.1ubuntu2 \
-      libffi-dev=3.1~rc1+r3.0.13-12 \
+      libffi-dev=3.1~rc1+r3.0.13-12ubuntu0.1 \
       libgdbm-dev=1.8.3-12build1 \
       libncurses5-dev=5.9+20140118-1ubuntu1 \
       libsqlite3-dev=3.8.2-1ubuntu2.1 \
@@ -50,7 +50,7 @@ RUN \
       pkg-config=0.26-1ubuntu4 \
       sqlite3=3.8.2-1ubuntu2.1 \
 
-# Clean up packages.
+    # Clean up packages.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
