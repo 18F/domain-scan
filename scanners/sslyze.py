@@ -15,10 +15,10 @@ import dateutil.parser
 # and only process domains with valid HTTPS, or broken chains.
 ###
 
-command = os.environ.get("SSLYZE_PATH", "sslyze.py")
+command = os.environ.get("SSLYZE_PATH", "sslyze_cli.py")
 
 # Kind of a hack for now, other methods of running sslyze with Python 2 welcome
-command_env = {'PYENV_VERSION': os.environ.get("SSLYZE_PYENV", "2.7.9")}
+command_env = {'PYENV_VERSION': os.environ.get("SSLYZE_PYENV", "2.7.11")}
 
 def scan(domain, options):
 	logging.debug("[%s][sslyze]" % domain)
@@ -52,7 +52,7 @@ def scan(domain, options):
 		logging.debug("\t %s %s" % (command, domain))
 		# use scan_domain (possibly www-prefixed) to do actual scan
 		raw = utils.scan([command, "--regular", "--quiet", scan_domain, "--xml_out=%s" % cache_xml], env=command_env)
-		
+
 		if raw is None:
 			# TODO: save standard invalid XML data...?
 			logging.warn("\tBad news scanning, sorry!")
@@ -74,20 +74,20 @@ def scan(domain, options):
 	utils.write(utils.json_for(data), utils.cache_path(domain, "sslyze"))
 
 	yield [
-		data['protocols']['sslv2'], data['protocols']['sslv3'], 
-		data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'], 
-		data['protocols']['tlsv1.2'], 
+		data['protocols']['sslv2'], data['protocols']['sslv3'],
+		data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'],
+		data['protocols']['tlsv1.2'],
 
 		data['config'].get('any_dhe'), data['config'].get('all_dhe'),
 		data['config'].get('weakest_dh'),
 		data['config'].get('any_rc4'), data['config'].get('all_rc4'),
 
 		data['config'].get('ocsp_stapling'),
-		
+
 		data['certs'].get('key_type'), data['certs'].get('key_length'),
 		data['certs'].get('leaf_signature'), data['certs'].get('any_sha1'),
 		data['certs'].get('not_before'), data['certs'].get('not_after'),
-		data['certs'].get('served_issuer'), 
+		data['certs'].get('served_issuer'),
 
 		data.get('errors')
 	]
@@ -95,16 +95,16 @@ def scan(domain, options):
 headers = [
 	"SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 
-	"Any Forward Secrecy", "All Forward Secrecy", 
+	"Any Forward Secrecy", "All Forward Secrecy",
 	"Weakest DH Group Size",
 	"Any RC4", "All RC4",
 
 	"OCSP Stapling",
 
 	"Key Type", "Key Length",
-	"Signature Algorithm", "SHA-1 in Served Chain", 
+	"Signature Algorithm", "SHA-1 in Served Chain",
 	"Not Before", "Not After",
-	"Highest Served Issuer", 
+	"Highest Served Issuer",
 
 	"Errors"
 ]
@@ -112,7 +112,7 @@ headers = [
 # Get the relevant fields out of sslyze's XML format. I couldn't find this documented
 # anywhere, so I'm just winging it by looking at example XML.
 def parse_sslyze(xml):
-	
+
 	doc = BeautifulSoup(xml, "xml")
 
 	# We'll just go after the first found valid target IP.
@@ -143,9 +143,9 @@ def parse_sslyze(xml):
 	if ocsp:
 		data['config']['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
 
-	
+
 	accepted_ciphers = target.select("acceptedCipherSuites cipherSuite")
-	
+
 	if len(accepted_ciphers) > 0:
 		# Look at accepted cipher suites for RC4 or DHE.
 		# This is imperfect, as the advertising of RC4 could discriminate based on client.
