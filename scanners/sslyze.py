@@ -13,12 +13,14 @@ import dateutil.parser
 #
 # If data exists for a domain from `inspect`, will check results
 # and only process domains with valid HTTPS, or broken chains.
+#
+# Currently depends on pyenv to manage calling out to Python2 from Python3.
 ###
 
 command = os.environ.get("SSLYZE_PATH", "sslyze_cli.py")
 
 # Kind of a hack for now, other methods of running sslyze with Python 2 welcome
-command_env = {'PYENV_VERSION': os.environ.get("SSLYZE_PYENV", "2.7.11")}
+pyenv_version = os.environ.get("SSLYZE_PYENV", "2.7.11")
 
 def scan(domain, options):
 	logging.debug("[%s][sslyze]" % domain)
@@ -51,7 +53,12 @@ def scan(domain, options):
 	else:
 		logging.debug("\t %s %s" % (command, domain))
 		# use scan_domain (possibly www-prefixed) to do actual scan
-		raw = utils.scan([command, "--regular", "--quiet", scan_domain, "--xml_out=%s" % cache_xml], env=command_env)
+
+		# Give the Python shell environment a pyenv environment.
+		pyenv_init = "eval \"$(pyenv init -)\" && pyenv shell %s" % pyenv_version
+		# Really un-ideal, but calling out to Python2 from Python 3 is a nightmare.
+		# I don't think this tool's threat model includes untrusted CSV, either.
+		raw = utils.unsafe_execute("%s && %s --regular --quiet %s --xml_out=%s" % (pyenv_init, command, scan_domain, cache_xml))
 
 		if raw is None:
 			# TODO: save standard invalid XML data...?
