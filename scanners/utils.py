@@ -10,6 +10,8 @@ import datetime
 import strict_rfc3339
 
 # Wrapper to a run() method to catch exceptions.
+
+
 def run(run_method, additional=None):
     cli_options = options()
     configure_logging(cli_options)
@@ -97,14 +99,18 @@ def write(content, destination, binary=False):
     f.write(content)
     f.close()
 
+
 def report_dir():
     return options().get("output", "./")
+
 
 def cache_dir():
     return os.path.join(report_dir(), "cache")
 
+
 def results_dir():
     return os.path.join(report_dir(), "results")
+
 
 def notify(body):
     try:
@@ -145,6 +151,8 @@ def scan(command, env=None):
         return None
 
 # Turn shell on, when shell=False won't work.
+
+
 def unsafe_execute(command):
     try:
         response = subprocess.check_output(command, shell=True)
@@ -154,6 +162,8 @@ def unsafe_execute(command):
         return None
 
 # Predictable cache path for a domain and operation.
+
+
 def cache_path(domain, operation, ext="json"):
     return os.path.join(cache_dir(), operation, ("%s.%s" % (domain, ext)))
 
@@ -176,14 +186,20 @@ def invalid(data=None):
     return json_for(data)
 
 # RFC 3339 timestamp for the current time when called
+
+
 def utc_timestamp():
     return strict_rfc3339.now_to_rfc3339_utcoffset()
 
 # return base domain for a subdomain
+
+
 def base_domain_for(subdomain):
     return str.join(".", subdomain.split(".")[-2:])
 
 # Load the first column of a CSV into memory as an array of strings.
+
+
 def load_domains(domain_csv, whole_rows=False):
     domains = []
     with open(domain_csv, newline='') as csvfile:
@@ -192,7 +208,7 @@ def load_domains(domain_csv, whole_rows=False):
                 continue
 
             row[0] = row[0].lower()
-            
+
             if whole_rows:
                 domains.append(row)
             else:

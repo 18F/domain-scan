@@ -2,10 +2,8 @@ import logging
 from scanners import utils
 import json
 import os
-import sys
 import urllib.request
 import urllib.parse
-import base64
 import re
 import hashlib
 
@@ -26,10 +24,10 @@ import hashlib
 # * second-level domains (or www subdomains)
 # * subdomains that didn't get the "inspect" scanner run on them
 # * subdomains that weren't reachable by HTTP/HTTPS over the public internet
-# * subdomains that matched a wildcard DNS record AND whose "canonical" endpoint 
+# * subdomains that matched a wildcard DNS record AND whose "canonical" endpoint
 #   returned a *non-200* status code. 200 status codes should be manually reviewed.
 # * subdomains which appear on the provided exclusion list (input CSV #2)
-# 
+#
 # And includes fields for:
 #
 # * Subdomain's parent second-level domain's metadata (input CSV #3)
@@ -48,6 +46,7 @@ domain_map = {}
 # In the US government's case, this is the 3rd column, the agency name.
 # This could be made a variable if others want to use this scanner.
 base_metadata_index = 2
+
 
 def init(options):
     """
@@ -74,6 +73,7 @@ def init(options):
 
     return True
 
+
 def scan(domain, options):
     logging.debug("[%s][subdomains]" % domain)
 
@@ -90,7 +90,6 @@ def scan(domain, options):
     if re.sub("^www.", "", domain) == base_original:
         logging.debug("\tSkipping, second-level domain.")
         return None
-
 
     # If inspection data exists, check to see if we can skip.
     inspection = utils.data_for(domain, "inspect")
@@ -141,25 +140,22 @@ def scan(domain, options):
         logging.debug("\tSkipping, really down somehow, status code 0 for all.")
         return None
 
-    
     # bad hostname for cert?
-    if (protocol == "https") and (endpoint.get("https_bad_name", False) == True):
-        bad_cert_name = True
+    if (protocol == "https") and (endpoint.get("https_bad_name", False) is True):
+        bad_cert_name = True  # nopep8
     else:
-        bad_cert_name = False
-
-
+        bad_cert_name = False  # nopep8
 
     # If the subdomain redirects anywhere, see if it redirects within the domain
     if endpoint.get("redirect_to"):
 
         sub_redirect = urllib.parse.urlparse(endpoint["redirect_to"]).hostname
-        sub_redirect = re.sub("^www.", "", sub_redirect) # discount www redirects
+        sub_redirect = re.sub("^www.", "", sub_redirect)  # discount www redirects
         base_redirect = utils.base_domain_for(sub_redirect)
-        
+
         redirected_external = base_original != base_redirect
         redirected_subdomain = (
-            (base_original == base_redirect) and 
+            (base_original == base_redirect) and
             (sub_original != sub_redirect)
         )
     else:
@@ -168,13 +164,12 @@ def scan(domain, options):
 
     status_code = endpoint.get("status", None)
 
-    
     # Hit the network for DNS reads and content
 
     endpoint_url = "%s://%s%s" % (protocol, real_prefix, sub_original)
     network = network_check(sub_original, endpoint_url, options)
     matched_wild = network['matched_wild']
-    
+
     content = network['content']
     if content:
         try:
@@ -184,7 +179,7 @@ def scan(domain, options):
     else:
         hashed = None
 
-    # If it matches a wildcard domain, and the status code we found was non-200, 
+    # If it matches a wildcard domain, and the status code we found was non-200,
     # the signal-to-noise is just too low to include it.
     if matched_wild and (not str(status).startswith('2')):
         logging.debug("\tSkipping, wildcard DNS match with %i status code." % status)
@@ -214,6 +209,7 @@ headers = [
 def subdomains_for(subdomain):
     return str.join(".", subdomain.split(".")[:-2])
 
+
 def network_check(subdomain, endpoint, options):
     cache = utils.cache_path(subdomain, "subdomains")
 
@@ -232,9 +228,9 @@ def network_check(subdomain, endpoint, options):
         # where the certificate isn't right or proper.
         logging.debug("\t curl --silent --insecure %s" % endpoint)
         content = utils.scan(["curl", "--silent", "--insecure", endpoint])
-        
+
         # DNS content: just use dig.
-        # 
+        #
         # Not awesome - uses an unsafe shell execution of `dig` to look up DNS,
         # as I couldn't figure out a way to get "+short" to play nice with
         # the more secure execution methods available to me. Since this system
