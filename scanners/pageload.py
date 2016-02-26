@@ -19,6 +19,7 @@ init = None
 # to make the default number of workers small.
 workers = 2
 
+
 def scan(domain, options):
     logging.debug("[%s][pageload]" % domain)
 

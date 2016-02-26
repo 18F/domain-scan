@@ -6,6 +6,7 @@ import time
 
 command = None
 
+
 def starttls_check_url(domain):
     return 'https://starttls.info/api/check/%s' % domain
 
@@ -49,7 +50,7 @@ def refresh_starttls_results(domain):
     refreshing the results, then return the complete set of new results.
     """
     logging.debug('Refreshing STARTTLS results for %s' % domain)
-    r = requests.post(starttls_check_url(domain), data={ 'reset': 'true' })
+    requests.post(starttls_check_url(domain), data={'reset': 'true'})
     return poll_starttls_info_status(domain)
 
 
@@ -87,15 +88,15 @@ def scan(domain, options):
     for mx in r.json()['actual_targets']:
         description = mx['description']
 
-        if mx['failed'] == True:
+        if mx['failed'] is True:
             # 'failed' is true for tests that fail (e.g. because they could
             # not connect to the SMTP port on the given MX host) *and* for
             # tests that succeed, but determine that STARTTLS is disabled. This
             # is sort of annoying, but we can't do anything about it now.
             # Hopefully we can help clean up the API once the project is open
             # source.
-            yield [ r.json()['status_changed'], mx['name'], not mx['failed'],
-                    mx['description'], None, None, None, None, None ]
+            yield [r.json()['status_changed'], mx['name'], not mx['failed'],
+                   mx['description'], None, None, None, None, None]
         else:
             # TODO: starttls.info doesn't indicate the key *type*, and seems to
             # assume everything is using RSA. Does anybody use ECC for
