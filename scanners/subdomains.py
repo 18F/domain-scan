@@ -49,11 +49,6 @@ base_metadata_index = 2
 
 
 def init(options):
-    """
-    Download the Chrome preload list at the beginning of the scan, and
-    re-use it for each scan. It is unnecessary to re-download the list for each
-    scan because it changes infrequently.
-    """
     global exclude_list
     global parents_list
     exclude_path = options.get("subdomains-exclude", None)
