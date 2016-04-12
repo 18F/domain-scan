@@ -19,12 +19,12 @@ RUN \
         --no-install-suggests \
       build-essential=11.6ubuntu6 \
       curl=7.35.0-1ubuntu2.6 \
-      git=1:1.9.1-1ubuntu0.2 \
+      git \
       libc6-dev=2.19-0ubuntu6.7 \
       libfontconfig1=2.11.0-0ubuntu4.1 \
       libreadline-dev=6.3-4ubuntu2 \
-      libssl-dev=1.0.1f-1ubuntu2.17 \
-      libssl-doc=1.0.1f-1ubuntu2.17 \
+      libssl-dev \
+      libssl-doc \
       libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
       libxslt1-dev=1.1.28-2build1 \
       libyaml-dev=0.1.4-3ubuntu3.1 \
