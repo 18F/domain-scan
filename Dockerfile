@@ -19,12 +19,12 @@ RUN \
         --no-install-suggests \
       build-essential=11.6ubuntu6 \
       curl=7.35.0-1ubuntu2.6 \
-      git=1:1.9.1-1ubuntu0.2 \
+      git \
       libc6-dev=2.19-0ubuntu6.7 \
       libfontconfig1=2.11.0-0ubuntu4.1 \
       libreadline-dev=6.3-4ubuntu2 \
-      libssl-dev=1.0.1f-1ubuntu2.17 \
-      libssl-doc=1.0.1f-1ubuntu2.17 \
+      libssl-dev \
+      libssl-doc \
       libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
       libxslt1-dev=1.1.28-2build1 \
       libyaml-dev=0.1.4-3ubuntu3.1 \
@@ -50,12 +50,34 @@ RUN \
       pkg-config=0.26-1ubuntu4 \
       sqlite3=3.8.2-1ubuntu2.1 \
 
+      # Additional dependencies for python-build
+      libbz2-dev \
+      llvm \
+      libncursesw5-dev \
+
     # Clean up packages.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 ###
 ## Python
+
+ENV PYENV_FILE v20160310.zip
+ENV PYENV_ROOT /opt/pyenv
+
+RUN wget https://github.com/yyuu/pyenv/archive/${PYENV_FILE} \
+      --no-verbose \
+  && unzip $PYENV_FILE -d $PYENV_ROOT \
+  && mv $PYENV_ROOT/pyenv-20160310/* $PYENV_ROOT/ \
+  && rm -r $PYENV_ROOT/pyenv-20160310
+
+ENV PATH $PYENV_ROOT/bin:$PATH
+
+RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
+    && eval "$(pyenv init -)" \
+    && pyenv install 2.7.11 \
+    && pyenv install 3.5.0 \
+    && pyenv local 3.5.0
 
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
