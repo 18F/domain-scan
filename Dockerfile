@@ -55,6 +55,11 @@ RUN \
       llvm \
       libncursesw5-dev \
 
+      # Additional dependencies for python-build
+      libbz2-dev \
+      llvm \
+      libncursesw5-dev \
+
     # Clean up packages.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
