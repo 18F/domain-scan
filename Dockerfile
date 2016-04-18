@@ -173,3 +173,7 @@ WORKDIR $SCANNER_HOME
 VOLUME /data
 
 ENTRYPOINT ["./scan_wrap.sh"]
+
+# pa11y stuff
+RUN npm install --global phantomjs
+RUN npm install --global pa11y
