@@ -50,19 +50,6 @@ RUN \
       apparmor \
       docker-engine \
 
-      # Preemptively install these so we don't have to clean up after RVM.
-      autoconf=2.69-6 \
-      automake=1:1.14.1-2ubuntu1 \
-      bison=2:3.0.2.dfsg-2 \
-      gawk=1:4.0.1+dfsg-2.1ubuntu2 \
-      libffi-dev=3.1~rc1+r3.0.13-12ubuntu0.1 \
-      libgdbm-dev=1.8.3-12build1 \
-      libncurses5-dev=5.9+20140118-1ubuntu1 \
-      libsqlite3-dev=3.8.2-1ubuntu2.1 \
-      libtool=2.4.2-1.7ubuntu1 \
-      pkg-config=0.26-1ubuntu4 \
-      sqlite3=3.8.2-1ubuntu2.1 \
-
       # Additional dependencies for python-build
       libbz2-dev \
       llvm \
@@ -71,16 +58,6 @@ RUN \
     # Clean up packages.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-###
-# Ruby
-
-# Get RVM.
-RUN gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
-RUN curl -sSL https://get.rvm.io | bash -s stable --ruby=2.1.5
-RUN /bin/bash -l -c "rvm --default use 2.1.5"
-
-RUN /bin/bash -l -c "gem install site-inspector -v 1.0.2 --no-ri --no-rdoc"
 
 ###
 # Python dependencies
@@ -97,12 +74,9 @@ RUN mkdir $SCANNER_HOME
 
 COPY . $SCANNER_HOME
 
-RUN echo ". /usr/local/rvm/scripts/rvm" > $SCANNER_HOME/.bashrc
-
 RUN groupadd -r scanner \
   && useradd -r -c "Scanner user" -g scanner scanner \
-  && chown -R scanner:scanner ${SCANNER_HOME} \
-  && usermod -a -G rvm scanner
+  && chown -R scanner:scanner ${SCANNER_HOME}
 
 ###
 # Prepare to Run

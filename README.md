@@ -10,36 +10,18 @@ Can be used with any domain, or CSV where domains are the first column, such as 
 
 The requirements here can be quite diverse, because this tool is just a coordinator for other tools. Communication between tools is handled via CLI and STDOUT.
 
-The overall tool requires **Python 3**. To install dependencies:
+The overall tool requires **Python 3** and **Docker**. To install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The individual scanners each require their own dependencies. You only need to have the dependencies installed for the scanners you plan to use.
+### Scanners
 
-* `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
-* `tls` scanner: **Docker** (runs **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**).
-* `sslyze` scanner: **Docker** (runs **[sslyze](https://github.com/nabla-c0d3/sslyze)**).
-* `pageload` scanner: **Docker** (run **[phantomas](https://www.npmjs.com/package/phantomas)**).
-
-##### Setting tool paths
-
-By default, domain-scan will expect the paths to any executables to be on the system PATH.
-
-If you need to point it to a local directory instead, you'll need to set environment variables to override this.
-
-You can set environment variables in a variety of ways -- this tool's developers use [`autoenv`](https://github.com/kennethreitz/autoenv) to manage environment variables with a `.env` file.
-
-However you set them:
-
-* Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
-
-* Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
-
-* Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.9` is passed by default, override version with `SSLYZE_PYENV`.
-
-* Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
+* `inspect` scanner: runs **[site-inspector](https://github.com/benbalter/site-inspector)**
+* `tls` scanner: runs **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**
+* `sslyze` scanner: runs **[sslyze](https://github.com/nabla-c0d3/sslyze)**
+* `pageload` scanner: runs **[phantomas](https://www.npmjs.com/package/phantomas)**
 
 ### Usage
 
