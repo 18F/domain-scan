@@ -10,8 +10,22 @@ MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 ###
 
 RUN \
+    # https://docs.docker.com/engine/installation/linux/ubuntulinux/#update-your-apt-sources
     apt-get update \
         -qq \
+    && apt-get install \
+        -qq \
+        --yes \
+        --no-install-recommends \
+        --no-install-suggests \
+      apt-transport-https \
+      ca-certificates \
+    && apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D \
+    && echo deb https://apt.dockerproject.org/repo ubuntu-trusty main > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+        -qq \
+    && apt-get purge lxc-docker \
+
     && apt-get install \
         -qq \
         --yes \
@@ -36,6 +50,10 @@ RUN \
       unzip=6.0-9ubuntu1.5 \
       wget=1.15-1ubuntu1.14.04.1 \
       zlib1g-dev=1:1.2.8.dfsg-1ubuntu1 \
+
+      # https://docs.docker.com/engine/installation/linux/ubuntulinux/
+      apparmor \
+      docker-engine \
 
       # Preemptively install these so we don't have to clean up after RVM.
       autoconf=2.69-6 \
@@ -131,29 +149,6 @@ RUN npm install \
       --silent \
       --global \
     phantomas
-
-###
-# docker
-
-# https://docs.docker.com/engine/installation/linux/ubuntulinux/
-RUN apt-get install \
-      -qq \
-      --yes \
-      --no-install-recommends \
-      --no-install-suggests \
-    apt-transport-https \
-    ca-certificates
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-RUN echo deb https://apt.dockerproject.org/repo ubuntu-trusty main > /etc/apt/sources.list.d/docker.list
-RUN apt-get update
-RUN apt-get purge lxc-docker
-RUN apt-get install \
-      -qq \
-      --yes \
-      --no-install-recommends \
-      --no-install-suggests \
-    apparmor \
-    docker-engine
 
 ###
 # Create Unprivileged User
