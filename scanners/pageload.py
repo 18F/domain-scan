@@ -12,7 +12,6 @@ import os
 # previously detected "canonical" endpoint for a domain.
 ##
 
-command = os.environ.get("PHANTOMAS_PATH", "phantomas")
 init = None
 
 # Since these are finely time-sensitive metrics, I think we want
@@ -61,8 +60,9 @@ def scan(domain, options):
 
     # If no cache, or we should run anyway, do the scan.
     else:
-        logging.debug("\t %s %s --reporter=json --ignore-ssl-errors" % (command, url))
-        raw = utils.scan([command, url, "--reporter=json", "--ignore-ssl-errors"])
+        command = ["docker", "run", "18fgsa/phantomas", url, "--reporter=json", "--ignore-ssl-errors"]
+        logging.debug("\t %s" % " ".join(command))
+        raw = utils.scan(command)
         if not raw:
             utils.write(utils.invalid({}), cache)
             return None

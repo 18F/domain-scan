@@ -42,8 +42,6 @@ RUN \
       libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
       libxslt1-dev=1.1.28-2build1 \
       libyaml-dev=0.1.4-3ubuntu3.1 \
-      nodejs=0.10.25~dfsg2-2ubuntu1 \
-      npm=1.3.10~dfsg-1 \
       python3-dev=3.4.0-0ubuntu2 \
       python3-pip=1.5.4-1ubuntu3 \
       zlib1g-dev=1:1.2.8.dfsg-1ubuntu1 \
@@ -74,9 +72,6 @@ RUN \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt
-
 ###
 # Ruby
 
@@ -85,25 +80,13 @@ RUN gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A170311380
 RUN curl -sSL https://get.rvm.io | bash -s stable --ruby=2.1.5
 RUN /bin/bash -l -c "rvm --default use 2.1.5"
 
-# Install Bundler for each version of ruby
-RUN /bin/bash -l -c "gem install bundler --no-ri --no-rdoc"
 RUN /bin/bash -l -c "gem install site-inspector -v 1.0.2 --no-ri --no-rdoc"
 
 ###
-# Node
-RUN ln -s /usr/bin/nodejs /usr/bin/node
+# Python dependencies
 
-###
-# Installation
-###
-
-###
-# phantomas
-
-RUN npm install \
-      --silent \
-      --global \
-    phantomas
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
 
 ###
 # Create Unprivileged User

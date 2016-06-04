@@ -21,7 +21,7 @@ The individual scanners each require their own dependencies. You only need to ha
 * `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
 * `tls` scanner: **Docker** (runs **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**).
 * `sslyze` scanner: **Docker** (runs **[sslyze](https://github.com/nabla-c0d3/sslyze)**).
-* `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
+* `pageload` scanner: **Docker** (run **[phantomas](https://www.npmjs.com/package/phantomas)**).
 
 ##### Setting tool paths
 
