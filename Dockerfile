@@ -20,7 +20,7 @@ RUN \
       build-essential=11.6ubuntu6 \
       curl=7.35.0-1ubuntu2.6 \
       git \
-      libc6-dev=2.19-0ubuntu6.7 \
+      libc6-dev \
       libfontconfig1=2.11.0-0ubuntu4.1 \
       libreadline-dev=6.3-4ubuntu2 \
       libssl-dev \
