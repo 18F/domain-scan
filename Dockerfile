@@ -75,7 +75,6 @@ ENV PATH $PYENV_ROOT/bin:$PATH
 
 RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
     && eval "$(pyenv init -)" \
-    && pyenv install 2.7.11 \
     && pyenv install 3.5.0 \
     && pyenv local 3.5.0
 
@@ -134,18 +133,27 @@ RUN npm install \
     phantomas
 
 ###
-# sslyze
+# docker
 
-ENV SSLYZE_VERSION 0.11
-ENV SSLYZE_FILE sslyze-0_11-linux64.zip
-ENV SSLYZE_DEST /opt
-
-# Would be nice if bash string manipulation worked in ENV as this could use:
-# ${SSLYZE_FILE%.*}
-ENV SSLYZE_PATH ${SSLYZE_DEST}/sslyze-0_11-linux64/sslyze/sslyze.py
-RUN wget https://github.com/nabla-c0d3/sslyze/releases/download/release-${SSLYZE_VERSION}/${SSLYZE_FILE} \
-      --no-verbose \
-  && unzip $SSLYZE_FILE -d $SSLYZE_DEST
+# https://docs.docker.com/engine/installation/linux/ubuntulinux/
+RUN apt-get install \
+      -qq \
+      --yes \
+      --no-install-recommends \
+      --no-install-suggests \
+    apt-transport-https \
+    ca-certificates
+RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+RUN echo deb https://apt.dockerproject.org/repo ubuntu-trusty main > /etc/apt/sources.list.d/docker.list
+RUN apt-get update
+RUN apt-get purge lxc-docker
+RUN apt-get install \
+      -qq \
+      --yes \
+      --no-install-recommends \
+      --no-install-suggests \
+    apparmor \
+    docker-engine
 
 ###
 # Create Unprivileged User
