@@ -42,7 +42,6 @@ RUN \
       libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
       libxslt1-dev=1.1.28-2build1 \
       libyaml-dev=0.1.4-3ubuntu3.1 \
-      make=3.81-8.2ubuntu3 \
       nodejs=0.10.25~dfsg2-2ubuntu1 \
       npm=1.3.10~dfsg-1 \
       python3-dev=3.4.0-0ubuntu2 \
@@ -91,35 +90,12 @@ RUN /bin/bash -l -c "gem install bundler --no-ri --no-rdoc"
 RUN /bin/bash -l -c "gem install site-inspector -v 1.0.2 --no-ri --no-rdoc"
 
 ###
-# Go
-
-ENV GOLANG_VERSION 1.3.3
-
-RUN curl -sSL https://golang.org/dl/go${GOLANG_VERSION}.src.tar.gz \
-    | tar -v -C /usr/src -xz
-
-RUN cd /usr/src/go/src \
-      && ./make.bash --no-clean 2>&1
-
-ENV PATH /usr/src/go/bin:$PATH
-ENV GOPATH /go
-ENV PATH /go/bin:$PATH
-
-###
 # Node
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
 ###
 # Installation
 ###
-
-###
-# ssllabs-scan
-
-RUN mkdir -p /go/src /go/bin \
-      && chmod -R 777 /go
-RUN go get github.com/ssllabs/ssllabs-scan
-ENV SSLLABS_PATH /go/bin/ssllabs-scan
 
 ###
 # phantomas

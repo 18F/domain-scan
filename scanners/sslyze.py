@@ -14,6 +14,7 @@ import dateutil.parser
 # and only process domains with valid HTTPS, or broken chains.
 ###
 
+
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
@@ -43,7 +44,7 @@ def scan(domain, options):
         xml = open(cache_xml).read()
 
     else:
-        logging.debug("\t %s %s" % ("docker sslyze", domain))
+        logging.debug("\t %s %s" % ("docker run sslyze", domain))
         # use scan_domain (possibly www-prefixed) to do actual scan
 
         xml = utils.scan(["docker", "run", "18fgsa/sslyze", "--regular", "--quiet", scan_domain, "--xml_out=-"])

@@ -19,8 +19,8 @@ pip install -r requirements.txt
 The individual scanners each require their own dependencies. You only need to have the dependencies installed for the scanners you plan to use.
 
 * `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
-* `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
-* `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, downloaded from [their latest compiled release](https://github.com/nabla-c0d3/sslyze/releases).
+* `tls` scanner: **Docker** (runs **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**).
+* `sslyze` scanner: **Docker** (runs **[sslyze](https://github.com/nabla-c0d3/sslyze)**).
 * `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
 
 ##### Setting tool paths
