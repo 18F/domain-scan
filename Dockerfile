@@ -47,8 +47,6 @@ RUN \
       npm=1.3.10~dfsg-1 \
       python3-dev=3.4.0-0ubuntu2 \
       python3-pip=1.5.4-1ubuntu3 \
-      unzip=6.0-9ubuntu1.5 \
-      wget=1.15-1ubuntu1.14.04.1 \
       zlib1g-dev=1:1.2.8.dfsg-1ubuntu1 \
 
       # https://docs.docker.com/engine/installation/linux/ubuntulinux/
@@ -76,25 +74,6 @@ RUN \
     # Clean up packages.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-###
-## Python
-
-ENV PYENV_FILE v20160310.zip
-ENV PYENV_ROOT /opt/pyenv
-
-RUN wget https://github.com/yyuu/pyenv/archive/${PYENV_FILE} \
-      --no-verbose \
-  && unzip $PYENV_FILE -d $PYENV_ROOT \
-  && mv $PYENV_ROOT/pyenv-20160310/* $PYENV_ROOT/ \
-  && rm -r $PYENV_ROOT/pyenv-20160310
-
-ENV PATH $PYENV_ROOT/bin:$PATH
-
-RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
-    && eval "$(pyenv init -)" \
-    && pyenv install 3.5.0 \
-    && pyenv local 3.5.0
 
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
