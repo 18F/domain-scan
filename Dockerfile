@@ -2,7 +2,7 @@
 
 # USAGE
 
-FROM python:3-onbuild
+FROM python:3
 MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 
 ###
@@ -37,16 +37,29 @@ RUN \
     && rm -rf /var/lib/apt/lists/*
 
 ###
+# Python dependencies
+
+COPY requirements.txt requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+###
 # Create Unprivileged User
 ###
 
+ENV SCANNER_HOME /home/scanner
+RUN mkdir $SCANNER_HOME
+
+COPY . $SCANNER_HOME
+
 RUN groupadd -r scanner \
   && useradd -r -c "Scanner user" -g scanner scanner \
-  && chown -R scanner:scanner /usr/src/app
+  && chown -R scanner:scanner ${SCANNER_HOME}
 
 ###
 # Prepare to Run
 ###
+
+WORKDIR $SCANNER_HOME
 
 # Volume mount for use with the 'data' option.
 VOLUME /data
