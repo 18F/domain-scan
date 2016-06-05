@@ -13,8 +13,6 @@ import re
 ##
 
 
-command = os.environ.get("SITE_INSPECTOR_PATH", "site-inspector")
-
 chrome_preload_list = None
 
 
@@ -65,25 +63,28 @@ def scan(domain, options):
             return None
 
     else:
-        logging.debug("\t %s %s --http" % (command, domain))
-        raw = utils.scan([command, domain, "--http"])
+        command = ["docker", "run", "18fgsa/site-inspector", "inspect", domain, "--json"]
+        logging.debug("\t %s" % " ".join(command))
+        raw = utils.scan(command)
         if not raw:
             utils.write(utils.invalid({}), cache)
             return None
         utils.write(raw, cache)
         data = json.loads(raw)
 
-    # TODO: get this from a site-inspector field directly
-    canonical_https = data['endpoints']['https'][data['canonical_endpoint']]
-    # TODO: guarantee these as present in site-inspector
-    https_valid = canonical_https.get('https_valid', False)
+    canonical_endpoint = data['canonical_endpoint']
+
+    canonical_https = canonical_endpoint['https']
+    https_valid = canonical_https['valid']
+    # TODO: find new equivalents
     https_bad_chain = canonical_https.get('https_bad_chain', False)
     https_bad_name = canonical_https.get('https_bad_name', False)
-    # TODO: site-inspector should float this up
-    hsts_details = canonical_https.get('hsts_details', {})
+
+    hsts_details = canonical_endpoint['hsts']
     max_age = hsts_details.get('max_age', None)
 
     yield [
+        # TODO: find new equivalents
         data['canonical'], data['up'],
         data['redirect'], data['redirect_to'],
         https_valid, data['default_https'], data['downgrade_https'],
