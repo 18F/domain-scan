@@ -13,7 +13,6 @@ import os
 # and only process domains with valid HTTPS, or broken chains.
 ###
 
-command = os.environ.get("SSLLABS_PATH", "ssllabs-scan")
 workers = 1
 
 
@@ -40,16 +39,16 @@ def scan(domain, options):
             if data.get('invalid'):
                 return None
         else:
-            logging.debug("\t %s %s" % (command, domain))
+            logging.debug("\t %s %s" % ("docker run ssllabs", domain))
 
             usecache = str(not force).lower()
 
             if options.get("debug"):
-                cmd = [command, "--usecache=%s" % usecache,
-                       "--verbosity=debug", domain]
+                cmd = ["docker", "run", "jumanjiman/ssllabs-scan",
+                       "--usecache=%s" % usecache, "--verbosity=debug", domain]
             else:
-                cmd = [command, "--usecache=%s" % usecache,
-                       "--quiet", domain]
+                cmd = ["docker", "run", "jumanjiman/ssllabs-scan",
+                       "--usecache=%s" % usecache, "--quiet", domain]
             raw = utils.scan(cmd)
             if raw:
                 data = json.loads(raw)

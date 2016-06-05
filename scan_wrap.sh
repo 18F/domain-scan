@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-# Rather not worry about the intersection of RVM, ENTRYPOINT and profile
-# sourcing. This just works.
-. /usr/local/rvm/scripts/rvm
-
 # Run the scan with passthrough arguments.
 case $1 in
   drop  )
