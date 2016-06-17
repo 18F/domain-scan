@@ -25,7 +25,7 @@ RUN \
       libreadline-dev=6.3-4ubuntu2 \
       libssl-dev \
       libssl-doc \
-      libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
+      libxml2-dev \
       libxslt1-dev=1.1.28-2build1 \
       libyaml-dev=0.1.4-3ubuntu3.1 \
       make=3.81-8.2ubuntu3 \
