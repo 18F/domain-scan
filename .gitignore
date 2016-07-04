@@ -11,3 +11,5 @@ __pycache__
 .env
 *.swp
 /node_modules
+.python-version
+.ruby-version
