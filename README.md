@@ -20,7 +20,7 @@ The individual scanners each require their own dependencies. You only need to ha
 
 * `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
 * `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
-* `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, downloaded from [their latest compiled release](https://github.com/nabla-c0d3/sslyze/releases).
+* `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, ideally installed with `pyenv` via `pip install sslyze`.
 * `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
 
 ##### Setting tool paths
@@ -37,7 +37,7 @@ However you set them:
 
 * Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
 
-* Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.9` is passed by default, override version with `SSLYZE_PYENV`.
+* Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.11` is passed by default, override version with `SSLYZE_PYENV`.
 
 * Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
