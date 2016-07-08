@@ -17,38 +17,38 @@ RUN \
         --yes \
         --no-install-recommends \
         --no-install-suggests \
-      build-essential=11.6ubuntu6 \
-      curl=7.35.0-1ubuntu2.6 \
+      build-essential \
+      curl \
       git \
       libc6-dev \
-      libfontconfig1=2.11.0-0ubuntu4.1 \
-      libreadline-dev=6.3-4ubuntu2 \
+      libfontconfig1 \
+      libreadline-dev \
       libssl-dev \
       libssl-doc \
       libxml2-dev \
-      libxslt1-dev=1.1.28-2build1 \
-      libyaml-dev=0.1.4-3ubuntu3.1 \
-      make=3.81-8.2ubuntu3 \
-      nodejs=0.10.25~dfsg2-2ubuntu1 \
-      npm=1.3.10~dfsg-1 \
-      python3-dev=3.4.0-0ubuntu2 \
-      python3-pip=1.5.4-1ubuntu3 \
-      unzip=6.0-9ubuntu1.5 \
-      wget=1.15-1ubuntu1.14.04.1 \
-      zlib1g-dev=1:1.2.8.dfsg-1ubuntu1 \
+      libxslt1-dev \
+      libyaml-dev \
+      make \
+      nodejs \
+      npm \
+      python3-dev \
+      python3-pip \
+      unzip \
+      wget \
+      zlib1g-dev \
 
       # Preemptively install these so we don't have to clean up after RVM.
-      autoconf=2.69-6 \
-      automake=1:1.14.1-2ubuntu1 \
-      bison=2:3.0.2.dfsg-2 \
-      gawk=1:4.0.1+dfsg-2.1ubuntu2 \
-      libffi-dev=3.1~rc1+r3.0.13-12ubuntu0.1 \
-      libgdbm-dev=1.8.3-12build1 \
-      libncurses5-dev=5.9+20140118-1ubuntu1 \
-      libsqlite3-dev=3.8.2-1ubuntu2.1 \
-      libtool=2.4.2-1.7ubuntu1 \
-      pkg-config=0.26-1ubuntu4 \
-      sqlite3=3.8.2-1ubuntu2.1 \
+      autoconf \
+      automake \
+      bison \
+      gawk \
+      libffi-dev \
+      libgdbm-dev \
+      libncurses5-dev \
+      libsqlite3-dev \
+      libtool \
+      pkg-config \
+      sqlite3 \
 
       # Additional dependencies for python-build
       libbz2-dev \
