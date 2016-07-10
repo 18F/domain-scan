@@ -1,4 +1,4 @@
 scan:
   build: .
   volumes:
-  - ./:/tmp
+  - ./:/home/scanner
