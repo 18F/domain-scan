@@ -11,7 +11,7 @@ this_dir = os.path.dirname(__file__)
 output = os.path.join(this_dir, "hostnames")
 utils.mkdir_p(output)
 
-out_filename = "censys_api.csv"
+out_filename = "censys.csv"
 out_file = open(os.path.join(output, out_filename), 'w', newline='')
 out_writer = csv.writer(out_file)
 
@@ -25,7 +25,7 @@ suffix = options.get("suffix", ".gov")
 wildcard_pattern = re.compile("\*.")
 
 # time to sleep between requests (defaults to 5s)
-delay = options.get("delay", 5)
+delay = int(options.get("delay", 5))
 
 # Censys page size, fixed
 page_size = 100
@@ -34,6 +34,12 @@ page_size = 100
 start_page = int(options.get("start", 1))
 end_page = int(options.get("end", start_page))
 max_records = ((end_page - start_page) + 1) * page_size
+
+suffix = options.get("suffix", ".gov")
+suffix_pattern = "%s$" % suffix
+if suffix_pattern.startswith("."):
+    suffix_pattern = "\\%s" % suffix_pattern
+suffix_pattern = re.compile(suffix_pattern)
 
 uid = os.environ.get("CENSYS_UID", None)
 api_key = os.environ.get("CENSYS_API_KEY", None)
@@ -50,6 +56,7 @@ def main():
     ]
 
     query = "parsed.subject.common_name:%s or parsed.extensions.subject_alt_name.dns_names:%s" % (suffix, suffix)
+    print("Censys query:\n%s\n" % query)
 
     current_page = start_page
 
@@ -63,14 +70,17 @@ def main():
         print("Fetching page %i." % current_page)
 
         for cert in certificates.search(query, fields=fields, page=current_page, max_records=page_size):
+            # Common name + SANs
             names = cert['parsed.subject.common_name'] + cert['parsed.extensions.subject_alt_name.dns_names']
 
             if debug:
                 print(names)
 
             for name in names:
-                name = re.sub(wildcard_pattern, '', name)
-                hostnames_map[name] = None
+                name = re.sub(wildcard_pattern, '', name).lower().strip()
+
+                if suffix_pattern.search(name):
+                    hostnames_map[name] = None
 
         current_page += 1
 
