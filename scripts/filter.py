@@ -14,16 +14,15 @@ import urllib.parse
 # This script looks for any unique hostnames matching a given suffix.
 # Expects suffixes to be able to be applied to the end of a given line.
 #
-##
-
 # options:
-#   _[0]: input file
+#   _[0]: input file (required)
 #
 #   name: name of dataset (e.g. 'rdns', 'ct')
 #   suffix: suffix to filter on (e.g. '.gov')
+#   encoding: input file encoding (defaults to 'latin-1')
+#
 #   max: cut off loop after this many lines
-#   debug: display output for matches and not matches
-#   encoding: file encoding (defaults to 'latin-1')
+#   debug: display output when matching each line
 
 def main():
   options = utils.options()
