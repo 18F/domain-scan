@@ -18,6 +18,7 @@ import urllib.parse
 #   _[0]: input file (required)
 #
 #   name: name of dataset (e.g. 'rdns', 'ct')
+#   filter: name of filter to apply (defaults to value of --name)
 #   suffix: suffix to filter on (e.g. '.gov')
 #   encoding: input file encoding (defaults to 'latin-1')
 #
@@ -31,6 +32,11 @@ def main():
   encoding = options.get('encoding', 'latin-1')
 
   name = options.get('name', 'hostnames')
+  filter_name = options.get('filter', name)
+  filter = filters.get(filter_name, None)
+  if filter is None:
+    print("No filter by that name. Specify one with --filter.")
+    exit(1)
 
   # Drop output in a directory next to the script.
   this_dir = os.path.dirname(__file__)
@@ -73,7 +79,7 @@ def main():
       for line in f:
 
         if pattern.search(line):
-          hostname = filters[name](line)
+          hostname = filter(line)
           if debug:
             print("Match!!!! %s" % hostname)
           matched += 1
@@ -109,11 +115,12 @@ def main():
 
 # Format-specific filters
 
-# Rapid7 rdns format - IP,hostname
-def filter_rdns(line):
+# IP,hostname
+# Used by: Rapid7 rdns
+def filter_ip_pair(line):
   return str.split(line, ",")[-1].strip()
 
-filters = {'rdns': filter_rdns}
+filters = {'ip_pair': filter_ip_pair}
 
 
 main()
