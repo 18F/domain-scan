@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import logging
 from scanners import utils
 import csv
 import os
@@ -70,7 +69,7 @@ def main():
     name_map = {}
     curr = 0
 
-    with open(input_filename, encoding="latin-1") as f:
+    with open(input_filename, encoding=encoding) as f:
 
         try:
             for line in f:
