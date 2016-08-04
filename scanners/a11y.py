@@ -4,7 +4,7 @@ import json
 import os
 import boto3
 
-workers = 10
+workers = 5
 PA11Y_STANDARD = 'WCAG2AA'
 pa11y = os.environ.get("PA11Y_PATH", "pa11y")
 headers = [
