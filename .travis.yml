@@ -9,4 +9,4 @@ install:
   - pip install flake8
 
 script:
-  - flake8 . --ignore E501,F999
+  - ./test.sh
