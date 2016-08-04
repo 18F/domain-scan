@@ -2,8 +2,9 @@ import logging
 from scanners import utils
 import json
 import os
+import boto3
 
-workers = 1
+workers = 10
 PA11Y_STANDARD = 'WCAG2AA'
 pa11y = os.environ.get("PA11Y_PATH", "pa11y")
 headers = [
@@ -39,14 +40,47 @@ def domain_is_cached(cache):
 def cache_is_not_forced(options):
     return options.get("force", False) is False
 
-def get_errors_from_pa11y_scan(domain, cache):
-    command = [pa11y, domain, "--reporter", "json", "--standard", PA11Y_STANDARD, "--level", "none"]
-    logging.debug("Running a11y command: %s" % command)
-    raw = utils.scan(command)
-    if not raw:
-        utils.write(utils.invalid({}), cache)
-        return []
-    results = json.loads(raw)
+def get_errors_from_pa11y_lambda_scan(domain, cache):
+    client = boto3.client(
+        'lambda',
+        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+        region_name=os.environ['AWS_REGION_NAME']
+    )
+
+    lambda_options = {
+        'url': domain,
+        'pa11yOptions': {
+            'standard': 'WCAG2AA',
+            'wait': 500,
+            'ignore': [
+                'notice',
+                'warning',
+                'WCAG2AA.Principle1.Guideline1_4.1_4_3.G18.BgImage',
+                'WCAG2AA.Principle1.Guideline1_4.1_4_3.G18.Abs',
+                'WCAG2AA.Principle1.Guideline1_4.1_4_3.G145.Abs',
+                'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.2',
+                'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.3',
+                'WCAG2AA.Principle3.Guideline3_1.3_1_2.H58.1',
+                'WCAG2AA.Principle4.Guideline4_1.4_1_1.F77'
+            ]
+        }
+    }
+
+    payload = json.dumps(lambda_options).encode()
+
+    response = client.invoke(
+        FunctionName=os.environ['AWS_LAMBDA_PA11Y_FUNCTION_NAME'],
+        Payload=payload,
+    )
+
+    response_payload_bytes = response['Payload'].read()
+    response_payload_string = response_payload_bytes.decode('UTF-8')
+    response_payload_json = json.loads(response_payload_string)
+
+    logging.debug("Invoking a11y_lambda function: %s" % lambda_options)
+
+    results = response_payload_json
     errors = get_errors_from_results(results)
     cachable = json.dumps({'results' : errors})
     logging.debug("Writing to cache: %s" % domain)
@@ -82,7 +116,7 @@ def get_errors_from_scan_or_cache(domain, options):
             return errors
     else:
         logging.debug("\tNot cached.")
-        errors = get_errors_from_pa11y_scan(domain, a11y_cache)
+        errors = get_errors_from_pa11y_lambda_scan(domain, a11y_cache)
         return errors
 
 
