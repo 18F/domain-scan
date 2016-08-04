@@ -17,25 +17,25 @@ RUN \
         --yes \
         --no-install-recommends \
         --no-install-suggests \
-      build-essential=11.6ubuntu6 \
-      curl=7.35.0-1ubuntu2.6 \
+      build-essential \
+      curl \
       git \
-      libc6-dev=2.19-0ubuntu6.7 \
-      libfontconfig1=2.11.0-0ubuntu4.1 \
-      libreadline-dev=6.3-4ubuntu2 \
+      libc6-dev \
+      libfontconfig1 \
+      libreadline-dev \
       libssl-dev \
       libssl-doc \
-      libxml2-dev=2.9.1+dfsg1-3ubuntu4.7 \
-      libxslt1-dev=1.1.28-2build1 \
-      libyaml-dev=0.1.4-3ubuntu3.1 \
-      make=3.81-8.2ubuntu3 \
-      nodejs=0.10.25~dfsg2-2ubuntu1 \
-      npm=1.3.10~dfsg-1 \
-      python3-dev=3.4.0-0ubuntu2 \
-      python3-pip=1.5.4-1ubuntu3 \
-      unzip=6.0-9ubuntu1.5 \
-      wget=1.15-1ubuntu1.14.04.1 \
-      zlib1g-dev=1:1.2.8.dfsg-1ubuntu1 \
+      libxml2-dev \
+      libxslt1-dev \
+      libyaml-dev \
+      make \
+      nodejs \
+      npm \
+      python3-dev \
+      python3-pip \
+      unzip \
+      wget \
+      zlib1g-dev \
 
       # Preemptively install these so we don't have to clean up after RVM.
       autoconf \
@@ -49,11 +49,6 @@ RUN \
       libtool \
       pkg-config \
       sqlite3 \
-
-      # Additional dependencies for python-build
-      libbz2-dev \
-      llvm \
-      libncursesw5-dev \
 
       # Additional dependencies for python-build
       libbz2-dev \
@@ -178,7 +173,3 @@ WORKDIR $SCANNER_HOME
 VOLUME /data
 
 ENTRYPOINT ["./scan_wrap.sh"]
-
-# pa11y stuff
-RUN npm install --global phantomjs
-RUN npm install --global pa11y
