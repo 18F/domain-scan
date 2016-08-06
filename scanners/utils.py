@@ -167,6 +167,10 @@ def unsafe_execute(command):
 def cache_path(domain, operation, ext="json"):
     return os.path.join(cache_dir(), operation, ("%s.%s" % (domain, ext)))
 
+# cache a single one-off file, not associated with a domain or operation
+def cache_single(filename):
+    return os.path.join(cache_dir(), filename)
+
 
 # Used to quickly get cached data for a domain.
 def data_for(domain, operation):
