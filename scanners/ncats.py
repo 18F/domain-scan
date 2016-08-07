@@ -43,11 +43,16 @@ def scan(domain, options):
     else:
         logging.debug("\t %s %s" % (command, domain))
 
+        flags = "--json --user-agent \"%s\" --timeout %i --preload-cache %s" % (user_agent, timeout, preload_cache)
+
+        # Only useful when debugging interaction between projects.
+        # flags = "%s --debug" % flags
+
         # Give the Python shell environment a pyenv environment.
         pyenv_init = "eval \"$(pyenv init -)\" && pyenv shell %s" % pyenv_version
         # Really un-ideal, but calling out to Python2 from Python 3 is a nightmare.
         # I don't think this tool's threat model includes untrusted CSV, either.
-        raw = utils.unsafe_execute("%s && %s %s --json --user-agent %s --timeout %i --preload-cache %s" % (pyenv_init, command, domain, user_agent, timeout, preload_cache))
+        raw = utils.unsafe_execute("%s && %s %s %s" % (pyenv_init, command, domain, flags))
 
         if raw is None:
             # TODO: save invalid data...?
@@ -57,6 +62,9 @@ def scan(domain, options):
         data = json.loads(raw)
         utils.write(utils.json_for(data), utils.cache_path(domain, "ncats"))
 
+    # NCATS scanner uses JSON arrays, even for single items
+    data = data[0]
+
     row = []
     for field in headers:
         row.append(data[field])
@@ -64,7 +72,7 @@ def scan(domain, options):
     yield row
 
 headers = [
-    "Domain", "Live", "Redirect",
+    "Live", "Redirect",
     "Valid HTTPS", "Defaults HTTPS", "Downgrades HTTPS",
     "Strictly Forces HTTPS", "HTTPS Bad Chain", "HTTPS Bad Host Name",
     "Expired Cert", "Weak Signature Chain", "HSTS", "HSTS Header",
