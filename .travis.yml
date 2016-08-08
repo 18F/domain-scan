@@ -9,4 +9,4 @@ install:
   - pip install flake8
 
 script:
-  - flake8 . --ignore E501,F999
+  - flake8 . --ignore E501,F999,E302,E303,E266

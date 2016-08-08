@@ -26,8 +26,8 @@ def run(run_method, additional=None):
 
 
 # read options from the command line
-#   e.g. ./scan --inspect --debug
-#     => {"since": "2012-03-04", "debug": True}
+#   e.g. ./scan --since=2012-03-04 --debug whatever.com
+#     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
 def options():
     options = {"_": []}
     for arg in sys.argv[1:]:
