@@ -5,6 +5,8 @@ import csv
 import os
 import re
 import time
+# pip install censys
+import censys.certificates
 
 # Drop output in a directory next to the script.
 this_dir = os.path.dirname(__file__)
@@ -15,8 +17,6 @@ out_filename = "censys.csv"
 out_file = open(os.path.join(output, out_filename), 'w', newline='')
 out_writer = csv.writer(out_file)
 
-# pip install censys
-import censys.certificates
 
 options = utils.options()
 debug = options.get("debug", False)
@@ -97,4 +97,3 @@ def main():
     print("Done.")
 
 main()
-

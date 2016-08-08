@@ -136,10 +136,10 @@ def scan(domain, options):
         return None
 
     # bad hostname for cert?
-    if (protocol == "https") and (endpoint.get("https_bad_name", False) is True):
-        bad_cert_name = True  # nopep8
-    else:
-        bad_cert_name = False  # nopep8
+    # if (protocol == "https") and (endpoint.get("https_bad_name", False) is True):
+    #     bad_cert_name = True  # nopep8
+    # else:
+    #     bad_cert_name = False  # nopep8
 
     # If the subdomain redirects anywhere, see if it redirects within the domain
     if endpoint.get("redirect_to"):
