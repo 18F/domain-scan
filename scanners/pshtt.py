@@ -4,40 +4,40 @@ import os
 import json
 
 ###
-# == ncats ==
+# == pshtt ==
 #
-# Inspect a site's TLS configuration using NCATS' Python site inspector.
+# Inspect a site's TLS configuration using DHS NCATS' pshtt tool.
 #
 # Currently depends on pyenv to manage calling out to Python2 from Python3.
 ###
 
-command = os.environ.get("NCATS_PATH", "site_inspector_cli")
+command = os.environ.get("PSHTT_PATH", "pshtt_cli")
 
 # Kind of a hack for now, other methods of running sslyze with Python 2 welcome
-pyenv_version = os.environ.get("NCATS_PYENV", "2.7.11")
+pyenv_version = os.environ.get("PSHTT_PYENV", "2.7.11")
 
 # default to a long timeout
 timeout = 30
 
 # default to a custom user agent, can be overridden
-user_agent = os.environ.get("NCATS_USER_AGENT", "github.com/18f/domain-scan, ncats.py")
+user_agent = os.environ.get("PSHTT_USER_AGENT", "github.com/18f/domain-scan, pshtt.py")
 
 # save (and look for) preload file in cache/preload-list.json
 # same format as inspect.py uses
 preload_cache = utils.cache_single("preload-list.json")
 
 def scan(domain, options):
-    logging.debug("[%s][ncats]" % domain)
+    logging.debug("[%s][pshtt]" % domain)
 
-    # cache output from ncats
-    cache_ncats = utils.cache_path(domain, "ncats", ext="json")
+    # cache output from pshtt
+    cache_pshtt = utils.cache_path(domain, "pshtt", ext="json")
 
     force = options.get("force", False)
     data = None
 
-    if (force is False) and (os.path.exists(cache_ncats)):
+    if (force is False) and (os.path.exists(cache_pshtt)):
         logging.debug("\tCached.")
-        raw = open(cache_ncats).read()
+        raw = open(cache_pshtt).read()
         data = json.loads(raw)
 
     else:
@@ -60,9 +60,9 @@ def scan(domain, options):
             return None
 
         data = json.loads(raw)
-        utils.write(utils.json_for(data), utils.cache_path(domain, "ncats"))
+        utils.write(utils.json_for(data), utils.cache_path(domain, "pshtt"))
 
-    # NCATS scanner uses JSON arrays, even for single items
+    # pshtt scanner uses JSON arrays, even for single items
     data = data[0]
 
     row = []
