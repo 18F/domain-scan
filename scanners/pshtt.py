@@ -39,6 +39,8 @@ def scan(domain, options):
         logging.debug("\tCached.")
         raw = open(cache_pshtt).read()
         data = json.loads(raw)
+        if (data.__class__ is dict) and data.get('invalid'):
+            return None
 
     else:
         logging.debug("\t %s %s" % (command, domain))
@@ -54,8 +56,8 @@ def scan(domain, options):
         # I don't think this tool's threat model includes untrusted CSV, either.
         raw = utils.unsafe_execute("%s && %s %s %s" % (pyenv_init, command, domain, flags))
 
-        if raw is None:
-            # TODO: save invalid data...?
+        if not raw:
+            utils.write(utils.invalid({}), cache_pshtt)
             logging.warn("\tBad news scanning, sorry!")
             return None
 
@@ -72,11 +74,9 @@ def scan(domain, options):
     yield row
 
 headers = [
-    "Live", "Redirect",
-    "Valid HTTPS", "Defaults HTTPS", "Downgrades HTTPS",
-    "Strictly Forces HTTPS", "HTTPS Bad Chain", "HTTPS Bad Host Name",
-    "Expired Cert", "Weak Signature Chain", "HSTS", "HSTS Header",
-    "HSTS Max Age", "HSTS All Subdomains", "HSTS Preload",
-    "HSTS Preload Ready", "HSTS Preloaded",
-    "Broken Root", "Broken WWW"
+    "Canonical URL", "Live", "Redirect",
+    "Valid HTTPS", "Defaults HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
+    "HTTPS Bad Chain", "HTTPS Bad Host Name", "HTTPS Expired Cert",
+    "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
+    "HSTS Preload Ready", "HSTS Preloaded"
 ]
