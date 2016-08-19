@@ -69,13 +69,18 @@ def scan(domain, options):
 
     row = []
     for field in headers:
-        row.append(data[field])
+        value = data[field]
+
+        # TODO: Fix this upstream
+        if value is None:
+            value = False
+        row.append(value)
 
     yield row
 
 headers = [
-    "Canonical URL", "Live", "Redirect",
-    "Valid HTTPS", "Defaults HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
+    "Canonical URL", "Live", "Redirect", "Redirect To",
+    "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
     "HTTPS Bad Chain", "HTTPS Bad Host Name", "HTTPS Expired Cert",
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preloaded"
