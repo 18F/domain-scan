@@ -72,8 +72,10 @@ def scan(domain, options):
         value = data[field]
 
         # TODO: Fix this upstream
-        if value is None:
-            value = False
+        if (field != "HSTS Header") and (field != "Redirect To"):
+            if value is None:
+                value = False
+
         row.append(value)
 
     yield row
