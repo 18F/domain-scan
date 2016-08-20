@@ -64,7 +64,7 @@ def configure_logging(options=None):
 
 
 # mkdir -p in python, from:
-# http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
+# https://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -202,9 +202,8 @@ def utc_timestamp():
 def base_domain_for(subdomain):
     return str.join(".", subdomain.split(".")[-2:])
 
+
 # Load the first column of a CSV into memory as an array of strings.
-
-
 def load_domains(domain_csv, whole_rows=False):
     domains = []
     with open(domain_csv, newline='') as csvfile:
