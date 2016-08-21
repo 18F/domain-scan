@@ -72,7 +72,7 @@ def scan(domain, options):
         value = data[field]
 
         # TODO: Fix this upstream
-        if (field != "HSTS Header") and (field != "Redirect To"):
+        if (field != "HSTS Header") and (field != "HSTS Max Age") and (field != "Redirect To"):
             if value is None:
                 value = False
 
