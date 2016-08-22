@@ -4,7 +4,7 @@ import json
 import os
 import boto3
 
-workers = 5
+workers = 25
 PA11Y_STANDARD = 'WCAG2AA'
 pa11y = os.environ.get("PA11Y_PATH", "pa11y")
 headers = [
@@ -84,7 +84,9 @@ def get_errors_from_pa11y_lambda_scan(domain, cache):
     errors = get_errors_from_results(results)
     cachable = json.dumps({'results' : errors})
     logging.debug("Writing to cache: %s" % domain)
-    utils.write(cachable, cache)
+    content = cachable
+    destination = cache
+    utils.write(content, destination)
     return errors
 
 def get_errors_from_results(results):
