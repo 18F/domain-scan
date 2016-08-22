@@ -97,7 +97,7 @@ def scan(domain, options):
             npn = endpoint['details'].get('npnProtocols', None)
             if npn:
                 spdy = ("spdy" in npn)
-                h2 = ("h2-" in npn)
+                h2 = ("h2" in npn)
 
             yield [
                 endpoint['grade'],
