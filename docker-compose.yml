@@ -3,3 +3,9 @@ scan:
   build: .
   volumes:
   - ./:/home/scanner
+
+a11y_process:
+  dockerfile: Dockerfile.a11y_process
+  build: .
+  volumes:
+  - ./:/home
