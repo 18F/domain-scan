@@ -2,6 +2,20 @@
 
 Every scan of a11y domains will need to be converted to JSON suitable for updating pulse.cio.gov. The following code JSON samples illustrate the files and schema that such conversion needs to target.
 
+## tl;dr (just show me the code!)
+
+Once you've completed an `a11y` scan run the following (requires Docker setup):
+
+```sh
+$ docker-compose run process_a11y
+```
+
+This will produce the following files inside of `scripts/pulse/results`:
+
+- `domains.json`
+- `a11y.json` TODO
+- `agencies.json` TODO
+
 ## a11y.json
 
 Schema:
