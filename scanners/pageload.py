@@ -8,7 +8,7 @@ import os
 #
 # Evaluate page laod time information using Phantomas.
 #
-# If data exists for a domain from `inspect`, will use the
+# If data exists for a domain from `pshtt`, will use the
 # previously detected "canonical" endpoint for a domain.
 ##
 
@@ -23,15 +23,13 @@ workers = 2
 def scan(domain, options):
     logging.debug("[%s][pageload]" % domain)
 
-    inspection = utils.data_for(domain, "inspect")
-
     # If we have data from inspect, skip if it's not a live domain.
-    if inspection and (not inspection.get("up")):
+    if utils.domain_not_live(domain):
         logging.debug("\tSkipping, domain not reachable during inspection.")
         return None
 
     # If we have data from inspect, skip if it's just a redirector.
-    if inspection and (inspection.get("redirect") is True):
+    if utils.domain_is_redirect(domain):
         logging.debug("\tSkipping, domain seen as just a redirector during inspection.")
         return None
 
@@ -39,8 +37,8 @@ def scan(domain, options):
     if not (domain.startswith('http://') or domain.startswith('https://')):
 
         # If we have data from inspect, use the canonical endpoint.
-        if inspection and inspection.get("canonical"):
-            url = inspection.get("canonical")
+        if utils.domain_canonical(domain):
+            url = utils.domain_canonical(domain)
 
         # Otherwise, well, whatever.
         else:

@@ -10,7 +10,7 @@ import dateutil.parser
 #
 # Inspect a site's TLS configuration using sslyze.
 #
-# If data exists for a domain from `inspect`, will check results
+# If data exists for a domain from `pshtt`, will check results
 # and only process domains with valid HTTPS, or broken chains.
 #
 # Currently depends on pyenv to manage calling out to Python2 from Python3.
@@ -26,14 +26,13 @@ def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
     # Optional: skip domains which don't support HTTPS in prior inspection
-    inspection = utils.data_for(domain, "inspect")
-    if inspection and (not inspection.get("support_https")):
+    if utils.domain_doesnt_support_https(domain):
         logging.debug("\tSkipping, HTTPS not supported in inspection.")
         return None
 
     # Optional: if inspect data says canonical endpoint uses www and this domain
     # doesn't have it, add it.
-    if inspection and (inspection.get("canonical_endpoint") == "www") and (not domain.startswith("www.")):
+    if utils.domain_uses_www(domain):
         scan_domain = "www.%s" % domain
     else:
         scan_domain = domain
@@ -51,7 +50,7 @@ def scan(domain, options):
         xml = open(cache_xml).read()
 
     else:
-        logging.debug("\t %s %s" % (command, domain))
+        logging.debug("\t %s %s" % (command, scan_domain))
         # use scan_domain (possibly www-prefixed) to do actual scan
 
         # Give the Python shell environment a pyenv environment.
