@@ -29,6 +29,14 @@ def scan(domain, options):
     # cache reformatted JSON from ssllabs
     cache = utils.cache_path(domain, "tls")
 
+    # Optional: if pshtt data says canonical endpoint uses www and this domain
+    # doesn't have it, add it.
+    if utils.domain_uses_www(domain):
+        scan_domain = "www.%s" % domain
+    else:
+        scan_domain = domain
+
+
     force = options.get("force", False)
 
     if (force is False) and (os.path.exists(cache)):
@@ -39,16 +47,17 @@ def scan(domain, options):
         if data.get('invalid'):
             return None
     else:
-        logging.debug("\t %s %s" % (command, domain))
+        logging.debug("\t %s %s" % (command, scan_domain))
 
         usecache = str(not force).lower()
 
         if options.get("debug"):
             cmd = [command, "--usecache=%s" % usecache,
-                   "--verbosity=debug", domain]
+                   "--verbosity=debug", scan_domain]
         else:
             cmd = [command, "--usecache=%s" % usecache,
-                   "--quiet", domain]
+                   "--quiet", scan_domain]
+
         raw = utils.scan(cmd)
         if raw:
             data = json.loads(raw)
