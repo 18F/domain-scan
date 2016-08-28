@@ -198,9 +198,89 @@ def utc_timestamp():
 
 # return base domain for a subdomain
 
-
 def base_domain_for(subdomain):
     return str.join(".", subdomain.split(".")[-2:])
+
+
+# Check whether we have HTTP behavior data cached for a domain.
+# If so, check if we know it doesn't support HTTPS.
+# Useful for saving time on TLS-related scanning.
+def domain_doesnt_support_https(domain):
+    # Make sure we have the cached data.
+    inspection = data_for(domain, "pshtt")
+    if not inspection:
+        return False
+
+    # TODO: kill this
+    inspection = inspection[0]
+
+    https = inspection.get("endpoints").get("https")
+    httpswww = inspection.get("endpoints").get("httpswww")
+
+    def endpoint_used(endpoint):
+        return endpoint.get("live") and (not endpoint.get("https_bad_hostname"))
+
+    return (not (endpoint_used(https) or endpoint_used(httpswww)))
+
+# Check whether we have HTTP behavior data cached for a domain.
+# If so, check if we know it canonically prepends 'www'.
+def domain_uses_www(domain):
+    # Don't prepend www to www.
+    if domain.startswith("www."):
+        return False
+
+    # Make sure we have the data.
+    inspection = data_for(domain, "pshtt")
+    if not inspection:
+        return False
+    # TODO: kill this
+    inspection = inspection[0]
+
+    # We know the canonical URL, return True if it's www.
+    url = inspection.get("Canonical URL")
+    return (
+        url.startswith("http://www") or
+        url.startswith("https://www")
+    )
+
+# Check whether we have HTTP behavior data cached for a domain.
+# If so, check if we know it's not live.
+# Useful for skipping scans on non-live domains.
+def domain_not_live(domain):
+    # Make sure we have the data.
+    inspection = data_for(domain, "pshtt")
+    if not inspection:
+        return False
+    # TODO: kill this
+    inspection = inspection[0]
+
+    return (not inspection.get("Live"))
+
+# Check whether we have HTTP behavior data cached for a domain.
+# If so, check if we know it redirects.
+# Useful for skipping scans on redirect domains.
+def domain_is_redirect(domain):
+    # Make sure we have the data.
+    inspection = data_for(domain, "pshtt")
+    if not inspection:
+        return False
+    # TODO: kill this
+    inspection = inspection[0]
+
+    return (inspection.get("Redirect") is True)
+
+# Check whether we have HTTP behavior data cached for a domain.
+# If so, check if we know its canonical URL.
+# Useful for focusing scans on the right endpoint.
+def domain_canonical(domain):
+    # Make sure we have the data.
+    inspection = data_for(domain, "pshtt")
+    if not inspection:
+        return False
+    # TODO: kill this
+    inspection = inspection[0]
+
+    return (inspection.get("Canonical URL"))
 
 
 # Load the first column of a CSV into memory as an array of strings.

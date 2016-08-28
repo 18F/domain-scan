@@ -9,7 +9,7 @@ import os
 #
 # Inspect a site's valid TLS configuration using ssllabs-scan.
 #
-# If data exists for a domain from `inspect`, will check results
+# If data exists for a domain from `pshtt`, will check results
 # and only process domains with valid HTTPS, or broken chains.
 ###
 
@@ -21,8 +21,7 @@ def scan(domain, options):
     logging.debug("[%s][tls]" % domain)
 
     # If inspection data exists, check to see if we can skip.
-    inspection = utils.data_for(domain, "inspect")
-    if inspection and (not inspection.get("support_https")):
+    if utils.domain_doesnt_support_https(domain):
         logging.debug("\tSkipping, HTTPS not supported in inspection.")
         return None
 
