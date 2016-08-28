@@ -23,12 +23,12 @@ workers = 2
 def scan(domain, options):
     logging.debug("[%s][pageload]" % domain)
 
-    # If we have data from inspect, skip if it's not a live domain.
+    # If we have data from pshtt, skip if it's not a live domain.
     if utils.domain_not_live(domain):
         logging.debug("\tSkipping, domain not reachable during inspection.")
         return None
 
-    # If we have data from inspect, skip if it's just a redirector.
+    # If we have data from pshtt, skip if it's just a redirector.
     if utils.domain_is_redirect(domain):
         logging.debug("\tSkipping, domain seen as just a redirector during inspection.")
         return None
@@ -36,7 +36,7 @@ def scan(domain, options):
     # phantomas needs a URL, not just a domain.
     if not (domain.startswith('http://') or domain.startswith('https://')):
 
-        # If we have data from inspect, use the canonical endpoint.
+        # If we have data from pshtt, use the canonical endpoint.
         if utils.domain_canonical(domain):
             url = utils.domain_canonical(domain)
 

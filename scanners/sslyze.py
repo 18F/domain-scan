@@ -30,7 +30,7 @@ def scan(domain, options):
         logging.debug("\tSkipping, HTTPS not supported in inspection.")
         return None
 
-    # Optional: if inspect data says canonical endpoint uses www and this domain
+    # Optional: if pshtt data says canonical endpoint uses www and this domain
     # doesn't have it, add it.
     if utils.domain_uses_www(domain):
         scan_domain = "www.%s" % domain
