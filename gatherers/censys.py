@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from scanners import utils
-import csv
 import os
 import re
 import time
@@ -21,8 +20,6 @@ api_key = os.environ.get("CENSYS_API_KEY", None)
 # yield hostnames.
 def gather(suffix, options):
     suffix_pattern = utils.suffix_pattern(suffix)
-
-    debug = options.get("debug", False)
 
     # Hostnames beginning with a wildcard prefix will have the prefix stripped.
     wildcard_pattern = re.compile("^\*.")
