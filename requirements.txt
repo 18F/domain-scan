@@ -6,3 +6,6 @@ strict-rfc3339
 lxml
 BeautifulSoup4
 python-dateutil
+
+# to support censys gatherer
+git+https://github.com/Censys/censys-python

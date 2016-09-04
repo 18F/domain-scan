@@ -1,9 +1,3 @@
-## Vendored code
-
-All code in `vendor/` is licensed under the licenses contained within each sub-directory.
-
-## All other code
-
 As a work of the United States Government, this project is in the
 public domain within the United States.
 

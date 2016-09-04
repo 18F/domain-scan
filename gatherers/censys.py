@@ -2,7 +2,7 @@ import os
 import re
 import time
 import logging
-from vendor.censys import certificates
+from censys import certificates
 
 # Register a (free) Censys.io account to get a UID and API key.
 uid = os.environ.get("CENSYS_UID", None)
