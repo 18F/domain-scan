@@ -2,11 +2,7 @@ import os
 import re
 import time
 import logging
-
-# Until 0.0.6+ is released to pip:
-# git clone https://github.com/Censys/censys-python
-# cd censys-python && python setup.py install
-import censys.certificates
+from vendor.censys import certificates
 
 # Register a (free) Censys.io account to get a UID and API key.
 uid = os.environ.get("CENSYS_UID", None)
@@ -32,7 +28,7 @@ def gather(suffix, options):
     hostnames_map = {}
 
 
-    certificates = censys.certificates.CensysCertificates(uid, api_key)
+    certificate_api = certificates.CensysCertificates(uid, api_key)
 
     fields = [
         "parsed.subject.common_name",
@@ -53,7 +49,7 @@ def gather(suffix, options):
 
         logging.debug("Fetching page %i." % current_page)
 
-        for cert in certificates.search(query, fields=fields, page=current_page, max_records=page_size):
+        for cert in certificate_api.search(query, fields=fields, page=current_page, max_records=page_size):
             # Common name + SANs
             names = cert.get('parsed.subject.common_name', []) + cert.get('parsed.extensions.subject_alt_name.dns_names', [])
             logging.debug(names)

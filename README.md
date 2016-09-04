@@ -157,8 +157,6 @@ General options:
 
 ### `censys`: the Censys.io API
 
-Until 0.0.6 or higher is published, requires cloning [the `censys-python` repo](https://github.com/Censys/censys-python) and running `python setup.py install` from the root.
-
 To configure, set two environment variables from [your Censys account page](https://censys.io/account):
 
 * `CENSYS_UID`: Your Censys API ID.
