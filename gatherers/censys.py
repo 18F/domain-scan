@@ -1,4 +1,3 @@
-from scanners import utils
 import os
 import re
 import time
