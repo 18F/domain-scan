@@ -63,7 +63,10 @@ def run(options=None):
             if (domain == base) or (domain == "www.%s" % base):
                 continue
 
-        # TODO: if parent domain whitelist present, apply it here
+        # Apply --parent domain whitelist, if present.
+        if parents:
+            if base not in parents:
+                continue
 
         gathered_writer.writerow([domain, base])
 
@@ -102,7 +105,7 @@ def get_parent_domains(options):
 
         try:
             response = requests.get(parents)
-            utils.write(response.text, parents.path)
+            utils.write(response.text, parents_path)
         except:
             logging.error("Parent domains URL not downloaded successfully.")
             print(utils.format_last_exception())
