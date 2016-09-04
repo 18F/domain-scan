@@ -136,6 +136,8 @@ docker-compose run scan <domain> --scan=<scanner>
 
 This tool also includes a facility for gathering domain names that end in a given suffix (e.g. `.gov`) from various sources.
 
+By default, only fetches third-level and higher domains (excluding second-level domains).
+
 Usage:
 
 ```bash
@@ -148,7 +150,8 @@ Where source is one of:
 
 General options:
 
-* `--suffix`: suffix to filter on (e.g. `.gov`)
+* `--suffix`: **Required.** suffix to filter on (e.g. `.gov`)
+* `--include-parents`: Include second-level domains. (Defaults to false.)
 * `--debug`: display extra output
 
 ### `censys`: the Censys.io API

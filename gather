@@ -40,6 +40,9 @@ def run(options=None):
         logging.error("--suffix is required.")
         exit(1)
 
+    # Opt in to include parent (second-level) domains.
+    include_parents = options.get("include-parents", False)
+
     # --parents should be a CSV whose first column is parent domains
     # that will act as a whitelist for which subdomains to gather.
     parents = get_parent_domains(options)
@@ -53,8 +56,16 @@ def run(options=None):
 
     # Iterate over each hostname.
     for domain in gatherer.gather(suffix, options):
+        base = utils.base_domain_for(domain)
+
+        # Unless --include-parents is specified, exclude them.
+        if not include_parents:
+            if (domain == base) or (domain == "www.%s" % base):
+                continue
+
         # TODO: if parent domain whitelist present, apply it here
-        gathered_writer.writerow([domain, utils.base_domain_for(domain)])
+
+        gathered_writer.writerow([domain, base])
 
 
     # Close CSV file.
