@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import csv
+import requests
+import logging
+import importlib
+from scanners import utils
+
+options = utils.options()
+utils.configure_logging(options)
+utils.mkdir_p(utils.cache_dir())
+utils.mkdir_p(utils.results_dir())
+
+# some metadata about the scan itself
+start_time = utils.utc_timestamp()
+start_command = str.join(" ", sys.argv)
+
+
+def run(options=None):
+
+    if not options["_"]:
+        logging.error("Provide a source. Right now just: censys")
+        exit(1)
+
+    source = options["_"][0]
+    if source != "censys":
+        logging.error("The only supported source is \"censys\".")
+        exit(1)
+
+    # Import the gathering source.
+    try:
+        gatherer = importlib.import_module("gatherers.%s" % source)
+    except ImportError:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        logging.error("[%s] Scanner not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (name, exc_type, exc_value))
+        exit(1)
+
+    # --parents should be a CSV whose first column is parent domains
+    # to act as a whitelist for subdomains to gather.
+    parents = get_parent_domains(options)
+
+    # Open CSV writer.
+    gathered_filename = "%s/%s.csv" % (utils.results_dir(), source)
+    gathered_file = open(gathered_filename, 'w', newline='')
+    gathered_writer = csv.writer(gathered_file)
+    gathered_writer.writerow(["Domain", "Base Domain"])
+
+    # Iterate over each hostname.
+    for domain in gatherer.gather(options):
+        # TODO: if parent domain whitelist present, apply it here
+        gathered_writer.writerow([domain, utils.base_domain_for(domain)])
+
+    # Close CSV file.
+    gathered_file.close()
+
+    # If sort requested, sort in place by domain.
+    if options.get("sort"):
+        utils.sort_csv(gathered_filename)
+
+    logging.warn("Results written to CSV.")
+
+    # Save metadata.
+    metadata = {
+        'start_time': start_time,
+        'end_time': utils.utc_timestamp(),
+        'command': start_command
+    }
+    utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
+
+
+
+# Read in parent domains from the first column of a given CSV.
+def get_parent_domains(options):
+    parents = options.get("parents")
+    if not parents:
+        return None
+
+    # If --parents is a URL, we want to download it now,
+    # and then adjust the value to be the path of the cached download.
+    if parents.startswith("http:") or parents.startswith("https:"):
+
+        # Though it's saved in cache/, it will be downloaded every time.
+        parents_path = os.path.join(utils.cache_dir(), "parents.csv")
+
+        try:
+            response = requests.get(parents)
+            utils.write(response.text, parents.path)
+        except:
+            logging.error("Parent domains URL not downloaded successfully.")
+            print(utils.format_last_exception())
+            exit(1)
+
+        parents = parents_path
+
+    parent_domains = []
+    with open(parents, encoding='utf-8', newline='') as csvfile:
+        for row in csv.reader(csvfile):
+            if (not row[0]) or (row[0].lower().startswith("domain")):
+                continue
+            parent_domains.append(row[0].lower())
+
+    return parent_domains
+
+if __name__ == '__main__':
+    run(options)
+
