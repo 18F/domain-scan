@@ -1,4 +1,5 @@
 import os
+import re
 import errno
 import subprocess
 import sys
@@ -10,9 +11,8 @@ import logging
 import datetime
 import strict_rfc3339
 
+
 # Wrapper to a run() method to catch exceptions.
-
-
 def run(run_method, additional=None):
     cli_options = options()
     configure_logging(cli_options)
@@ -346,3 +346,17 @@ def sort_csv(input_filename):
     # replace the original
     shutil.move(tmp_filename, input_filename)
 
+
+# Given a user-input domain suffix, normalize it.
+def normalize_suffix(suffix):
+    if suffix is None:
+        return None
+
+    if not suffix.startswith("."):
+        suffix = (".%s" % suffix)
+    return suffix
+
+# Given a domain suffix, provide a compiled regex.
+# Assumes suffixes always begin with a dot.
+def suffix_pattern(suffix):
+    return re.compile("\\%s$" % suffix)

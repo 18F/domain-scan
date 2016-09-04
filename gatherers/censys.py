@@ -19,7 +19,9 @@ api_key = os.environ.get("CENSYS_API_KEY", None)
 
 # Take in command line flags,
 # yield hostnames.
-def gather(options):
+def gather(suffix, options):
+    suffix_pattern = utils.suffix_pattern(suffix)
+
     debug = options.get("debug", False)
 
     # Hostnames beginning with a wildcard prefix will have the prefix stripped.
@@ -35,12 +37,6 @@ def gather(options):
     start_page = int(options.get("start", 1))
     end_page = int(options.get("end", start_page))
     max_records = ((end_page - start_page) + 1) * page_size
-
-    suffix = options.get("suffix", ".gov")
-    suffix_pattern = "%s$" % suffix
-    if suffix_pattern.startswith("."):
-        suffix_pattern = "\\%s" % suffix_pattern
-    suffix_pattern = re.compile(suffix_pattern)
 
     # Cache hostnames in a dict for de-duping.
     hostnames_map = {}
