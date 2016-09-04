@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from scanners import utils
 import os
 import re
@@ -16,11 +14,7 @@ uid = os.environ.get("CENSYS_UID", None)
 api_key = os.environ.get("CENSYS_API_KEY", None)
 
 
-# Take in command line flags,
-# yield hostnames.
 def gather(suffix, options):
-    suffix_pattern = utils.suffix_pattern(suffix)
-
     # Hostnames beginning with a wildcard prefix will have the prefix stripped.
     wildcard_pattern = re.compile("^\*.")
 
@@ -68,9 +62,7 @@ def gather(suffix, options):
             for name in names:
                 # Strip off any wildcard prefix.
                 name = re.sub(wildcard_pattern, '', name).lower().strip()
-
-                if suffix_pattern.search(name):
-                    hostnames_map[name] = None
+                hostnames_map[name] = None
 
         current_page += 1
 

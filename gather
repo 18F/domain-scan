@@ -30,7 +30,7 @@ def run(options=None):
         gatherer = importlib.import_module("gatherers.%s" % source)
     except ImportError:
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        logging.error("[%s] Gatherer not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (name, exc_type, exc_value))
+        logging.error("[%s] Gatherer not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (source, exc_type, exc_value))
         exit(1)
 
 
@@ -39,6 +39,7 @@ def run(options=None):
     if suffix is None:
         logging.error("--suffix is required.")
         exit(1)
+    suffix_pattern = utils.suffix_pattern(suffix)
 
     # Opt in to include parent (second-level) domains.
     include_parents = options.get("include-parents", False)
@@ -56,6 +57,10 @@ def run(options=None):
 
     # Iterate over each hostname.
     for domain in gatherer.gather(suffix, options):
+        # Always apply the suffix to returned names.
+        if not suffix_pattern.search(domain):
+            continue
+
         base = utils.base_domain_for(domain)
 
         # Unless --include-parents is specified, exclude them.
