@@ -55,6 +55,9 @@ def run(options=None):
     gathered_writer = csv.writer(gathered_file)
     gathered_writer.writerow(["Domain", "Base Domain"])
 
+    # De-duping hostnames.
+    hostnames_cache = {}
+
     # Iterate over each hostname.
     for domain in gatherer.gather(suffix, options):
         # Always apply the suffix to returned names.
@@ -73,7 +76,9 @@ def run(options=None):
             if base not in parents:
                 continue
 
-        gathered_writer.writerow([domain, base])
+        if domain not in hostnames_cache:
+            gathered_writer.writerow([domain, base])
+            hostnames_cache[domain] = None
 
 
     # Close CSV file.
