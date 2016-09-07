@@ -55,7 +55,8 @@ def run(options=None):
     gathered_writer = csv.writer(gathered_file)
     gathered_writer.writerow(["Domain", "Base Domain"])
 
-    # De-duping hostnames.
+    # De-duping hostnames. This will cause the system to hold all
+    # hostnames in memory at once, but oh well.
     hostnames_cache = {}
 
     # Iterate over each hostname.
