@@ -77,7 +77,10 @@ def run(options=None):
             if base not in parents:
                 continue
 
+        # Use hostname cache to de-dupe, if seen before.
         if domain not in hostnames_cache:
+
+            # Finally, write out the hostname, and cache it.
             gathered_writer.writerow([domain, base])
             hostnames_cache[domain] = None
 
