@@ -3,8 +3,13 @@ import os
 import requests
 import logging
 
-# Take in command line flags,
-# yield hostnames.
+### url
+#
+# Gathers hostnames from a CSV at a given URL.
+#
+# --url: The URL to download. Will be parsed as a CSV.
+#
+
 def gather(suffix, options):
     url = options.get("url")
     if url is None:

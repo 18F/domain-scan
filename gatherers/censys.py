@@ -4,10 +4,19 @@ import time
 import logging
 from censys import certificates
 
+### censys
+#
+# Gathers hostnames from the Censys.io API.
+#
+# --delay: How long to wait between requests. Defaults to 5s.
+#          If you have researcher credentials, use 2s.
+# --start: What page of results to start on. Defaults to 1.
+# --end:   What page of results to end on. Defaults to last page.
+#
+
 # Register a (free) Censys.io account to get a UID and API key.
 uid = os.environ.get("CENSYS_UID", None)
 api_key = os.environ.get("CENSYS_API_KEY", None)
-
 
 def gather(suffix, options):
     certificate_api = certificates.CensysCertificates(uid, api_key)
