@@ -1,7 +1,9 @@
 import os
+import re
 import errno
 import subprocess
 import sys
+import shutil
 import traceback
 import json
 import csv
@@ -9,9 +11,8 @@ import logging
 import datetime
 import strict_rfc3339
 
+
 # Wrapper to a run() method to catch exceptions.
-
-
 def run(run_method, additional=None):
     cli_options = options()
     configure_logging(cli_options)
@@ -298,3 +299,64 @@ def load_domains(domain_csv, whole_rows=False):
             else:
                 domains.append(row[0])
     return domains
+
+
+# Sort a CSV by domain name, "in-place" (by making a temporary copy).
+# This loads the whole thing into memory: it's not a great solution for
+# super-large lists of domains.
+
+def sort_csv(input_filename):
+    logging.warn("Sorting %s..." % input_filename)
+
+    input_file = open(input_filename, encoding='utf-8', newline='')
+    tmp_filename = "%s.tmp" % input_filename
+    tmp_file = open(tmp_filename, 'w', newline='')
+    tmp_writer = csv.writer(tmp_file)
+
+    # store list of domains, to sort at the end
+    domains = []
+
+    # index rows by domain
+    rows = {}
+    header = None
+
+    for row in csv.reader(input_file):
+        # keep the header around
+        if (row[0].lower().startswith("domain")):
+            header = row
+            continue
+
+        # index domain for later reference
+        domain = row[0]
+        domains.append(domain)
+        rows[domain] = row
+
+    # straight alphabet sort
+    domains.sort()
+
+    # write out to a new file
+    tmp_writer.writerow(header)
+    for domain in domains:
+        tmp_writer.writerow(rows[domain])
+
+    # close the file handles
+    input_file.close()
+    tmp_file.close()
+
+    # replace the original
+    shutil.move(tmp_filename, input_filename)
+
+
+# Given a user-input domain suffix, normalize it.
+def normalize_suffix(suffix):
+    if suffix is None:
+        return None
+
+    if not suffix.startswith("."):
+        suffix = (".%s" % suffix)
+    return suffix
+
+# Given a domain suffix, provide a compiled regex.
+# Assumes suffixes always begin with a dot.
+def suffix_pattern(suffix):
+    return re.compile("\\%s$" % suffix)
