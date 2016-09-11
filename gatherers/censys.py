@@ -21,7 +21,7 @@ api_key = os.environ.get("CENSYS_API_KEY", None)
 def gather(suffix, options):
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
-    query = "parsed.subject.common_name:%s or parsed.extensions.subject_alt_name.dns_names:%s" % (suffix, suffix)
+    query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
     logging.debug("Censys query:\n%s\n" % query)
 
     # Hostnames beginning with a wildcard prefix will have the prefix stripped.
