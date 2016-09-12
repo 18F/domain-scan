@@ -68,7 +68,17 @@ def gather(suffix, options):
 
         logging.debug("Fetching page %i." % current_page)
 
-        for cert in certificate_api.search(query, fields=fields, page=current_page, max_records=page_size):
+        try:
+            certs = list(certificate_api.search(query, fields=fields, page=current_page, max_records=page_size))
+        except censys.base.CensysException:
+            print(format_last_exception())
+            print("Censys error, skipping page %i." % current_page)
+        except:
+            print(format_last_exception())
+            print("Unexpected error, skipping page %i." % current_page)
+            continue
+
+        for cert in certs:
             # Common name + SANs
             names = cert.get('parsed.subject.common_name', []) + cert.get('parsed.extensions.subject_alt_name.dns_names', [])
             logging.debug(names)
