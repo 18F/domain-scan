@@ -5,6 +5,7 @@ import json
 import logging
 from scanners import utils
 from censys import certificates
+import censys
 
 ### censys
 #
@@ -28,7 +29,8 @@ def gather(suffix, options):
     logging.debug("Censys query:\n%s\n" % query)
 
     # Hostnames beginning with a wildcard prefix will have the prefix stripped.
-    wildcard_pattern = re.compile("^\*.")
+    wildcard_pattern = re.compile("^\*\.")
+    redacted_pattern = re.compile("^(\?\.)+")
 
     # time to sleep between requests (defaults to 5s)
     delay = int(options.get("delay", 5))
@@ -105,6 +107,8 @@ def gather(suffix, options):
             for name in names:
                 # Strip off any wildcard prefix.
                 name = re.sub(wildcard_pattern, '', name).lower().strip()
+                # Strip off any redacted ? prefixes. (Ugh.)
+                name = re.sub(redacted_pattern, '', name).lower().strip()
                 hostnames_map[name] = None
 
         current_page += 1
