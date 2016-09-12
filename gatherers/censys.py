@@ -83,18 +83,18 @@ def gather(suffix, options):
 
             certs_raw = open(cache_page).read()
             certs = json.loads(certs_raw)
-            if (certs.__class__ is dict) and data.get('invalid'):
+            if (certs.__class__ is dict) and certs.get('invalid'):
                 continue
         else:
             try:
                 certs = list(certificate_api.search(query, fields=fields, page=current_page, max_records=page_size))
                 utils.write(utils.json_for(certs), cache_page)
             except censys.base.CensysException:
-                logging.warn(format_last_exception())
+                logging.warn(utils.format_last_exception())
                 logging.warn("Censys error, skipping page %i." % current_page)
                 utils.write(utils.invalid({}), cache_page)
             except:
-                logging.warn(format_last_exception())
+                logging.warn(utils.format_last_exception())
                 logging.warn("Unexpected error, skipping page %i." % current_page)
                 utils.write(utils.invalid({}), cache_page)
                 continue
