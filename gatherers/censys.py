@@ -1,7 +1,9 @@
 import os
 import re
 import time
+import json
 import logging
+from scanners import utils
 from censys import certificates
 
 ### censys
@@ -12,6 +14,7 @@ from censys import certificates
 #          If you have researcher credentials, use 2s.
 # --start: What page of results to start on. Defaults to 1.
 # --end:   What page of results to end on. Defaults to last page.
+# --force: Ignore cached pages.
 #
 
 # Register a (free) Censys.io account to get a UID and API key.
@@ -60,23 +63,39 @@ def gather(suffix, options):
     current_page = start_page
 
     logging.warn("Fetching up to %i records, starting at page %i." % (max_records, start_page))
+    last_cached = False
+    force = options.get("force", False)
 
     while current_page <= end_page:
-        if current_page > start_page:
+        if (not last_cached) and (current_page > start_page):
             logging.debug("(Waiting %is before fetching page %i.)" % (delay, current_page))
+            last_cached = False
             time.sleep(delay)
 
         logging.debug("Fetching page %i." % current_page)
 
-        try:
-            certs = list(certificate_api.search(query, fields=fields, page=current_page, max_records=page_size))
-        except censys.base.CensysException:
-            print(format_last_exception())
-            print("Censys error, skipping page %i." % current_page)
-        except:
-            print(format_last_exception())
-            print("Unexpected error, skipping page %i." % current_page)
-            continue
+        cache_page = utils.cache_path(str(current_page), "censys")
+        if (force is False) and (os.path.exists(cache_page)):
+            logging.warn("\t[%i] Cached page." % current_page)
+            last_cached = True
+
+            certs_raw = open(cache_page).read()
+            certs = json.loads(certs_raw)
+            if (certs.__class__ is dict) and data.get('invalid'):
+                continue
+        else:
+            try:
+                certs = list(certificate_api.search(query, fields=fields, page=current_page, max_records=page_size))
+                utils.write(utils.json_for(certs), cache_page)
+            except censys.base.CensysException:
+                logging.warn(format_last_exception())
+                logging.warn("Censys error, skipping page %i." % current_page)
+                utils.write(utils.invalid({}), cache_page)
+            except:
+                logging.warn(format_last_exception())
+                logging.warn("Unexpected error, skipping page %i." % current_page)
+                utils.write(utils.invalid({}), cache_page)
+                continue
 
         for cert in certs:
             # Common name + SANs
