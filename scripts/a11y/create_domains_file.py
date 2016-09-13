@@ -10,7 +10,7 @@ class Base:
 
     def _readCsv(self, inputFile):
         outList = []
-        with open(inputFile, 'rU') as infile:
+        with open(inputFile) as infile:
             reader = csv.reader(infile)
             firstRow = True
             for row in reader:
@@ -22,38 +22,25 @@ class Base:
         return outList
 
 
-class CreateDomainsFile(Base):
-    def __init__(self, domainsCsvPath, a11yCsvPath, outDir):
+class CreateDomainsJSON(Base):
+    def __init__(self, domainsCsvPath, a11yCsvPath):
         self._domainsCsvPath = domainsCsvPath
         self._a11yCsvPath = a11yCsvPath
-        self._outDir = outDir
 
     def perform(self):
-        domainsCsv  = self._readCsv(self._domainsCsvPath)
-        a11yCsv     = self._readCsv(self._a11yCsvPath)
-        domainsJson = self._buildDomainsJson(domainsCsv, a11yCsv)
+        domainsCsv = self._readCsv(self._domainsCsvPath)
+        a11yCsv = self._readCsv(self._a11yCsvPath)
+        return self._buildDomainsJSON(domainsCsv, a11yCsv)
 
-        self._writeFile(domainsJson, self._outDir, 'domains.json')
-
-    def _buildDomainsJson(self, domainsCsv, a11yCsv):
+    def _buildDomainsJSON(self, domainsCsv, a11yCsv):
         # format for each row in a11yCsv:
         # Domain,Base Domain,redirectedTo,typeCode,code,message,context,selector
         result = defaultdict(list)
-        for error in a11yCsv[50:55]:
+        for error in a11yCsv:
             result[error[0]].extend(error[3:])
-
-
-        print(result['cfpa.gov'])
 
         data = []
 
         output = {}
         output['data'] = data
         return output
-
-    def _buildDomainJsonObject(self):
-        pass
-
-CreateDomainsFile('/home/domains.csv',
-                  '/home/results/a11y.csv',
-                  '/home/scripts/a11y/pulse-results/').perform()
