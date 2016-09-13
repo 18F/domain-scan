@@ -160,9 +160,7 @@ A JSON object with a top-level key called `data`.
 - `errorlist` - a JSON object with the following keys (the values are the integer counts of the corresponding error types):
   - `Alt Tag Errors`
   - `Color Contrast Errors`
-  - `Form Errors`
   - `HTML\/Attribute Errors`
-  - `Other Errors`
 
 Example:
 
@@ -178,9 +176,7 @@ Example:
       "errorlist": {
         "Alt Tag Errors": 0,
         "Color Contrast Errors": 0,
-        "Form Errors": 0,
-        "HTML\/Attribute Errors": 0,
-        "Other Errors": 0
+        "HTML\/Attribute Errors": 0
       }
     }
   ]
