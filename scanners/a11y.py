@@ -62,7 +62,7 @@ def get_errors_from_pa11y_lambda_scan(domain, cache):
                 'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.2',
                 'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.3',
                 'WCAG2AA.Principle3.Guideline3_1.3_1_2.H58.1',
-                'WCAG2AA.Principle4.Guideline4_1.4_1_1.F77'
+                'WCAG2AA.Principle4.Guideline4_1.4_1_1.F77',
                 'WCAG2AA.Principle4.Guideline4_1.4_1_2.H91'
             ]
         }
