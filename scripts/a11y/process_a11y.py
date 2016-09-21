@@ -1,3 +1,4 @@
+import argparse
 import csv
 import json
 
@@ -33,11 +34,12 @@ class A11yProcessor(object):
         ]
     }
 
-    def __init__(self, a11y_path, domains_path):
+    def __init__(self, a11y_path, domains_path, local_mode=False):
         self.a11y_raw = self.read_csv(a11y_path)
         self.domain_raw = self.read_csv(domains_path)
         self.domain_to_agency = {d[0].lower(): d[1] for d in self.domain_raw}
         self.agency_to_branch = {a: b for b in self.BRANCHES for a in self.BRANCHES[b]}
+        self.results_path = '{}scripts/pulse-results/'.format('' if local_mode else 'home/')
 
     def run(self):
         data = [self.clean_row(d) for d in self.a11y_raw]
@@ -49,7 +51,8 @@ class A11yProcessor(object):
         ]
 
         for name, data in parsed_datasets:
-            path = 'scripts/pulse/results/{}.json'.format(name)
+            path = '{}{}.json'.format(self.results_path, name)
+            print(path)
             with open(path, 'w+') as f:
                 json.dump(data, f, indent=2)
 
@@ -140,7 +143,10 @@ class A11yProcessor(object):
 
 
 if __name__ == '__main__':
-    a11y_filename = 'home/results/a11y.csv'
-    domains_filename = 'home/domains.csv'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--a11y', default='home/results/a11y.csv')
+    parser.add_argument('--domains', default='home/domains.csv')
+    parser.add_argument('--local', action='store_true')
+    args = parser.parse_args()
 
-    A11yProcessor(a11y_filename, domains_filename).run()
+    A11yProcessor(args.a11y, args.domains, args.local).run()
