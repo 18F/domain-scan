@@ -5,7 +5,7 @@ from collections import defaultdict
 from statistics import mean
 
 
-class A11yParser(object):
+class A11yProcessor(object):
     ERRORS = {
         '1_1': 'Alt Tag Errors',
         '1_3': 'Form Errors',
@@ -106,7 +106,7 @@ class A11yParser(object):
             })
             results.append(entry)
 
-        return results
+        return {'data': results}
 
     def make_domain_data(self, data):
         results = {}
@@ -138,7 +138,7 @@ class A11yParser(object):
 
 
 if __name__ == '__main__':
-    a11y_filename = 'data/a11y.csv'
-    domains_filename = 'data/domains.csv'
+    a11y_filename = 'tests/data/a11y.csv'
+    domains_filename = 'tests/data/domains.csv'
 
-    A11yParser(a11y_filename, domains_filename).run()
+    A11yProcessor(a11y_filename, domains_filename).run()
