@@ -18,12 +18,12 @@ class ProcessA11yTestCase(unittest.TestCase):
 
     def test_agency_lookup(self):
         agency_lookup = self.a11y.domain_to_agency
-        self.assertEqual(agency_lookup.get('achp.gov'), 'Federal Agency')
-        self.assertEqual(agency_lookup.get('acus.gov'), 'Federal Agency')
+        self.assertEqual(agency_lookup.get('achp.gov'), 'Advisory Council on Historic Preservation')
+        self.assertEqual(agency_lookup.get('acus.gov'), 'Administrative Conference of the United States')
 
     def test_row_cleaner(self):
         clean = self.a11y.clean_row(self.a11y.a11y_raw[0])
-        self.assertEqual(clean['agency'], 'Federal Agency')
+        self.assertEqual(clean['agency'], 'Administrative Conference of the United States')
         self.assertEqual(clean['branch'], 'Executive')
         self.assertEqual(clean['error'], 'Alt Tag Errors')
         self.assertEqual(

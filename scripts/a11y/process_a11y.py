@@ -37,7 +37,7 @@ class A11yProcessor(object):
     def __init__(self, a11y_path, domains_path, local_mode=False):
         self.a11y_raw = self.read_csv(a11y_path)
         self.domain_raw = self.read_csv(domains_path)
-        self.domain_to_agency = {d[0].lower(): d[1] for d in self.domain_raw}
+        self.domain_to_agency = {d[0].lower(): d[2] for d in self.domain_raw}
         self.agency_to_branch = {a: b for b in self.BRANCHES for a in self.BRANCHES[b]}
         self.results_path = '{}scripts/pulse-results/'.format('' if local_mode else 'home/')
 
@@ -52,7 +52,6 @@ class A11yProcessor(object):
 
         for name, data in parsed_datasets:
             path = '{}{}.json'.format(self.results_path, name)
-            print(path)
             with open(path, 'w+') as f:
                 json.dump(data, f, indent=2)
 
@@ -99,12 +98,12 @@ class A11yProcessor(object):
                 'agency': agency,
                 'pages_count': pages,
                 'Average Errors per Page': (
-                    'n/a' if pages == 0 else float(total_errors) / pages
+                    'n/a' if pages == 0 else round(float(total_errors) / pages, 2)
                 )
             }
             # add in averages by error category
             entry.update({
-                e: mean([d['errorlist'][e] for d in domain_stats])
+                e: round(mean([d['errorlist'][e] for d in domain_stats]), 2)
                 for e in self.ERRORS.values()
             })
             results.append(entry)
