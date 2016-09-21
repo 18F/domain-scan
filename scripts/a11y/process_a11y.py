@@ -49,7 +49,7 @@ class A11yProcessor(object):
         ]
 
         for name, data in parsed_datasets:
-            path = 'scripts/pulse/results/{}.json'.format(name)
+            path = 'scripts/pulse-results/{}.json'.format(name)
             with open(path, 'w+') as f:
                 json.dump(data, f, indent=2)
 
@@ -140,7 +140,7 @@ class A11yProcessor(object):
 
 
 if __name__ == '__main__':
-    a11y_filename = 'data/a11y.csv'
+    a11y_filename = 'results/a11y.csv'
     domains_filename = 'domains.csv'
 
     A11yProcessor(a11y_filename, domains_filename).run()
