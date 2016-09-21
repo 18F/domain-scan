@@ -10,10 +10,3 @@ a11y_process:
   volumes:
     - ./:/home
   command: python home/scripts/a11y/process_a11y.py
-
-a11y_process_test:
-  dockerfile: Dockerfile.a11y_process
-  build: .
-  volumes:
-    - ./:/home
-  command: python -m unittest tests/scripts/a11y/test_create_domains_json.py
