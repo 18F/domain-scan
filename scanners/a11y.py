@@ -1,8 +1,10 @@
-import logging
-from scanners import utils
-import json
-import os
 import boto3
+import json
+import logging
+import os
+
+from scanners import utils
+
 
 workers = 25
 PA11Y_STANDARD = 'WCAG2AA'
@@ -16,11 +18,13 @@ headers = [
     "selector"
 ]
 
+
 def get_from_inspect_cache(domain):
     inspect_cache = utils.cache_path(domain, "inspect")
     inspect_raw = open(inspect_cache).read()
     inspect_data = json.loads(inspect_raw)
     return inspect_data
+
 
 def get_domain_to_scan(inspect_data, domain):
     domain_to_scan = None
@@ -31,14 +35,18 @@ def get_domain_to_scan(inspect_data, domain):
         domain_to_scan = domain
     return domain_to_scan
 
+
 def get_a11y_cache(domain):
     return utils.cache_path(domain, "a11y")
+
 
 def domain_is_cached(cache):
     return os.path.exists(cache)
 
+
 def cache_is_not_forced(options):
     return options.get("force", False) is False
+
 
 def get_errors_from_pa11y_lambda_scan(domain, cache):
     client = boto3.client(
@@ -83,12 +91,13 @@ def get_errors_from_pa11y_lambda_scan(domain, cache):
 
     results = response_payload_json
     errors = get_errors_from_results(results)
-    cachable = json.dumps({'results' : errors})
+    cachable = json.dumps({'results': errors})
     logging.debug("Writing to cache: %s" % domain)
     content = cachable
     destination = cache
     utils.write(content, destination)
     return errors
+
 
 def get_errors_from_results(results):
     errors = []
@@ -96,6 +105,7 @@ def get_errors_from_results(results):
         if result['type'] == 'error':
             errors.append(result)
     return errors
+
 
 def get_errors_from_scan_or_cache(domain, options):
     a11y_cache = get_a11y_cache(domain)
