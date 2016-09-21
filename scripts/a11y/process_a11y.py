@@ -134,7 +134,9 @@ class A11yProcessor(object):
     @staticmethod
     def read_csv(filename):
         with open(filename, 'r') as f:
-            return [row for row in csv.reader(f)]
+            reader = csv.reader(f)
+            next(reader)  # TODO: make header row skip configurable
+            return [row for row in reader]
 
 
 if __name__ == '__main__':
