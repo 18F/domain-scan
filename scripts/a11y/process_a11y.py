@@ -134,11 +134,13 @@ class A11yProcessor(object):
     @staticmethod
     def read_csv(filename):
         with open(filename, 'r') as f:
-            return [row for row in csv.reader(f)]
+            reader = csv.reader(f)
+            next(reader)  # TODO: make header row skip configurable
+            return [row for row in reader]
 
 
 if __name__ == '__main__':
-    a11y_filename = 'tests/data/a11y.csv'
-    domains_filename = 'tests/data/domains.csv'
+    a11y_filename = 'data/a11y.csv'
+    domains_filename = 'data/domains.csv'
 
     A11yProcessor(a11y_filename, domains_filename).run()
