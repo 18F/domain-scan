@@ -4,8 +4,8 @@ from scripts.a11y.process_a11y import A11yProcessor
 
 
 class ProcessA11yTestCase(unittest.TestCase):
-    a11y_filename = 'data/a11y.csv'
-    domain_filename = 'data/domains.csv'
+    a11y_filename = 'tests/data/a11y.csv'
+    domain_filename = 'tests/data/domains.csv'
 
     def setUp(self):
         self.a11y = A11yProcessor(self.a11y_filename, self.domain_filename)
