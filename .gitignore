@@ -1,6 +1,5 @@
 /cache
 /data
-*.csv
 .~lock*
 /todo.txt
 __pycache__
