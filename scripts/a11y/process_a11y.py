@@ -138,7 +138,7 @@ class A11yProcessor(object):
 
 
 if __name__ == '__main__':
-    a11y_filename = 'tests/data/a11y.csv'
-    domains_filename = 'tests/data/domains.csv'
+    a11y_filename = 'results/a11y.csv'
+    domains_filename = 'domains.csv'
 
     A11yProcessor(a11y_filename, domains_filename).run()

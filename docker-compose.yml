@@ -9,7 +9,7 @@ a11y_process:
   build: .
   volumes:
     - ./:/home
-  command: python home/scripts/a11y/process-for-pulse.py
+  command: python home/scripts/a11y/process_a11y.py
 
 a11y_process_test:
   dockerfile: Dockerfile.a11y_process
