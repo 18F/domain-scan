@@ -133,6 +133,7 @@ Then to scan, prefix commands with `docker-compose run`, like:
 docker-compose run scan <domain> --scan=<scanner>
 ```
 
+<<<<<<< HEAD
 ## Gathering hostnames
 
 This tool also includes a facility for gathering domain names that end in a given suffix (e.g. `.gov`) from various sources.
