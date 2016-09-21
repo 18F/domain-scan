@@ -49,7 +49,7 @@ class A11yProcessor(object):
         ]
 
         for name, data in parsed_datasets:
-            path = 'scripts/pulse/results/{}.json'.format(name)
+            path = 'scripts/pulse-results/{}.json'.format(name)
             with open(path, 'w+') as f:
                 json.dump(data, f, indent=2)
 
