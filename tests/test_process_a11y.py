@@ -31,6 +31,17 @@ class ProcessA11yTestCase(unittest.TestCase):
             'WCAG2AA.Principle1.Guideline1_1.1_1_1.H30.2'
         )
 
+    def test_error_lookup(self):
+        error_lookup = self.a11y.get_error_category
+        self.assertEqual(
+            error_lookup('WCAG2AA.Principle1.Guideline1_1.1_1_1.H30.2'),
+            'Alt Tag Errors'
+        )
+        self.assertEqual(
+            error_lookup('other.error.Guideline123_456.1_1_1.H30.2'),
+            'Other Errors'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
