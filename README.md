@@ -133,7 +133,6 @@ Then to scan, prefix commands with `docker-compose run`, like:
 docker-compose run scan <domain> --scan=<scanner>
 ```
 
-<<<<<<< HEAD
 ## Gathering hostnames
 
 This tool also includes a facility for gathering domain names that end in a given suffix (e.g. `.gov`) from various sources.
@@ -197,7 +196,7 @@ Once those are set up, copy the `.env.example` file, rename it `.env` and fill i
 <hr />
 A brief note on redirects:
 
-For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs. For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov.
+For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs. For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov (but the result will be recorded for aaa.gov).
 
 In order to get the benefits of the `inspect` scanner, all `a11y` scans must include it. For example, to scan gsa.gov:
 
@@ -207,14 +206,6 @@ In order to get the benefits of the `inspect` scanner, all `a11y` scans must inc
 
 Because of `domain-scan`'s caching, all the results of an `inspect` scan will be saved in the `cache/inspect` folder, and probably does not need to be re-run for every single `ally` scan.
 <hr />
-
-### TODOs
-
-Some high-priority TODOs here:
-
-* **JSON output**. Refactor scanners to return a dict instead of a row. Have scanners specify both JSON-style field headers *and* CSV-style column headers in a 2-dimensional array. Use this to make it so JSON and CSV can both be serialized with appropriate fields and in the right order. Include JSON results in the `results/` dir.
-* **Handle network loss gracefully.** Right now, the scanner will assume that a domain is "down" if the network is down, and cache that. That makes trusting the results of a batch run iffy. I don't know the best way to distinguish between a domain being unreachable, and the network *making* the domain unreachable.
-* **Upgrade to site-inspector 3.x.** This repo depends on site-inspector 1.0.2, which is behind the times. But, site-inspector 3 needs more testing and work first. site-inspector 2 also is not backwards-compatible, in CLI syntax or in result format.
 
 ### Public domain
 

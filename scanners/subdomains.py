@@ -135,12 +135,6 @@ def scan(domain, options):
         logging.debug("\tSkipping, really down somehow, status code 0 for all.")
         return None
 
-    # bad hostname for cert?
-    if (protocol == "https") and (endpoint.get("https_bad_name", False) is True):
-        bad_cert_name = True  # NOQA
-    else:
-        bad_cert_name = False  # NOQA
-
     # If the subdomain redirects anywhere, see if it redirects within the domain
     if endpoint.get("redirect_to"):
 

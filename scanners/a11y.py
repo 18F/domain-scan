@@ -51,9 +51,9 @@ def cache_is_not_forced(options):
 def get_errors_from_pa11y_lambda_scan(domain, cache):
     client = boto3.client(
         'lambda',
-        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
-        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
-        region_name=os.environ['AWS_REGION_NAME']
+        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.environ.get('AWS_REGION_NAME')
     )
 
     lambda_options = {
@@ -161,7 +161,7 @@ def get_errors_from_scan_or_cache(domain, options):
 
 
 def scan(domain, options):
-    logging.debug("[%s]=[a11y]" % domain)
+    logging.debug("[%s][a11y]" % domain)
 
     inspect_data = get_from_inspect_cache(domain)
     domain_to_scan = get_domain_to_scan(inspect_data, domain)

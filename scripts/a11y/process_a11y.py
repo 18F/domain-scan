@@ -5,6 +5,8 @@ import json
 from collections import defaultdict
 from statistics import mean
 
+from scanners.utils import mkdir_p, results_dir
+
 
 class A11yProcessor(object):
     ERRORS = {
@@ -34,12 +36,11 @@ class A11yProcessor(object):
         ]
     }
 
-    def __init__(self, a11y_path, domains_path, local_mode=False):
+    def __init__(self, a11y_path, domains_path):
         self.a11y_raw = self.read_csv(a11y_path)
         self.domain_raw = self.read_csv(domains_path)
         self.domain_to_agency = {d[0].lower(): d[2] for d in self.domain_raw}
         self.agency_to_branch = {a: b for b in self.BRANCHES for a in self.BRANCHES[b]}
-        self.results_path = '{}scripts/pulse-results/'.format('' if local_mode else 'home/')
 
     def run(self):
         data = [self.clean_row(d) for d in self.a11y_raw]
@@ -50,8 +51,9 @@ class A11yProcessor(object):
             ('domains', self.make_domain_data(data)),
         ]
 
+        mkdir_p(results_dir())
         for name, data in parsed_datasets:
-            path = '{}{}.json'.format(self.results_path, name)
+            path = '{}/{}.json'.format(results_dir(), name)
             with open(path, 'w+') as f:
                 json.dump(data, f, indent=2)
 
@@ -143,9 +145,8 @@ class A11yProcessor(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--a11y', default='home/results/a11y.csv')
-    parser.add_argument('--domains', default='home/domains.csv')
-    parser.add_argument('--local', action='store_true')
+    parser.add_argument('--a11y', required=True)
+    parser.add_argument('--domains', required=True)
     args = parser.parse_args()
 
-    A11yProcessor(args.a11y, args.domains, args.local).run()
+    A11yProcessor(args.a11y, args.domains).run()
