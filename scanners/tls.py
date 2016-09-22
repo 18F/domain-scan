@@ -25,6 +25,7 @@ def scan(domain, options):
         logging.debug("\tSkipping, HTTPS not supported in inspection.")
         return None
 
+
     # cache reformatted JSON from ssllabs
     cache = utils.cache_path(domain, "tls")
 
@@ -34,6 +35,7 @@ def scan(domain, options):
         scan_domain = "www.%s" % domain
     else:
         scan_domain = domain
+
 
     force = options.get("force", False)
 

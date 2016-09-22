@@ -21,7 +21,6 @@ import re
 #   max: cut off loop after this many lines
 #   debug: display output when matching each line
 
-
 def main():
     options = utils.options()
 
@@ -63,7 +62,7 @@ def main():
 
     max = int(options.get("max", -1))
 
-    # Proceed
+    ######## Proceed
 
     missed = 0
     matched = 0
@@ -98,6 +97,7 @@ def main():
             print(utils.format_last_exception())
             exit(1)
 
+
     hostnames = list(name_map.keys())
     hostnames.sort()
 
@@ -111,12 +111,12 @@ def main():
 
 # Format-specific filters
 
-
 # IP,hostname
 # Used by: Rapid7 rdns
 def filter_ip_pair(line):
     return str.split(line, ",")[-1].strip()
 
 filters = {'ip_pair': filter_ip_pair}
+
 
 main()
