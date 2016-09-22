@@ -9,6 +9,3 @@ python-dateutil
 
 # to support censys gatherer
 censys
-
-# to support a11y_lambda
-boto3
