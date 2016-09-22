@@ -6,7 +6,8 @@ python:
   - '3.5'
 
 install:
+  - pip install -r requirements.txt
   - pip install flake8
 
 script:
-  - flake8 . --ignore E501,F999,E302,E303,E266
+  - ./test.sh

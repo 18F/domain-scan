@@ -82,6 +82,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
 * `analytics` - Participation in an analytics program.
 * `pageload` - Page load and rendering metrics.
+* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y) via AWS Lambda (requires an AWS account and some additional setup, described further down this document).
 
 **General options:**
 
@@ -176,6 +177,35 @@ Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 s
 ./gather censys --suffix=.gov --start=1 --end=2 --delay=5
 ```
 
+### a11y setup
+
+Because scanning 1,000+ domains with `pa11y` takes a prohibitively long time, we're relying on [AWS Lambda](https://aws.amazon.com/lambda/) to provide parallelization.
+
+This requires:
+
+1) An AWS account with access to Lambda
+2) A `pa11y-lambda` function (follow the instructions [here](https://github.com/18F/pa11y-lambda)).
+
+Once those are set up, copy the `.env.example` file, rename it `.env` and fill in the following values:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION_NAME` (`us-east-1` should work fine)
+- `AWS_LAMBDA_PA11Y_FUNCTION_NAME` (whatever you ended up naming the Lambda function)
+
+<hr />
+A brief note on redirects:
+
+For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs. For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov (but the result will be recorded for aaa.gov).
+
+In order to get the benefits of the `inspect` scanner, all `a11y` scans must include it. For example, to scan gsa.gov:
+
+```
+./scan gsa.gov --scanner=inspect,a11y
+```
+
+Because of `domain-scan`'s caching, all the results of an `inspect` scan will be saved in the `cache/inspect` folder, and probably does not need to be re-run for every single `ally` scan.
+<hr />
 
 ### Public domain
 

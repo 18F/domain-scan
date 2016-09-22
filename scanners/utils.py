@@ -191,14 +191,13 @@ def invalid(data=None):
     data['invalid'] = True
     return json_for(data)
 
+
 # RFC 3339 timestamp for the current time when called
-
-
 def utc_timestamp():
     return strict_rfc3339.now_to_rfc3339_utcoffset()
 
-# return base domain for a subdomain
 
+# return base domain for a subdomain
 def base_domain_for(subdomain):
     return str.join(".", subdomain.split(".")[-2:])
 
@@ -223,6 +222,7 @@ def domain_doesnt_support_https(domain):
 
     return (not (endpoint_used(https) or endpoint_used(httpswww)))
 
+
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it canonically prepends 'www'.
 def domain_uses_www(domain):
@@ -244,6 +244,7 @@ def domain_uses_www(domain):
         url.startswith("https://www")
     )
 
+
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it's not live.
 # Useful for skipping scans on non-live domains.
@@ -257,6 +258,7 @@ def domain_not_live(domain):
 
     return (not inspection.get("Live"))
 
+
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it redirects.
 # Useful for skipping scans on redirect domains.
@@ -269,6 +271,7 @@ def domain_is_redirect(domain):
     inspection = inspection[0]
 
     return (inspection.get("Redirect") is True)
+
 
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know its canonical URL.
@@ -304,7 +307,6 @@ def load_domains(domain_csv, whole_rows=False):
 # Sort a CSV by domain name, "in-place" (by making a temporary copy).
 # This loads the whole thing into memory: it's not a great solution for
 # super-large lists of domains.
-
 def sort_csv(input_filename):
     logging.warn("Sorting %s..." % input_filename)
 
@@ -355,6 +357,7 @@ def normalize_suffix(suffix):
     if not suffix.startswith("."):
         suffix = (".%s" % suffix)
     return suffix
+
 
 # Given a domain suffix, provide a compiled regex.
 # Assumes suffixes always begin with a dot.
