@@ -1,7 +1,5 @@
 /cache
 /data
-*.csv
-*.json
 .~lock*
 /todo.txt
 __pycache__
@@ -13,3 +11,6 @@ __pycache__
 /node_modules
 .python-version
 .ruby-version
+scripts/pulse-results/*.json
+.DS_Store
+venv

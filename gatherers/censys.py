@@ -7,7 +7,7 @@ from scanners import utils
 from censys import certificates
 import censys
 
-### censys
+# censys
 #
 # Gathers hostnames from the Censys.io API.
 #
@@ -21,6 +21,7 @@ import censys
 # Register a (free) Censys.io account to get a UID and API key.
 uid = os.environ.get("CENSYS_UID", None)
 api_key = os.environ.get("CENSYS_API_KEY", None)
+
 
 def gather(suffix, options):
     certificate_api = certificates.CensysCertificates(uid, api_key)
@@ -50,7 +51,6 @@ def gather(suffix, options):
             exit(1)
     else:
         end_page = int(end_page)
-
 
     max_records = ((end_page - start_page) + 1) * page_size
 
@@ -119,6 +119,7 @@ def gather(suffix, options):
     # Necessary evil to de-dupe before returning hostnames, though.
     for hostname in hostnames_map.keys():
         yield hostname
+
 
 # Hit the API once just to get the last available page number.
 def get_end_page(query, certificate_api):

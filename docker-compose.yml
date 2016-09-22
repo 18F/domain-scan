@@ -1,4 +1,12 @@
 scan:
+  env_file: .env
   build: .
   volumes:
-  - ./:/home/scanner
+    - ./:/home/scanner
+
+a11y_process:
+  dockerfile: Dockerfile.a11y_process
+  build: .
+  volumes:
+    - ./:/home
+  command: python home/scripts/a11y/process_a11y.py

@@ -26,6 +26,7 @@ user_agent = os.environ.get("PSHTT_USER_AGENT", "github.com/18f/domain-scan, psh
 # same format as inspect.py uses
 preload_cache = utils.cache_single("preload-list.json")
 
+
 def scan(domain, options):
     logging.debug("[%s][pshtt]" % domain)
 
