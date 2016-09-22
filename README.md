@@ -193,7 +193,8 @@ Once those are set up, copy the `.env.example` file, rename it `.env` and fill i
 - `AWS_REGION_NAME` (`us-east-1` should work fine)
 - `AWS_LAMBDA_PA11Y_FUNCTION_NAME` (whatever you ended up naming the Lambda function)
 
-<hr />
+---
+
 A brief note on redirects:
 
 For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs. For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov (but the result will be recorded for aaa.gov).
@@ -205,7 +206,8 @@ In order to get the benefits of the `inspect` scanner, all `a11y` scans must inc
 ```
 
 Because of `domain-scan`'s caching, all the results of an `inspect` scan will be saved in the `cache/inspect` folder, and probably does not need to be re-run for every single `ally` scan.
-<hr />
+
+---
 
 ### Public domain
 
