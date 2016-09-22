@@ -5,6 +5,8 @@ scan:
     - ./:/home/scanner
 
 a11y_process:
+  environment:
+    - PYTHONPATH=.
   dockerfile: Dockerfile.a11y_process
   build: .
   volumes:
