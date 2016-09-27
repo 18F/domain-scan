@@ -11,7 +11,7 @@ import json
 # Currently depends on pyenv to manage calling out to Python2 from Python3.
 ###
 
-command = os.environ.get("PSHTT_PATH", "pshtt_cli")
+command = os.environ.get("PSHTT_PATH", "pshtt")
 
 # Kind of a hack for now, other methods of running sslyze with Python 2 welcome
 pyenv_version = os.environ.get("PSHTT_PYENV", "2.7.11")
