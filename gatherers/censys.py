@@ -18,12 +18,20 @@ import censys
 # --force: Ignore cached pages.
 #
 
-# Register a (free) Censys.io account to get a UID and API key.
-uid = os.environ.get("CENSYS_UID", None)
-api_key = os.environ.get("CENSYS_API_KEY", None)
-
 
 def gather(suffix, options):
+    # Register a (free) Censys.io account to get a UID and API key.
+    uid = options.get("censys_id", None)
+    api_key = options.get("censys_key", None)
+
+    if (uid is None) or (api_key is None):
+        uid = os.environ.get("CENSYS_UID", None)
+        api_key = os.environ.get("CENSYS_API_KEY", None)
+
+    if (uid is None) or (api_key is None):
+        logging.warn("No Censys credentials set. API key required to use the Censys API.")
+        exit(1)
+
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
     query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
