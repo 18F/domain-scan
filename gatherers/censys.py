@@ -16,6 +16,8 @@ import censys
 # --start: What page of results to start on. Defaults to 1.
 # --end:   What page of results to end on. Defaults to last page.
 # --force: Ignore cached pages.
+# --censys_id: Censys API UID.
+# --censys_key: Censys API key.
 #
 
 
