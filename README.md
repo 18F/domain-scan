@@ -82,7 +82,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
 * `analytics` - Participation in an analytics program.
 * `pageload` - Page load and rendering metrics.
-* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y) via AWS Lambda (requires an AWS account and some additional setup, described further down this document).
+* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y) (*optionally* via AWS Lambda which, requires an AWS account and some additional setup, described further down this document).
 
 **General options:**
 
@@ -179,9 +179,11 @@ Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 s
 
 ### a11y setup
 
-Because scanning 1,000+ domains with `pa11y` takes a prohibitively long time, we're relying on [AWS Lambda](https://aws.amazon.com/lambda/) to provide parallelization.
+By default, `pa11y` commands are executed locally.
 
-This requires:
+Because scanning 1,000+ domains with `pa11y` takes a prohibitively long time, it's possible to use [AWS Lambda](https://aws.amazon.com/lambda/) to provide parallelization. To use Lambda, set the environment variable `USE_LAMBDA` to `true`.
+
+Lambda requires:
 
 1) An AWS account with access to Lambda
 2) A `pa11y-lambda` function (follow the instructions [here](https://github.com/18F/pa11y-lambda)).
