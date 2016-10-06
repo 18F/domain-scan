@@ -103,11 +103,12 @@ def gather(suffix, options):
                 logging.warn(utils.format_last_exception())
                 logging.warn("Censys error, skipping page %i." % current_page)
                 utils.write(utils.invalid({}), cache_page)
+                continue
             except:
                 logging.warn(utils.format_last_exception())
                 logging.warn("Unexpected error, skipping page %i." % current_page)
                 utils.write(utils.invalid({}), cache_page)
-                continue
+                exit(1)
 
         for cert in certs:
             # Common name + SANs
