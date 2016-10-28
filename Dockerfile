@@ -123,6 +123,9 @@ RUN ln -s /usr/bin/nodejs /usr/bin/node
 RUN mkdir -p /go/src /go/bin \
       && chmod -R 777 /go
 RUN go get github.com/ssllabs/ssllabs-scan
+RUN cd /go/src/github.com/ssllabs/ssllabs-scan/ \
+      && git checkout stable \
+      && go install
 ENV SSLLABS_PATH /go/bin/ssllabs-scan
 
 ###
