@@ -19,6 +19,7 @@ pip install -r requirements.txt
 The individual scanners each require their own dependencies. You only need to have the dependencies installed for the scanners you plan to use.
 
 * `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
+* `pshtt` scanner: **Python 2** and **[pshtt](https://github.com/dhs-ncats/pshtt)**, ideally installed with `pyenv` via `pip install pshtt`.
 * `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
 * `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, ideally installed with `pyenv` via `pip install sslyze`.
 * `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
@@ -78,6 +79,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 **Scanners:**
 
 * `inspect` - HTTP/HTTPS/HSTS configuration.
+* `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
 * `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
 * `analytics` - Participation in an analytics program.

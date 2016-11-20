@@ -13,7 +13,7 @@ import json
 
 command = os.environ.get("PSHTT_PATH", "pshtt")
 
-# Kind of a hack for now, other methods of running sslyze with Python 2 welcome
+# Kind of a hack for now, other methods of running pshtt with Python 2 welcome
 pyenv_version = os.environ.get("PSHTT_PYENV", "2.7.11")
 
 # default to a long timeout
