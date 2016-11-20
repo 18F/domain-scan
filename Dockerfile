@@ -151,6 +151,12 @@ RUN wget https://github.com/nabla-c0d3/sslyze/releases/download/release-${SSLYZE
   && unzip $SSLYZE_FILE -d $SSLYZE_DEST
 
 ###
+# pshtt
+
+RUN PYENV_VERSION=2.7.11 pyenv exec pip install pshtt
+ENV PSHTT_PATH /opt/pyenv/versions/2.7.11/bin/pshtt
+
+###
 # Create Unprivileged User
 ###
 
