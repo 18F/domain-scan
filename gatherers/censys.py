@@ -1,10 +1,11 @@
 import os
 import re
 import time
+import datetime
 import json
 import logging
 from scanners import utils
-from censys import certificates
+from censys import certificates, export
 import censys
 
 # censys
@@ -23,6 +24,7 @@ import censys
 #
 # To use the SQL export (which "researcher" accounts can do):
 # --export: Turn on export mode.
+# --timeout: Override timeout for waiting on job completion (in seconds).
 # --force: Ignore cached export data.
 #
 # Export mode is much more thorough and quick. It will execute a SQL
@@ -38,6 +40,9 @@ import censys
 # know that the paginated mode might top out at 250 pages, because
 # the paginated mode talks to an Elasticsearch database which is
 # configured to a maximum of 25,000 records (100 records per page).
+#
+# TODO: Right now this only handle one download file. In theory, the
+# export API can return an array of multiple download files.
 
 # Hostnames beginning with a wildcard prefix will have the prefix stripped.
 wildcard_pattern = re.compile("^\*\.")
@@ -157,6 +162,67 @@ def paginated_mode(suffix, options, uid, api_key):
 def export_mode(suffix, options, uid, api_key):
     # Cache hostnames in a dict for de-duping.
     hostnames_map = {}
+
+    # Default timeout to 20 minutes.
+    timeout = int(options.get("timeout", (60 * 60 * 20)))
+
+    # Wait 5 seconds between checking on the job.
+    between_jobs = 5
+
+    export_api = export.CensysExport(uid, api_key)
+
+    query = "SELECT parsed.subject.common_name, parsed.extensions.subject_alt_name.dns_names from FLATTEN([certificates.certificates], parsed.extensions.subject_alt_name.dns_names) where parsed.subject.common_name LIKE \"%%%s\" OR parsed.extensions.subject_alt_name.dns_names LIKE \"%%%s\";" % (suffix, suffix)
+    logging.debug("Censys query:\n%s\n" % query)
+
+    download_file = utils.cache_path("export", "censys", ext="csv")
+
+    # Will be filled in once the job is done.
+    if options.get("force", False) and os.path.exists(download_file):
+        logging.warn("Using cached download data.")
+    else:
+        results_url = None
+
+        try:
+            job = export_api.new_job(query, format='csv', flatten=True)
+            job_id = job['job_id']
+
+            started = datetime.datetime.now()
+            while True:
+                elapsed = (datetime.datetime.now() - started).seconds
+
+                status = export_api.check_job(job_id)
+                if status['status'] == 'error':
+                    logging.warn("Error from Censys: %s" % status['error'])
+                    exit(1)
+
+                # Not expected, but better to explicitly handle.
+                elif status['status'] == 'expired':
+                    logging.warn("Results are somehow expired, bailing.")
+                    exit(1)
+
+                elif status['status'] == 'pending':
+                    logging.debug("[%is] Job still pending." % elapsed)
+                    time.sleep(between_jobs)
+
+                elif status['status'] == 'success':
+                    logging.warn("[%is] Job complete!" % elapsed)
+                    results_url = status['download_paths'][0]
+                    break
+
+                if (elapsed > timeout):
+                    logging.warn("Timeout waiting for job to complete.")
+                    exit(1)
+
+        except censys.base.CensysException:
+            logging.warn(utils.format_last_exception())
+            logging.warn("Censys error, aborting.")
+
+        # At this point, the job is complete and we need to download
+        # the resulting CSV URL in results_url.
+        utils.download(results_url, download_file)
+
+    logging.warn("Download file should be in place now.")
+
 
     return hostnames_map
 
