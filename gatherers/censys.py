@@ -179,8 +179,9 @@ def export_mode(suffix, options, uid, api_key):
 
     download_file = utils.cache_path("export", "censys", ext="csv")
 
-    # Will be filled in once the job is done.
-    if options.get("force", False) and os.path.exists(download_file):
+    force = options.get("force", False)
+
+    if (force is False) and os.path.exists(download_file):
         logging.warn("Using cached download data.")
     else:
         logging.warn("Kicking off SQL query job.")
