@@ -11,15 +11,37 @@ import censys
 #
 # Gathers hostnames from the Censys.io API.
 #
+# --censys_id: Censys API UID.
+# --censys_key: Censys API key.
+#
+# To use the paginated search (which all accounts can do):
 # --delay: How long to wait between requests. Defaults to 5s.
 #          If you have researcher credentials, use 2s.
 # --start: What page of results to start on. Defaults to 1.
 # --end:   What page of results to end on. Defaults to last page.
 # --force: Ignore cached pages.
-# --censys_id: Censys API UID.
-# --censys_key: Censys API key.
 #
+# To use the SQL export (which "researcher" accounts can do):
+# --export: Turn on export mode.
+# --force: Ignore cached export data.
+#
+# Export mode is much more thorough and quick. It will execute a SQL
+# query against Censys' export API. This will create a "job" in Censys'
+# queue, which the script will then repeatedly check against until
+# the job is done (or 20 minutes as a timeout). When the job is done,
+# the resulting CSV file will be downloaded to disk and cached, and
+# then read from for hostnames.
+#
+# However, export mode does require Censys credentials for an account
+# that has been enabled as a "researcher". If you don't have that, but
+# just have a regular free account, use the paginated mode. However,
+# know that the paginated mode might top out at 250 pages, because
+# the paginated mode talks to an Elasticsearch database which is
+# configured to a maximum of 25,000 records (100 records per page).
 
+# Hostnames beginning with a wildcard prefix will have the prefix stripped.
+wildcard_pattern = re.compile("^\*\.")
+redacted_pattern = re.compile("^(\?\.)+")
 
 def gather(suffix, options):
     # Register a (free) Censys.io account to get a UID and API key.
@@ -34,14 +56,25 @@ def gather(suffix, options):
         logging.warn("No Censys credentials set. API key required to use the Censys API.")
         exit(1)
 
+    if options.get("export", False):
+        hostnames_map = export_mode(suffix, options, uid, api_key)
+    else:
+        hostnames_map = paginated_mode(suffix, options, uid, api_key)
+
+    # Iterator doesn't buy much efficiency, since we paginated already.
+    # Necessary evil to de-dupe before returning hostnames, though.
+    for hostname in hostnames_map.keys():
+        yield hostname
+
+
+def paginated_mode(suffix, options, uid, api_key):
+    # Cache hostnames in a dict for de-duping.
+    hostnames_map = {}
+
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
     query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
     logging.debug("Censys query:\n%s\n" % query)
-
-    # Hostnames beginning with a wildcard prefix will have the prefix stripped.
-    wildcard_pattern = re.compile("^\*\.")
-    redacted_pattern = re.compile("^(\?\.)+")
 
     # time to sleep between requests (defaults to 5s)
     delay = int(options.get("delay", 5))
@@ -63,9 +96,6 @@ def gather(suffix, options):
         end_page = int(end_page)
 
     max_records = ((end_page - start_page) + 1) * page_size
-
-    # Cache hostnames in a dict for de-duping.
-    hostnames_map = {}
 
     fields = [
         "parsed.subject.common_name",
@@ -116,21 +146,28 @@ def gather(suffix, options):
             logging.debug(names)
 
             for name in names:
-                # Strip off any wildcard prefix.
-                name = re.sub(wildcard_pattern, '', name).lower().strip()
-                # Strip off any redacted ? prefixes. (Ugh.)
-                name = re.sub(redacted_pattern, '', name).lower().strip()
-                hostnames_map[name] = None
+                hostnames_map[sanitize_name(name)] = None
 
         current_page += 1
 
     logging.debug("Done fetching from API.")
 
-    # Iterator doesn't buy much efficiency, since we paginated already.
-    # Necessary evil to de-dupe before returning hostnames, though.
-    for hostname in hostnames_map.keys():
-        yield hostname
+    return hostnames_map
 
+def export_mode(suffix, options, uid, api_key):
+    # Cache hostnames in a dict for de-duping.
+    hostnames_map = {}
+
+    return hostnames_map
+
+# Given a hostname from Censys, remove * and ? marks.
+def sanitize_name(name):
+    # Strip off any wildcard prefix.
+    name = re.sub(wildcard_pattern, '', name).lower().strip()
+    # Strip off any redacted ? prefixes. (Ugh.)
+    name = re.sub(redacted_pattern, '', name).lower().strip()
+
+    return name
 
 # Hit the API once just to get the last available page number.
 def get_end_page(query, certificate_api):
