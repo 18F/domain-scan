@@ -1,4 +1,5 @@
 import os
+import csv
 import re
 import time
 import datetime
@@ -171,6 +172,8 @@ def export_mode(suffix, options, uid, api_key):
 
     export_api = export.CensysExport(uid, api_key)
 
+    # Uses a FLATTEN command in order to work around a BigQuery
+    # error around multiple "repeated" fields. *shrug*
     query = "SELECT parsed.subject.common_name, parsed.extensions.subject_alt_name.dns_names from FLATTEN([certificates.certificates], parsed.extensions.subject_alt_name.dns_names) where parsed.subject.common_name LIKE \"%%%s\" OR parsed.extensions.subject_alt_name.dns_names LIKE \"%%%s\";" % (suffix, suffix)
     logging.debug("Censys query:\n%s\n" % query)
 
@@ -180,6 +183,7 @@ def export_mode(suffix, options, uid, api_key):
     if options.get("force", False) and os.path.exists(download_file):
         logging.warn("Using cached download data.")
     else:
+        logging.warn("Kicking off SQL query job.")
         results_url = None
 
         try:
@@ -219,9 +223,22 @@ def export_mode(suffix, options, uid, api_key):
 
         # At this point, the job is complete and we need to download
         # the resulting CSV URL in results_url.
+        logging.warn("Downloading results of SQL query.")
         utils.download(results_url, download_file)
 
-    logging.warn("Download file should be in place now.")
+    # Read in downloaded CSV file, run any hostnames in each line
+    # through the sanitizer, and de-dupe using the map.
+    with open(download_file, newline='') as csvfile:
+        for row in csv.reader(csvfile):
+            if (not row[0]) or (row[0].lower().startswith("parsed_subject_common_name")):
+                continue
+
+            names = [row[0].lower(), row[1].lower()]
+            logging.debug(names)
+
+            for name in names:
+                if name:
+                    hostnames_map[sanitize_name(name)] = None
 
 
     return hostnames_map
