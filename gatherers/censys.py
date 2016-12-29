@@ -235,7 +235,7 @@ def export_mode(suffix, options, uid, api_key):
                 continue
 
             names = [row[0].lower(), row[1].lower()]
-            logging.debug(names)
+            # logging.debug(names)
 
             for name in names:
                 if name:
