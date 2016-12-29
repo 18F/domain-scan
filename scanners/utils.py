@@ -6,6 +6,7 @@ import sys
 import shutil
 import traceback
 import json
+import urllib
 import csv
 import logging
 import datetime
@@ -25,6 +26,10 @@ def run(run_method, additional=None):
     except Exception as exception:
         notify(exception)
 
+# TODO: Somewhat better error handling.
+def download(url, destination):
+    filename, headers = urllib.request.urlretrieve(url, destination)
+    return filename
 
 # read options from the command line
 #   e.g. ./scan --since=2012-03-04 --debug whatever.com
