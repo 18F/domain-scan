@@ -150,6 +150,7 @@ Usage:
 Where source is one of:
 
 * `censys` - Walks the [Censys.io API](https://censys.io/api), which has hostnames gathered from observed certificates. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs.
+* `url` - Given a path to a CSV, reads it and applies deduping and filtering logic. Its only option is `--url`, which can be a URL (starts with `http:` or `https:`) or a local path.
 
 General options:
 
