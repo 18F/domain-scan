@@ -119,6 +119,10 @@ def scan(domain, options):
     known_matches = ['Yes' if host in services['known'] else 'No' for host in known_names]
 
     yield [
+        len(services['external']),
+        len(services['internal']),
+        services['external_requests'],
+        services['internal_requests'],
         serialize(services['external']),
         serialize(services['internal']),
         # services['affiliated'],
@@ -135,10 +139,19 @@ def services_for(data, domain, options):
         'known': [],
     }
 
-    raw_domains = data['offenders']['domains']
-    hosts = [string.split(": ")[0] for string in raw_domains]
+    # break up data into a map of host to number of requests
+    hosts = {}
+    for string in data['offenders']['domains']:
+        pieces = string.split(": ")
+        hostname = pieces[0]
+        number = int(pieces[1].split(" ")[0])
+        hosts[hostname] = number
 
-    for host in hosts:
+    # make iteration consistent
+    hostnames = list(hosts.keys())
+    hostnames.sort()
+
+    for host in hostnames:
         if host.startswith("www."):
             www_host = host
             base_host = re.sub("^www.", "", host)
@@ -167,6 +180,15 @@ def services_for(data, domain, options):
             if host in known_services[service]:
                 services['known'].append(service)
 
+    # For each category, count up the requests
+    categories = list(services.keys())
+    categories.sort()
+    for category in ['external', 'internal']:
+        total = 0
+        for host in services[category]:
+            total += hosts[host]
+        services["%s_requests" % category] = total
+
     return services
 
 
@@ -178,6 +200,10 @@ def serialize(domains):
     return str.join(', ', domains)
 
 base_fields = [
+    'Number of External Domains',
+    'Number of Internal Domains',
+    'Requests to External Domains',
+    'Requests to Internal Domains',
     'All External Domains',
     'All Internal Domains',
     # 'Affiliated External Domains',
