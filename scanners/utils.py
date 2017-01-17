@@ -188,7 +188,7 @@ def data_for(domain, operation):
     if os.path.exists(path):
         raw = open(path).read()
         data = json.loads(raw)
-        if data.get('invalid', False):
+        if isinstance(data, dict) and (data.get('invalid', False)):
             return None
         else:
             return data
