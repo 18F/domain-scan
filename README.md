@@ -1,3 +1,5 @@
+[![Dependency Status](https://gemnasium.com/badges/github.com/18F/domain-scan.svg)](https://gemnasium.com/github.com/18F/domain-scan)
+
 ## A domain scanner
 
 Scans domains for data on their HTTPS configuration and assorted other things.
