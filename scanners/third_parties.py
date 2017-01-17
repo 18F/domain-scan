@@ -52,7 +52,17 @@ known_services = {
     'Google Analytics': ['www.google-analytics.com'],
     'Google Fonts': ['fonts.googleapis.com'],
     'Digital Analytics Program': ['dap.digitalgov.gov'],
+    'Facebook': [
+        re.compile('facebook\.net$'),
+        re.compile('facebook\.com$'),
+    ],
+    'Twitter': [
+        re.compile('twitter\.com$'),
+    ],
 }
+
+# TODO: Add URL or header-based flags for other
+# fingerprinted behavior. e.g. non-central DAP reporting.
 
 ######################################
 
@@ -143,7 +153,7 @@ def services_for(data, domain, options):
     hosts = {}
     for string in data['offenders']['domains']:
         pieces = string.split(": ")
-        hostname = pieces[0]
+        hostname = pieces[0].lower() # lowercase to be sure
         number = int(pieces[1].split(" ")[0])
         hosts[hostname] = number
 
@@ -177,8 +187,17 @@ def services_for(data, domain, options):
 
         # compare this host to all known services
         for service in known_services:
-            if host in known_services[service]:
-                services['known'].append(service)
+            for pattern in known_services[service]:
+
+                # exact string match
+                if isinstance(pattern, str):
+                    if host == pattern:
+                        services['known'].append(service)
+
+                # regular expression match
+                else:
+                    if re.search(pattern, host):
+                        services['known'].append(service)
 
     # For each category, count up the requests
     categories = list(services.keys())
