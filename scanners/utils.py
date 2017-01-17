@@ -148,13 +148,16 @@ def try_command(command):
         return False
 
 
-def scan(command, env=None):
+def scan(command, env=None, allowed_return_codes=[]):
     try:
         response = subprocess.check_output(command, shell=False, env=env)
         return str(response, encoding='UTF-8')
-    except subprocess.CalledProcessError:
-        logging.warn("Error running %s." % (str(command)))
-        return None
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode in allowed_return_codes:
+            return str(exc.stdout, encoding='UTF-8')
+        else:
+            logging.warn("Error running %s." % (str(command)))
+            return None
 
 # Turn shell on, when shell=False won't work.
 
@@ -184,7 +187,11 @@ def data_for(domain, operation):
     path = cache_path(domain, operation)
     if os.path.exists(path):
         raw = open(path).read()
-        return json.loads(raw)
+        data = json.loads(raw)
+        if data.get('invalid', False):
+            return None
+        else:
+            return data
     else:
         return {}
 
