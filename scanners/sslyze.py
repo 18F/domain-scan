@@ -16,7 +16,7 @@ import dateutil.parser
 # Currently depends on pyenv to manage calling out to Python2 from Python3.
 ###
 
-command = os.environ.get("SSLYZE_PATH", "sslyze_cli.py")
+command = os.environ.get("SSLYZE_PATH", "sslyze")
 
 # Kind of a hack for now, other methods of running sslyze with Python 2 welcome
 pyenv_version = os.environ.get("SSLYZE_PYENV", "2.7.11")
