@@ -62,12 +62,15 @@ class A11yProcessor(object):
         agency = self.domain_to_agency.get(domain, 'N/A')
         code = row[4]
 
-        return {
+        results = {
             'domain': domain,
             'agency': agency,
-            'branch': self.agency_to_branch.get(agency, 'Executive'),
-            'error': self.get_error_category(code),
-            'error_details': {
+            'branch': self.agency_to_branch.get(agency, 'Executive')
+            }
+
+        if code:
+            results['error'] = self.get_error_category(code)
+            results['error_details'] = {
                 'code': code,
                 'typeCode': row[3],
                 'message': row[5],
@@ -75,12 +78,15 @@ class A11yProcessor(object):
                 'selector': row[7],
             }
 
-        }
+        return results
 
     def make_a11y_data(self, data):
         results = defaultdict(lambda: defaultdict(list))
         for d in data:
-            results[d['domain']][d['error']].append(d['error_details'])
+            if 'error' in d:
+                results[d['domain']][d['error']].append(d['error_details'])
+            else:
+                results[d['domain']] = {}
 
         # using json de/encode to convert defaultdicts back to dicts
         return {'data': json.loads(json.dumps(results))}
