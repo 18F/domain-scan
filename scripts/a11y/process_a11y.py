@@ -131,7 +131,7 @@ class A11yProcessor(object):
                     'errors': 0,
                     'errorlist': {e: 0 for e in self.ERRORS.values()}
                 }
-            else:
+            if 'error' in d:
                 results[dom]['errors'] += 1
                 results[dom]['errorlist'][d['error']] += 1
 
