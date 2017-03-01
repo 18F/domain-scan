@@ -106,7 +106,16 @@ def get_errors_from_pa11y_without_lambda(domain, cache):
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
     command = [pa11y, domain, "--reporter", "json", "--config", "pa11y_config.json", "--level", "none"]
     raw = utils.scan(command)
-    results = json.loads(raw)
+    if raw:
+        results = json.loads(raw)
+    else:
+        results = [{
+            'typeCode': '',
+            'code': '',
+            'message': '',
+            'context': '',
+            'selector': ''
+        }]
 
     cache_errors(results, domain, cache)
 
