@@ -139,14 +139,14 @@ RUN npm install \
 ###
 # sslyze
 
-ENV SSLYZE_VERSION 0.11
+ENV SSLYZE_VERSION 0.11.0
 ENV SSLYZE_FILE sslyze-0_11-linux64.zip
 ENV SSLYZE_DEST /opt
 
 # Would be nice if bash string manipulation worked in ENV as this could use:
 # ${SSLYZE_FILE%.*}
 ENV SSLYZE_PATH ${SSLYZE_DEST}/sslyze-0_11-linux64/sslyze/sslyze.py
-RUN wget https://github.com/nabla-c0d3/sslyze/releases/download/release-${SSLYZE_VERSION}/${SSLYZE_FILE} \
+RUN wget https://github.com/nabla-c0d3/sslyze/releases/download/${SSLYZE_VERSION}/${SSLYZE_FILE} \
       --no-verbose \
   && unzip $SSLYZE_FILE -d $SSLYZE_DEST
 
