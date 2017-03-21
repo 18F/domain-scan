@@ -11,9 +11,9 @@ from scanners.utils import mkdir_p, results_dir
 class A11yProcessor(object):
     ERRORS = {
         '1_1': 'Missing Image Descriptions',
-        '1_3': 'Form Errors',
-        '1_4': 'Color Contrast Errors',
-        '4_1': 'HTML Attribute Errors'
+        '1_3': 'Form - Initial Findings',
+        '1_4': 'Color Contrast - Initial Findings',
+        '4_1': 'HTML Attribute - Initial Findings'
     }
 
     BRANCHES = {
