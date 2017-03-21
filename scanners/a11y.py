@@ -104,7 +104,7 @@ def cache_errors(errors, domain, cache):
 def get_errors_from_pa11y_without_lambda(domain, cache):
     logging.debug("[%s][a11y]" % domain)
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
-    command = [pa11y, domain, "--reporter", "json", "--config", "pa11y_config.json", "--level", "none"]
+    command = [pa11y, domain, "--reporter", "json", "--config", "pa11y_config.json", "--level", "none", "--timeout", "300000"]
     raw = utils.scan(command)
     if raw:
         results = json.loads(raw)
