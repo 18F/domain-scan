@@ -123,7 +123,7 @@ It's possible for scans to save multiple CSV rows per-domain. For example, the `
 
 Example: `results/meta.json`
 
-* **Federal Common Policy CA Trust** to run a Dockerized version of pshtt that uses a FCPCA augmented CA bundle (useful for Federal agencies interested in seeing pshtt status from the perspective of a client footprint that trusts FPKI), uncomment the following two lines in the [Dockerfile](https://github.com/18F/domain-scan/blob/master/Dockerfile):
+* **Federal Common Policy CA Trust**: To run a Dockerized version of pshtt that uses a FCPCA augmented CA bundle (useful for Federal agencies interested in seeing pshtt status from the perspective of a client footprint that trusts the Federal PKI), uncomment the following two lines in the [Dockerfile](Dockerfile):
 
 ```
 #ENV REQUESTS_CA_BUNDLE=$SCANNER_HOME/ssl/requests_plus_fcpca.pem
