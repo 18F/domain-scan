@@ -16,7 +16,7 @@ import dateutil.parser
 # Currently depends on pyenv to manage calling out to Python2 from Python3.
 ###
 
-command = os.environ.get("SSLYZE_PATH", "sslyze_cli.py")
+command = os.environ.get("SSLYZE_PATH", "sslyze")
 
 # Kind of a hack for now, other methods of running sslyze with Python 2 welcome
 pyenv_version = os.environ.get("SSLYZE_PYENV", "2.7.11")
@@ -200,7 +200,12 @@ def parse_sslyze(xml):
         # Find the issuer of the last served cert.
         # This is an attempt at finding the CA name, but won't work if the served
         # chain is incomplete. I'll take what I can get without doing path chasing.
-        certificates = target.select("certificateChain certificate")
+        chain = target.select_one("certificateChain")
+
+        if not chain:
+            chain = target.select_one("receivedCertificateChain")
+
+        certificates = chain.select("certificate")
         issuer = certificates[-1].select_one("issuer commonName")
         if not issuer:
             issuer = certificates[-1].select_one("issuer organizationalUnitName")
@@ -210,7 +215,7 @@ def parse_sslyze(xml):
         else:
             data['certs']['served_issuer'] = "(None found)"
 
-        leaf = target.select_one("certificateChain certificate[position=leaf]")
+        leaf = chain.select_one("certificate[position=leaf]")
 
         # Key algorithm and length for leaf certificate only.
         data['certs']['key_type'] = leaf.select_one("subjectPublicKeyInfo publicKeyAlgorithm").text

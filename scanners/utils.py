@@ -28,6 +28,9 @@ def run(run_method, additional=None):
 
 # TODO: Somewhat better error handling.
 def download(url, destination):
+    # make sure path is present
+    mkdir_p(os.path.dirname(destination))
+
     filename, headers = urllib.request.urlretrieve(url, destination)
     return filename
 
