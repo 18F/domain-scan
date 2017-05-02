@@ -114,7 +114,8 @@ def get_errors_from_pa11y_without_lambda(domain, cache):
             'code': '',
             'message': '',
             'context': '',
-            'selector': ''
+            'selector': '',
+            'type': ''
         }]
 
     cache_errors(results, domain, cache)
@@ -184,8 +185,7 @@ def get_errors_from_scan_or_cache(domain, options):
         else:
             logging.debug("Getting from cache: %s" % domain)
             results = data.get('results')
-            errors = get_errors_from_results(results)
-            return errors
+            return results
     else:
         logging.debug("\tNot cached.")
         use_lambda = os.environ.get('USE_LAMBDA', False)
