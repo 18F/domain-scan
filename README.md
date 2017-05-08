@@ -21,7 +21,6 @@ pip install -r requirements.txt
 
 The individual scanners each require their own dependencies. You only need to have the dependencies installed for the scanners you plan to use.
 
-* `inspect` scanner: **Ruby** and **[site-inspector](https://github.com/benbalter/site-inspector)**, version **1.0.2 only**.
 * `pshtt` scanner: **Python 2** and **[pshtt](https://github.com/dhs-ncats/pshtt)**, ideally installed with `pyenv` via `pip install pshtt`.
 * `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
 * `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, ideally installed with `pyenv` via `pip install sslyze`.
@@ -37,8 +36,6 @@ You can set environment variables in a variety of ways -- this tool's developers
 
 However you set them:
 
-* Override the path to the `site-inspector` executable by setting the `SITE_INSPECTOR_PATH` environment variable.
-
 * Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
 
 * Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.11` is passed by default, override version with `SSLYZE_PYENV`.
@@ -50,19 +47,19 @@ However you set them:
 Scan a domain. You must specify at least one "scanner" with `--scan`.
 
 ```bash
-./scan whitehouse.gov --scan=inspect
+./scan whitehouse.gov --scan=pshtt
 ```
 
 Scan a list of domains from a CSV. The CSV's header row will be ignored if the first cell starts with "Domain" (case-insensitive).
 
 ```bash
-./scan domains.csv --scan=inspect
+./scan domains.csv --scan=pshtt
 ```
 
 Run multiple scanners on each domain:
 
 ```bash
-./scan whitehouse.gov --scan=inspect,tls
+./scan whitehouse.gov --scan=pshtt,tls
 ```
 
 ##### Parallelization
@@ -81,7 +78,6 @@ Parallelization will also cause the resulting domains to be written in an unpred
 
 **Scanners:**
 
-* `inspect` - HTTP/HTTPS/HSTS configuration.
 * `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
 * `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
@@ -110,11 +106,11 @@ All output files are placed into `cache/` and `results/` directories, whose loca
 
 * **Cached full scan data** about each domain is saved in the `cache/` directory, named after each scan and each domain, in JSON.
 
-Example: `cache/inspect/whitehouse.gov.json`
+Example: `cache/pshtt/whitehouse.gov.json`
 
 * **Formal output data** in CSV form about all domains are saved in the `results/` directory in CSV form, named after each scan.
 
-Example: `results/inspect.csv`
+Example: `results/pshtt.csv`
 
 You can override the output directory by specifying `--output`.
 
@@ -203,7 +199,7 @@ Once those are set up, copy the `.env.example` file, rename it `.env` and fill i
 
 A brief note on redirects:
 
-For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs.  Pulse.cio.gov is set up to show accessibility scans for live, non-redirecting sites.  For example, if aaa.gov redirects to bbb.gov, we will show results for bbb.gov on the site, but not aaa.gov.  
+For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs.  Pulse.cio.gov is set up to show accessibility scans for live, non-redirecting sites.  For example, if aaa.gov redirects to bbb.gov, we will show results for bbb.gov on the site, but not aaa.gov.
 
 However, if you want to include results for redirecting site, note the following.  For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov (but the result will be recorded for aaa.gov).
 
