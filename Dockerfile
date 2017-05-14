@@ -80,6 +80,7 @@ RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
     && pyenv local 3.5.0
 
 COPY requirements.txt requirements.txt
+RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
 
 ###
