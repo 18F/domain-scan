@@ -175,6 +175,12 @@ Options:
 * `--end`: Page number to end on (defaults to value of `--start`)
 * `--delay`: Sleep between pages, to meet API limits. Defaults to 5s. If you have researcher access, shorten to 2s.
 
+To use the SQL export (which "researcher" accounts can do):
+
+* `--export`: Turn on export mode.
+* `--timeout`: Override timeout for waiting on job completion (in seconds).
+* `--force`: Ignore cached export data.
+
 **Example:**
 
 Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 seconds between pages:
