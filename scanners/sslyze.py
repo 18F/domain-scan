@@ -265,7 +265,7 @@ def parse_sslyze(raw_json):
         data['certs']['not_after'] = leaf.not_valid_after
 
         # Look at only served leaf and intermediate certificates
-        data['certs']['any_sha1'] = (not not target['certinfo']['has_sha1_in_certificate_chain'])
+        data['certs']['any_sha1'] = target['certinfo']['has_sha1_in_certificate_chain']
 
     return data
 
