@@ -87,6 +87,7 @@ def scan(domain, options):
         return None
 
     yield [
+        scan_domain,
         data['protocols']['sslv2'], data['protocols']['sslv3'],
         data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'],
         data['protocols']['tlsv1.2'],
@@ -104,6 +105,7 @@ def scan(domain, options):
     ]
 
 headers = [
+    "Scanned Hostname",
     "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 
     "Any Forward Secrecy", "All Forward Secrecy",
