@@ -222,9 +222,9 @@ def parse_sslyze(raw_json):
         leaf = parse_cert(served_chain[0])
         leaf_key = leaf.public_key()
 
-        if has_attr(leaf_key, "key_size"):
+        if hasattr(leaf_key, "key_size"):
             data['certs']['key_length'] = leaf_key.key_size
-        elif has_attr(leaf_key, "curve"):
+        elif hasattr(leaf_key, "curve"):
             data['certs']['key_length'] = leaf_key.curve.key_size
         else:
             data['certs']['key_length'] = None
