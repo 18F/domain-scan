@@ -4,6 +4,7 @@ strict-rfc3339
 
 # to support sslyze scanner
 sslyze
+cryptography
 
 # to support censys gatherer
 censys
