@@ -44,15 +44,28 @@ def scan(domain, options):
     if (force is False) and (os.path.exists(cache_json)):
         logging.debug("\tCached.")
         raw_json = open(cache_json).read()
-        data = json.loads(raw_json)
-        if (data.__class__ is dict) and data.get('invalid'):
+        try:
+            data = json.loads(raw_json)
+            if (data.__class__ is dict) and data.get('invalid'):
+                return None
+        except json.decoder.JSONDecodeError as err:
+            logging.warn("Error decoding JSON.  Cache probably corrupted.")
             return None
 
     else:
         # use scan_domain (possibly www-prefixed) to do actual scan
         logging.debug("\t %s %s" % (command, scan_domain))
 
-        raw_response = utils.scan([command, "--regular", "--quiet", scan_domain, "--json_out=%s" % cache_json])
+        # This is --regular minus --heartbleed
+        # See: https://github.com/nabla-c0d3/sslyze/issues/217
+        raw_response = utils.scan([command,
+            "--sslv2", "--sslv3", "--tlsv1", "--tlsv1_1", "--tlsv1_2",
+            "--reneg", "--resum", "--certinfo",
+            "--http_get", "--hide_rejected_ciphers",
+            "--compression", "--openssl_ccs",
+            "--fallback", "--quiet",
+            scan_domain, "--json_out=%s" % cache_json]
+        )
 
         if raw_response is None:
             # TODO: save standard invalid JSON data...?
