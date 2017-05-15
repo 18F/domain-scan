@@ -44,6 +44,9 @@ def scan(domain, options):
     if (force is False) and (os.path.exists(cache_json)):
         logging.debug("\tCached.")
         raw_json = open(cache_json).read()
+        data = json.loads(raw_json)
+        if (data.__class__ is dict) and data.get('invalid'):
+            return None
 
     else:
         # use scan_domain (possibly www-prefixed) to do actual scan
@@ -53,6 +56,7 @@ def scan(domain, options):
 
         if raw_response is None:
             # TODO: save standard invalid JSON data...?
+            utils.write(utils.invalid({}), cache_json)
             logging.warn("\tBad news scanning, sorry!")
             return None
 
@@ -68,8 +72,6 @@ def scan(domain, options):
     if data is None:
         logging.warn("\tNo valid target for scanning, couldn't connect.")
         return None
-
-    utils.write(utils.json_for(data), utils.cache_path(domain, "sslyze"))
 
     yield [
         data['protocols']['sslv2'], data['protocols']['sslv3'],
@@ -124,11 +126,11 @@ def parse_sslyze(raw_json):
     # Protocol version support.
     data = {
         'protocols': {
-            'sslv2': (len(target['sslv2']["accepted_cipher_list"]) > 0),
-            'sslv3': (len(target['sslv3']["accepted_cipher_list"]) > 0),
-            'tlsv1.0': (len(target['tlsv1']["accepted_cipher_list"]) > 0),
-            'tlsv1.1': (len(target['tlsv1_1']["accepted_cipher_list"]) > 0),
-            'tlsv1.2': (len(target['tlsv1_2']["accepted_cipher_list"]) > 0)
+            'sslv2': supported_protocol(target, 'sslv2'),
+            'sslv3': supported_protocol(target, 'sslv3'),
+            'tlsv1.0': supported_protocol(target, 'tlsv1'),
+            'tlsv1.1': supported_protocol(target, 'tlsv1_1'),
+            'tlsv1.2': supported_protocol(target, 'tlsv1_2')
         },
 
         'config': {},
@@ -146,11 +148,11 @@ def parse_sslyze(raw_json):
     #     data['config']['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
 
     accepted_ciphers = (
-        target['sslv2']["accepted_cipher_list"] +
-        target['sslv3']["accepted_cipher_list"] +
-        target['tlsv1']["accepted_cipher_list"] +
-        target['tlsv1_1']["accepted_cipher_list"] +
-        target['tlsv1_2']["accepted_cipher_list"]
+        target['sslv2'].get("accepted_cipher_list", []) +
+        target['sslv3'].get("accepted_cipher_list", []) +
+        target['tlsv1'].get("accepted_cipher_list", []) +
+        target['tlsv1_1'].get("accepted_cipher_list", []) +
+        target['tlsv1_2'].get("accepted_cipher_list", [])
     )
 
     if len(accepted_ciphers) > 0:
@@ -268,3 +270,13 @@ def cert_issuer_name(parsed):
     if len(attrs) == 0:
         return None
     return attrs[0].value
+
+# examines whether the protocol version turned out ot be supported
+def supported_protocol(target, protocol):
+    if target[protocol].get("error_message", None) is not None:
+        logging.debug("Error connecting to %s: %s" % (protocol, target[protocol]["error_message"]))
+        return False
+    elif target[protocol].get("accepted_cipher_list", None) is None:
+        return False
+    else:
+        return (len(target[protocol]["accepted_cipher_list"]) > 0)
