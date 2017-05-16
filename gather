@@ -53,16 +53,24 @@ def run(options=None):
     hostnames_cache = {}
 
     for source in sources:
+        extra = {}
 
         try:
             gatherer = importlib.import_module("gatherers.%s" % source)
         except ImportError:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            logging.error("[%s] Gatherer not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (source, exc_type, exc_value))
-            exit(1)
+            # If it's not a registered module, allow it to be "hot registered"
+            # as long as the user gave us a flag with that name that can be
+            # used as the --url option to the URL module.
+            if options.get(source):
+                gatherer = importlib.import_module("gatherers.url")
+                extra['name'] = source
+            else:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                logging.error("[%s] Gatherer not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (source, exc_type, exc_value))
+                exit(1)
 
         # Iterate over each hostname.
-        for domain in gatherer.gather(suffix, options):
+        for domain in gatherer.gather(suffix, options, extra):
 
             # Always apply the suffix to returned names.
             if not suffix_pattern.search(domain):
@@ -106,6 +114,7 @@ def run(options=None):
     hostnames.sort()
 
     for hostname in hostnames:
+        base = utils.base_domain_for(hostname)
         row = [hostname, base]
         for source in sources:
             row += [source in hostnames_cache[hostname]]
