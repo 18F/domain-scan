@@ -219,6 +219,9 @@ def domain_doesnt_support_https(domain):
     if not inspection:
         return False
 
+    if (inspection.__class__ is dict) and inspection.get('invalid'):
+        return False
+
     # TODO: kill this
     inspection = inspection[0]
 
@@ -242,6 +245,9 @@ def domain_uses_www(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
+    if (inspection.__class__ is dict) and inspection.get('invalid'):
+        return False
+
     # TODO: kill this
     inspection = inspection[0]
 

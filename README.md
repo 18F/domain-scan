@@ -23,7 +23,7 @@ The individual scanners each require their own dependencies. You only need to ha
 
 * `pshtt` scanner: **Python 2** and **[pshtt](https://github.com/dhs-ncats/pshtt)**, ideally installed with `pyenv` via `pip install pshtt`.
 * `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
-* `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, ideally installed with `pyenv` via `pip install sslyze`.
+* `sslyze` scanner: **[sslyze](https://github.com/nabla-c0d3/sslyze)** 1.0 or greater (installed automatically via `requirements.txt`).
 * `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
 
 ##### Setting tool paths
@@ -37,8 +37,6 @@ You can set environment variables in a variety of ways -- this tool's developers
 However you set them:
 
 * Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
-
-* Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.11` is passed by default, override version with `SSLYZE_PYENV`.
 
 * Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
@@ -80,7 +78,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 
 * `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
-* `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
+* `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
 * `analytics` - Participation in an analytics program.
 * `pageload` - Page load and rendering metrics.
 * `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y) via AWS Lambda (requires an AWS account and some additional setup, described further down this document).
