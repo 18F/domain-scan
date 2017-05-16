@@ -48,11 +48,6 @@ def run(options=None):
     else:
         filename = sources[0] # backwards compatibility, mostly
 
-    gathered_filename = "%s/%s.csv" % (utils.results_dir(), filename)
-    gathered_file = open(gathered_filename, 'w', newline='')
-    gathered_writer = csv.writer(gathered_file)
-    gathered_writer.writerow(["Domain", "Base Domain", "Source"])
-
     # De-duping hostnames. This will cause the system to hold all
     # hostnames in memory at once, but oh well.
     hostnames_cache = {}
@@ -68,6 +63,7 @@ def run(options=None):
 
         # Iterate over each hostname.
         for domain in gatherer.gather(suffix, options):
+
             # Always apply the suffix to returned names.
             if not suffix_pattern.search(domain):
                 continue
@@ -86,11 +82,34 @@ def run(options=None):
 
             # Use hostname cache to de-dupe, if seen before.
             if domain not in hostnames_cache:
+                hostnames_cache[domain] = [source]
+            elif source not in hostnames_cache[domain]:
+                hostnames_cache[domain] += [source]
 
-                # Finally, write out the hostname, and cache it.
-                gathered_writer.writerow([domain, base, source])
-                hostnames_cache[domain] = None
+    # Now that we've gone through all sources and logged when each
+    # domain appears in each one, go through cache and write
+    # all of them to disk.
 
+    # Assemble headers.
+    headers = ["Domain", "Base Domain"]
+    # Add headers dynamically for each source.
+    headers += sources
+
+    # Open CSV file.
+    gathered_filename = "%s/%s.csv" % (utils.results_dir(), filename)
+    gathered_file = open(gathered_filename, 'w', newline='')
+    gathered_writer = csv.writer(gathered_file)
+    gathered_writer.writerow(headers)
+
+    # Write each hostname to disk, with all discovered sources.
+    hostnames = list(hostnames_cache.keys())
+    hostnames.sort()
+
+    for hostname in hostnames:
+        row = [hostname, base]
+        for source in sources:
+            row += [source in hostnames_cache[hostname]]
+        gathered_writer.writerow(row)
 
     # Close CSV file.
     gathered_file.close()
