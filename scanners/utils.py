@@ -6,6 +6,7 @@ import sys
 import shutil
 import traceback
 import json
+import urllib
 import csv
 import logging
 import datetime
@@ -25,6 +26,13 @@ def run(run_method, additional=None):
     except Exception as exception:
         notify(exception)
 
+# TODO: Somewhat better error handling.
+def download(url, destination):
+    # make sure path is present
+    mkdir_p(os.path.dirname(destination))
+
+    filename, headers = urllib.request.urlretrieve(url, destination)
+    return filename
 
 # read options from the command line
 #   e.g. ./scan --since=2012-03-04 --debug whatever.com
@@ -211,6 +219,9 @@ def domain_doesnt_support_https(domain):
     if not inspection:
         return False
 
+    if (inspection.__class__ is dict) and inspection.get('invalid'):
+        return False
+
     # TODO: kill this
     inspection = inspection[0]
 
@@ -234,6 +245,9 @@ def domain_uses_www(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
+    if (inspection.__class__ is dict) and inspection.get('invalid'):
+        return False
+
     # TODO: kill this
     inspection = inspection[0]
 

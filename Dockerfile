@@ -124,6 +124,9 @@ RUN ln -s /usr/bin/nodejs /usr/bin/node
 RUN mkdir -p /go/src /go/bin \
       && chmod -R 777 /go
 RUN go get github.com/ssllabs/ssllabs-scan
+RUN cd /go/src/github.com/ssllabs/ssllabs-scan/ \
+      && git checkout stable \
+      && go install
 ENV SSLLABS_PATH /go/bin/ssllabs-scan
 
 ###
@@ -137,18 +140,10 @@ RUN npm install \
     pa11y@3.0.1
 
 ###
-# sslyze
+# pshtt
 
-ENV SSLYZE_VERSION 0.11.0
-ENV SSLYZE_FILE sslyze-0_11-linux64.zip
-ENV SSLYZE_DEST /opt
-
-# Would be nice if bash string manipulation worked in ENV as this could use:
-# ${SSLYZE_FILE%.*}
-ENV SSLYZE_PATH ${SSLYZE_DEST}/sslyze-0_11-linux64/sslyze/sslyze.py
-RUN wget https://github.com/nabla-c0d3/sslyze/releases/download/${SSLYZE_VERSION}/${SSLYZE_FILE} \
-      --no-verbose \
-  && unzip $SSLYZE_FILE -d $SSLYZE_DEST
+RUN PYENV_VERSION=2.7.11 pyenv exec pip install pshtt
+ENV PSHTT_PATH /opt/pyenv/versions/2.7.11/bin/pshtt
 
 ###
 # Create Unprivileged User
