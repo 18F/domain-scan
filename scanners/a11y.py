@@ -47,52 +47,6 @@ def cache_is_not_forced(options):
     return options.get("force", False) is False
 
 
-def pa11y_options():
-    return {
-        'standard': 'WCAG2AA',
-        'wait': 500,
-        'ignore': [
-            'notice',
-            'warning',
-            'WCAG2AA.Principle1.Guideline1_4.1_4_3.G18.BgImage',
-            'WCAG2AA.Principle1.Guideline1_4.1_4_3.G18.Abs',
-            'WCAG2AA.Principle1.Guideline1_4.1_4_3.G145.Abs',
-            'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.2',
-            'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.3',
-            'WCAG2AA.Principle3.Guideline3_1.3_1_2.H58.1',
-            'WCAG2AA.Principle4.Guideline4_1.4_1_1.F77',
-            'WCAG2AA.Principle4.Guideline4_1.4_1_2.H91',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.G141',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H39',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H42',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H43',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H44',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H48',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H49',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H63',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H65',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H71',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H73',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H85',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H93',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.F68',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H39.3.LayoutTable',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H42.2',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H43.HeadersRequired',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H71.NoLegend',
-            'WCAG2AA.Principle1.Guideline1_3.1_3_1.H73.3.LayoutTable',
-            'WCAG2AA.Principle2.Guideline2_2.2_2_1.F41.2',
-            'WCAG2AA.Principle2.Guideline2_4.2_4_1.G1,G123,G124.NoSuchID',
-            'WCAG2AA.Principle2.Guideline2_4.2_4_1.H64.1',
-            'WCAG2AA.Principle2.Guideline2_4.2_4_2.H25.1.EmptyTitle',
-            'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
-            'WCAG2AA.Principle3.Guideline3_1.3_1_1.H57.3.XmlLang',
-            'WCAG2AA.Principle3.Guideline3_1.3_1_2.H58.1.Lang',
-            'WCAG2AA.Principle3.Guideline3_2.3_2_2.H32.2'
-        ]
-    }
-
-
 def cache_errors(errors, domain, cache):
     cachable = json.dumps({'results': errors})
     logging.debug("Writing to cache: %s" % domain)
@@ -101,7 +55,7 @@ def cache_errors(errors, domain, cache):
     utils.write(content, destination)
 
 
-def get_errors_from_pa11y_without_lambda(domain, cache):
+def run_a11y_scan(domain, cache):
     logging.debug("[%s][a11y]" % domain)
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
     command = [pa11y, domain, "--reporter", "json", "--config", "pa11y_config.json", "--level", "none", "--timeout", "300000"]
@@ -123,50 +77,6 @@ def get_errors_from_pa11y_without_lambda(domain, cache):
     return results
 
 
-def get_errors_from_pa11y_lambda_scan(domain, cache):
-    client = boto3.client(
-        'lambda',
-        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-        region_name=os.environ.get('AWS_REGION_NAME')
-    )
-
-    lambda_options = {
-        'url': domain,
-        'pa11yOptions': pa11y_options()
-    }
-
-    payload = json.dumps(lambda_options).encode()
-
-    response = client.invoke(
-        FunctionName=os.environ['AWS_LAMBDA_PA11Y_FUNCTION_NAME'],
-        Payload=payload,
-    )
-
-    response_payload_bytes = response['Payload'].read()
-    response_payload_string = response_payload_bytes.decode('UTF-8')
-    response_payload_json = json.loads(response_payload_string)
-
-    logging.debug("Invoking a11y_lambda function: %s" % lambda_options)
-
-    results = response_payload_json
-    errors = get_errors_from_results(results)
-    cachable = json.dumps({'results': errors})
-    logging.debug("Writing to cache: %s" % domain)
-    content = cachable
-    destination = cache
-    utils.write(content, destination)
-    return errors
-
-
-def get_errors_from_results(results):
-    errors = []
-    for result in results:
-        if result['type'] == 'error':
-            errors.append(result)
-    return errors
-
-
 def get_errors_from_scan_or_cache(domain, options):
     a11y_cache = get_a11y_cache(domain)
     the_domain_is_cached = domain_is_cached(a11y_cache)
@@ -176,28 +86,18 @@ def get_errors_from_scan_or_cache(domain, options):
 
     # the_domain_is_cached: True
     # the_cache_is_not_forced: False
+    results = []
     if the_domain_is_cached and the_cache_is_not_forced:
         logging.debug("\tCached.")
         raw = open(a11y_cache).read()
         data = json.loads(raw)
-        if data.get('invalid'):
-            return []
-        else:
+        if not data.get('invalid'):
             logging.debug("Getting from cache: %s" % domain)
             results = data.get('results')
-            return results
     else:
         logging.debug("\tNot cached.")
-        use_lambda = os.environ.get('USE_LAMBDA', False)
-
-        errors = []
-
-        if use_lambda:
-            errors = get_errors_from_pa11y_lambda_scan(domain, a11y_cache)
-        else:
-            errors = get_errors_from_pa11y_without_lambda(domain, a11y_cache)
-
-        return errors
+        results = run_a11y_scan(domain, a11y_cache)
+    return results
 
 
 def scan(domain, options):
