@@ -97,7 +97,9 @@ def scan(domain, options):
         data['config'].get('any_rc4'), data['config'].get('all_rc4'),
 
         data['certs'].get('key_type'), data['certs'].get('key_length'),
-        data['certs'].get('leaf_signature'), data['certs'].get('any_sha1'),
+        data['certs'].get('leaf_signature'),
+        data['certs'].get('any_sha1_served'),
+        data['certs'].get('any_sha1_constructed'),
         data['certs'].get('not_before'), data['certs'].get('not_after'),
         data['certs'].get('served_issuer'), data['certs'].get('constructed_issuer'),
 
@@ -113,7 +115,9 @@ headers = [
     "Any RC4", "All RC4",
 
     "Key Type", "Key Length",
-    "Signature Algorithm", "SHA-1 in Served Chain",
+    "Signature Algorithm",
+    "SHA-1 in Served Chain",
+    "SHA-1 in Constructed Chain",
     "Not Before", "Not After",
     "Highest Served Issuer", "Highest Constructed Issuer",
 
@@ -264,8 +268,15 @@ def parse_sslyze(raw_json):
         data['certs']['not_before'] = leaf.not_valid_before
         data['certs']['not_after'] = leaf.not_valid_after
 
-        # Look at only served leaf and intermediate certificates
-        data['certs']['any_sha1'] = target['certinfo']['has_sha1_in_certificate_chain']
+        any_sha1_served = False
+        for cert in served_chain:
+            if parse_cert(cert).signature_hash_algorithm.name == "sha1":
+                any_sha1_served = True
+
+        data['certs']['any_sha1_served'] = any_sha1_served
+
+        if data['certs'].get('constructed_issuer'):
+            data['certs']['any_sha1_constructed'] = target['certinfo']['has_sha1_in_certificate_chain']
 
     return data
 
