@@ -19,18 +19,21 @@ headers = [
 ]
 
 
-def get_from_inspect_cache(domain):
-    inspect_cache = utils.cache_path(domain, "inspect")
-    inspect_raw = open(inspect_cache).read()
-    inspect_data = json.loads(inspect_raw)
-    return inspect_data
+def get_from_pshtt_cache(domain):
+    pshtt_cache = utils.cache_path(domain, "pshtt")
+    pshtt_raw = open(pshtt_cache).read()
+    pshtt_data = json.loads(pshtt_raw)
+    if type(pshtt_data) == list:
+        pshtt_data = pshtt_data[0]
+    return pshtt_data
 
 
-def get_domain_to_scan(inspect_data, domain):
+def get_domain_to_scan(pshtt_data, domain):
     domain_to_scan = None
-    redirect = inspect_data.get('redirect', None)
+
+    redirect = pshtt_data.get('Redirect', None)
     if redirect:
-        domain_to_scan = inspect_data.get('redirect_to')
+        domain_to_scan = pshtt_data.get('Redirect To')
     else:
         domain_to_scan = domain
     return domain_to_scan
@@ -163,8 +166,8 @@ def get_errors_from_scan_or_cache(domain, options):
 def scan(domain, options):
     logging.debug("[%s][a11y]" % domain)
 
-    inspect_data = get_from_inspect_cache(domain)
-    domain_to_scan = get_domain_to_scan(inspect_data, domain)
+    pshtt_data = get_from_pshtt_cache(domain)
+    domain_to_scan = get_domain_to_scan(pshtt_data, domain)
     errors = get_errors_from_scan_or_cache(domain_to_scan, options)
 
     for data in errors:
