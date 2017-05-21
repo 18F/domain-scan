@@ -5,6 +5,7 @@ import os
 import json
 import cryptography
 import cryptography.hazmat.backends.openssl
+from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 import sslyze
 
 ###
@@ -250,11 +251,11 @@ def parse_sslyze(raw_json):
         else:
             data['certs']['key_length'] = None
 
-        if leaf_key.__class__ == cryptography.hazmat.backends.openssl.rsa._RSAPublicKey:
+        if isinstance(leaf_key, rsa.RSAPublicKey):
             leaf_key_type = "RSA"
-        elif leaf_key.__class__ == cryptography.hazmat.backends.openssl.dsa._DSAPublicKey:
+        elif isinstance(leaf_key, dsa.DSAPublicKey):
             leaf_key_type = "DSA"
-        elif leaf_key.__class__ == cryptography.hazmat.backends.openssl.ec._EllipticCurvePublicKey:
+        elif isinstance(leaf_key, ec.EllipticCurvePublicKey):
             leaf_key_type = "ECDSA"
         else:
             leaf_key_type == str(leaf_key.__class__)
