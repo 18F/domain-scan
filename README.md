@@ -152,9 +152,9 @@ Or gather hostnames from multiple sources separated by commas:
 
 Right now there's one specific source (Censys.io), and then a general way of sourcing URLs or files by whatever name is convenient.
 
-**Censys.io** - The `censys` gatherer uses the [Censys.io API](https://censys.io/api), which has hostnames gathered from observed certificates. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs. Use `--export` to use the Censys.io Export API, which is faster and more complete but requires researcher credentials.
+**Censys.io** - The `censys` gatherer uses the [Censys.io API](https://censys.io/api), which has hostnames gathered from observed certificates. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs. Use `--export` to use the [Censys.io Export API](https://censys.io/api/v1/docs/export), which is faster and more complete but requires researcher credentials.
 
-**Remote or local CSV** - Given a URL or local path to a CSV, downloads and/or reads it. Its only option is `--url`, which can be a URL (starts with `http:` or `https:`) or a local path.
+**Remote or local CSV** - By using any other name besides `censys`, this will define a gatherer based on an HTTP/HTTPS URL or local path to a CSV. Its only option is a flag named after itself. For example, using a gatherer name of `dap` will mean that domain-scan expects `--dap` to point to the URL or local file.
 
 Hostnames found from multiple sources are deduped, and filtered by suffix or base domain according to the options given.
 
@@ -202,7 +202,7 @@ Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 s
 
 ### Gathering Usage Examples
 
-To gather .gov hostnames from Censys.io's Export API:
+To gather .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export):
 
 ```bash
 ./gather censys --suffix=.gov --export --debug
@@ -214,7 +214,7 @@ To gather .gov hostnames from a hosted CSV, such as one from the [Digital Analyt
 ./gather dap --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv
 ```
 
-Or to gather federal-only .gov hostnames from Censys.io's Export API, a remote CSV, and a local CSV:
+Or to gather federal-only .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export), a remote CSV, and a local CSV:
 
 ```bash
 ./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://raw.githubusercontent.com/GSA/data/gh-pages/dotgov-domains/current-federal.csv --export
