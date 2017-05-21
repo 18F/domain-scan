@@ -133,9 +133,11 @@ ENV SSLLABS_PATH /go/bin/ssllabs-scan
 # phantomas
 
 RUN npm install \
-      --silent \
       --global \
-    phantomas
+    phantomas \
+    phantomjs-prebuilt \
+    es6-promise@3.1.2 \
+    pa11y@3.0.1
 
 ###
 # pshtt

@@ -81,7 +81,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
 * `analytics` - Participation in an analytics program.
 * `pageload` - Page load and rendering metrics.
-* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y) via AWS Lambda (requires an AWS account and some additional setup, described further down this document).
+* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
 
 **General options:**
 
@@ -185,35 +185,23 @@ Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 s
 
 ### a11y setup
 
-Because scanning 1,000+ domains with `pa11y` takes a prohibitively long time, we're relying on [AWS Lambda](https://aws.amazon.com/lambda/) to provide parallelization.
-
-This requires:
-
-1) An AWS account with access to Lambda
-2) A `pa11y-lambda` function (follow the instructions [here](https://github.com/18F/pa11y-lambda)).
-
-Once those are set up, copy the `.env.example` file, rename it `.env` and fill in the following values:
-
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `AWS_REGION_NAME` (`us-east-1` should work fine)
-- `AWS_LAMBDA_PA11Y_FUNCTION_NAME` (whatever you ended up naming the Lambda function)
+`pa11y` expects a config file at `config/pa11y_config.json`. Details and documentation for this config can be found in the [pa11y repo](https://github.com/pa11y/pa11y#configuration).
 
 ---
 
 A brief note on redirects:
 
-For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs.  Pulse.cio.gov is set up to show accessibility scans for live, non-redirecting sites.  For example, if aaa.gov redirects to bbb.gov, we will show results for bbb.gov on the site, but not aaa.gov.
+For the accessibility scans we're running at 18F, we're using the `pshtt` scanner to follow redirects _before_ the accessibility scan runs.  Pulse.cio.gov is set up to show accessibility scans for live, non-redirecting sites.  For example, if aaa.gov redirects to bbb.gov, we will show results for bbb.gov on the site, but not aaa.gov.
 
 However, if you want to include results for redirecting site, note the following.  For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov (but the result will be recorded for aaa.gov).
 
-In order to get the benefits of the `inspect` scanner, all `a11y` scans must include it. For example, to scan gsa.gov:
+In order to get the benefits of the `pshtt` scanner, all `a11y` scans must include it. For example, to scan gsa.gov:
 
 ```
-./scan gsa.gov --scanner=inspect,a11y
+./scan gsa.gov --scanner=pshtt,a11y
 ```
 
-Because of `domain-scan`'s caching, all the results of an `inspect` scan will be saved in the `cache/inspect` folder, and probably does not need to be re-run for every single `ally` scan.
+Because of `domain-scan`'s caching, all the results of an `pshtt` scan will be saved in the `cache/pshtt` folder, and probably does not need to be re-run for every single `ally` scan.
 
 ---
 
