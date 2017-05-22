@@ -79,7 +79,10 @@ def paginated_mode(suffix, options, uid, api_key):
 
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
-    query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
+    if 'query' in options and options['query']:
+        query = options['query']
+    else:
+        query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
     logging.debug("Censys query:\n%s\n" % query)
 
     # time to sleep between requests (defaults to 5s)
