@@ -12,8 +12,11 @@ import logging
 #
 
 
-def gather(suffix, options):
-    url = options.get("url")
+def gather(suffix, options, extra={}):
+    # Defaults to --url, but can be overridden.
+    name = extra.get("name", "url")
+    url = options.get(name)
+
     if url is None:
         logging.warn("A --url is required. (Can be a local path.)")
         exit(1)
