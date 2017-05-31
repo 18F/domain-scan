@@ -49,7 +49,7 @@ import censys
 wildcard_pattern = re.compile("^\*\.")
 redacted_pattern = re.compile("^(\?\.)+")
 
-def gather(suffix, options):
+def gather(suffix, options, extra={}):
     # Register a (free) Censys.io account to get a UID and API key.
     uid = options.get("censys_id", None)
     api_key = options.get("censys_key", None)
