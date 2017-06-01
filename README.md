@@ -185,6 +185,7 @@ Options:
 * `--start`: Page number to start on (defaults to `1`)
 * `--end`: Page number to end on (defaults to value of `--start`)
 * `--delay`: Sleep between pages, to meet API limits. Defaults to 5s. If you have researcher access, shorten to 2s.
+* `--query`: Specify the Censys.io search query to use (overwrites the default one based on `--suffix`)
 
 To use the SQL export (which "researcher" accounts can do):
 
