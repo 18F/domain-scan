@@ -173,7 +173,11 @@ def export_mode(suffix, options, uid, api_key):
     # Wait 5 seconds between checking on the job.
     between_jobs = 5
 
-    export_api = export.CensysExport(uid, api_key)
+    try:
+        export_api = export.CensysExport(uid, api_key)
+    except censys.base.CensysUnauthorizedException:
+        logging.warn("The Censys.io Export API rejected the provided Censys credentials. The credentials may be inaccurate, or you may need to request access from the Censys.io team.")
+        exit(1)
 
     # Uses a FLATTEN command in order to work around a BigQuery
     # error around multiple "repeated" fields. *shrug*
