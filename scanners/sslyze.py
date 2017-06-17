@@ -108,6 +108,7 @@ def scan(domain, options):
         data.get('errors')
     ]
 
+
 headers = [
     "Scanned Hostname",
     "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",

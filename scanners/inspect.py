@@ -107,6 +107,7 @@ def scan(domain, options):
         data['broken_root'], data['broken_www']
     ]
 
+
 headers = [
     "Canonical", "Live",
     "Redirect", "Redirect To",

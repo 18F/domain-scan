@@ -121,6 +121,7 @@ def scan(domain, options):
             h2
         ]
 
+
 headers = [
     "Grade",  # unique to SSL Labs
     "Signature Algorithm", "Key Type", "Key Size",  # strength
