@@ -176,7 +176,7 @@ def export_mode(suffix, options, uid, api_key):
     try:
         export_api = export.CensysExport(uid, api_key)
     except censys.base.CensysUnauthorizedException:
-        logging.warn("Censys.io rejected the provided Censys credentials, they are not authorized to use the Export API.")
+        logging.warn("The Censys.io Export API rejected the provided Censys credentials. The credentials may be inaccurate, or you may need to request access from the Censys.io team.")
         exit(1)
 
     # Uses a FLATTEN command in order to work around a BigQuery
