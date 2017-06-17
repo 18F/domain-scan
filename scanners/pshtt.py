@@ -27,6 +27,16 @@ user_agent = os.environ.get("PSHTT_USER_AGENT", "github.com/18f/domain-scan, psh
 preload_cache = utils.cache_single("preload-list.json")
 
 
+# The preload list cache is only important across individual
+# executions of pshtt. Not intended to be cached across
+# individual executions of domain-scan itself.
+def init(options):
+    if os.path.exists(preload_cache):
+        logging.warn("Clearing cached preload-list.json file before scanning.")
+        os.remove(preload_cache)
+    return True
+
+
 def scan(domain, options):
     logging.debug("[%s][pshtt]" % domain)
 
