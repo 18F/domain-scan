@@ -46,6 +46,12 @@ def scan(domain, options):
     else:
         logging.debug("\t %s %s" % (command, domain))
 
+        # The preload list cache is only important across individual
+        # executions of pshtt. Not intended to be cached across
+        # individual executions of domain-scan itself.
+        if os.path.exists(preload_cache):
+            os.remove(preload_cache)
+
         flags = "--json --user-agent \"%s\" --timeout %i --preload-cache %s" % (user_agent, timeout, preload_cache)
 
         # Only useful when debugging interaction between projects.
