@@ -1,0 +1,11 @@
+version: 2
+ jobs:
+   build:
+     working_directory: ~/scan
+     docker:
+       - image: circleci/python:3.5.3
+     steps:
+       - checkout
+       - pip install -r requirements.txt
+       - pip install flake8
+       - run: ./test.sh
