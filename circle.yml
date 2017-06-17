@@ -1,0 +1,10 @@
+machine:
+  python:
+    version: 3.5.3
+
+test:
+  pre:
+    - pip install flake8
+    - pip install -r requirements.txt
+  override:
+    - ./test.sh

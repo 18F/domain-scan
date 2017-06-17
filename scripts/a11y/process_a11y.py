@@ -66,7 +66,7 @@ class A11yProcessor(object):
             'domain': domain,
             'agency': agency,
             'branch': self.agency_to_branch.get(agency, 'Executive')
-            }
+        }
 
         if code:
             results['error'] = self.get_error_category(code)

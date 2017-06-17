@@ -1,5 +1,4 @@
-echo "running linters..."
-flake8 .
+#!/usr/bin/env sh
 
-echo "running tests..."
-python -m unittest discover tests
+echo "running linters and tests..."
+flake8 . && python -m unittest discover tests

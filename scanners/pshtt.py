@@ -81,6 +81,7 @@ def scan(domain, options):
 
     yield row
 
+
 headers = [
     "Canonical URL", "Live", "Redirect", "Redirect To",
     "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
