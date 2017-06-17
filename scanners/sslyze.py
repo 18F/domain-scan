@@ -6,7 +6,6 @@ import json
 import cryptography
 import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
-import sslyze
 
 ###
 # == sslyze ==
@@ -18,6 +17,7 @@ import sslyze
 ###
 
 command = os.environ.get("SSLYZE_PATH", "sslyze")
+
 
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
@@ -59,14 +59,15 @@ def scan(domain, options):
 
         # This is --regular minus --heartbleed
         # See: https://github.com/nabla-c0d3/sslyze/issues/217
-        raw_response = utils.scan([command,
+        raw_response = utils.scan([
+            command,
             "--sslv2", "--sslv3", "--tlsv1", "--tlsv1_1", "--tlsv1_2",
             "--reneg", "--resum", "--certinfo",
             "--http_get", "--hide_rejected_ciphers",
             "--compression", "--openssl_ccs",
             "--fallback", "--quiet",
-            scan_domain, "--json_out=%s" % cache_json]
-        )
+            scan_domain, "--json_out=%s" % cache_json
+        ])
 
         if raw_response is None:
             # TODO: save standard invalid JSON data...?
@@ -133,6 +134,7 @@ headers = [
 # If we were using the sslyze Python API, this would be
 # done for us automatically, but serializing the results
 # to disk for caching would be prohibitively complex.
+
 
 def parse_sslyze(raw_json):
 
@@ -281,12 +283,14 @@ def parse_sslyze(raw_json):
 
     return data
 
+
 # Given the cert sub-obj from the sslyze JSON, use
 # the cryptography module to parse its PEM contents.
 def parse_cert(cert):
     backend = cryptography.hazmat.backends.openssl.backend
     pem_bytes = cert['as_pem'].encode('utf-8')
     return cryptography.x509.load_pem_x509_certificate(pem_bytes, backend)
+
 
 # Given a parsed cert from the cryptography module,
 # get the issuer name as best as possible
@@ -297,6 +301,7 @@ def cert_issuer_name(parsed):
     if len(attrs) == 0:
         return None
     return attrs[0].value
+
 
 # examines whether the protocol version turned out ot be supported
 def supported_protocol(target, protocol):

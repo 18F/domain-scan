@@ -49,6 +49,7 @@ import censys
 wildcard_pattern = re.compile("^\*\.")
 redacted_pattern = re.compile("^(\?\.)+")
 
+
 def gather(suffix, options, extra={}):
     # Register a (free) Censys.io account to get a UID and API key.
     uid = options.get("censys_id", None)
@@ -163,6 +164,7 @@ def paginated_mode(suffix, options, uid, api_key):
 
     return hostnames_map
 
+
 def export_mode(suffix, options, uid, api_key):
     # Cache hostnames in a dict for de-duping.
     hostnames_map = {}
@@ -248,8 +250,8 @@ def export_mode(suffix, options, uid, api_key):
                 if name:
                     hostnames_map[sanitize_name(name)] = None
 
-
     return hostnames_map
+
 
 # Given a hostname from Censys, remove * and ? marks.
 def sanitize_name(name):
@@ -259,6 +261,7 @@ def sanitize_name(name):
     name = re.sub(redacted_pattern, '', name).lower().strip()
 
     return name
+
 
 # Hit the API once just to get the last available page number.
 def get_end_page(query, certificate_api):
