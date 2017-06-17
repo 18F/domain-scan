@@ -9,8 +9,5 @@ cryptography
 # to support censys gatherer
 censys
 
-# to support a11y_lambda
-boto3
-
 # Ubuntu 14.04 has an old version of six
 six>=1.6
