@@ -56,16 +56,23 @@ def scan(domain, options):
     else:
         logging.debug("\t %s %s" % (command, domain))
 
-        flags = "--json --user-agent \"%s\" --timeout %i --preload-cache %s" % (user_agent, timeout, preload_cache)
+        # flags = "--json --user-agent \"%s\" --timeout %i --preload-cache %s" % (user_agent, timeout, preload_cache)
 
         # Only useful when debugging interaction between projects.
         # flags = "%s --debug" % flags
 
         # Give the Python shell environment a pyenv environment.
-        pyenv_init = "eval \"$(pyenv init -)\" && pyenv shell %s" % pyenv_version
+        # pyenv_init = "eval \"$(pyenv init -)\" && pyenv shell %s" % pyenv_version
         # Really un-ideal, but calling out to Python2 from Python 3 is a nightmare.
         # I don't think this tool's threat model includes untrusted CSV, either.
-        raw = utils.unsafe_execute("%s && %s %s %s" % (pyenv_init, command, domain, flags))
+        # raw = utils.unsafe_execute("%s && %s %s %s" % (pyenv_init, command, domain, flags))
+
+        raw = utils.scan([command,
+                         '--json',
+                         '--user-agent', '\"%s\"' % user_agent,
+                         '--timeout', '%i' % timeout,
+                         '--preload-cache', '%s' % preload_cache,
+                         '%s' % domain])
 
         if not raw:
             utils.write(utils.invalid({}), cache_pshtt)
