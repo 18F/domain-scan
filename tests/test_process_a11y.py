@@ -25,7 +25,7 @@ class ProcessA11yTestCase(unittest.TestCase):
         clean = self.a11y.clean_row(self.a11y.a11y_raw[0])
         self.assertEqual(clean['agency'], 'Administrative Conference of the United States')
         self.assertEqual(clean['branch'], 'Executive')
-        self.assertEqual(clean['error'], 'Alt Tag Errors')
+        self.assertEqual(clean['error'], 'Missing Image Descriptions')
         self.assertEqual(
             clean['error_details']['code'],
             'WCAG2AA.Principle1.Guideline1_1.1_1_1.H30.2'
@@ -35,7 +35,7 @@ class ProcessA11yTestCase(unittest.TestCase):
         error_lookup = self.a11y.get_error_category
         self.assertEqual(
             error_lookup('WCAG2AA.Principle1.Guideline1_1.1_1_1.H30.2'),
-            'Alt Tag Errors'
+            'Missing Image Descriptions'
         )
         self.assertEqual(
             error_lookup('other.error.Guideline123_456.1_1_1.H30.2'),

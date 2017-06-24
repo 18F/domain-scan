@@ -2,6 +2,7 @@
 /data
 *.csv
 *.json
+!pa11y_config.json
 .~lock*
 /todo.txt
 __pycache__

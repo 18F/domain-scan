@@ -23,7 +23,7 @@ The individual scanners each require their own dependencies. You only need to ha
 
 * `pshtt` scanner: **Python 2** and **[pshtt](https://github.com/dhs-ncats/pshtt)**, ideally installed with `pyenv` via `pip install pshtt`.
 * `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
-* `sslyze` scanner: **Python 2** and **[sslyze](https://github.com/nabla-c0d3/sslyze)**, ideally installed with `pyenv` via `pip install sslyze`.
+* `sslyze` scanner: **[sslyze](https://github.com/nabla-c0d3/sslyze)** 1.0 or greater (installed automatically via `requirements.txt`).
 * `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
 
 ##### Setting tool paths
@@ -37,8 +37,6 @@ You can set environment variables in a variety of ways -- this tool's developers
 However you set them:
 
 * Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
-
-* Override the path to the `sslyze.py` executable by setting the `SSLYZE_PATH` environment variable. An env var of `PYENV_VERSION=2.7.11` is passed by default, override version with `SSLYZE_PYENV`.
 
 * Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
@@ -80,10 +78,10 @@ Parallelization will also cause the resulting domains to be written in an unpred
 
 * `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
-* `sslyze` - TLS configuration, using the local [`sslyze`](https://github.com/nabla-c0d3/sslyze) command line tool.
+* `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
 * `analytics` - Participation in an analytics program.
 * `pageload` - Page load and rendering metrics.
-* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y) via AWS Lambda (requires an AWS account and some additional setup, described further down this document).
+* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
 
 **General options:**
 
@@ -146,10 +144,27 @@ Usage:
 ./gather [source] [options]
 ```
 
-Where source is one of:
+Or gather hostnames from multiple sources separated by commas:
 
-* `censys` - Walks the [Censys.io API](https://censys.io/api), which has hostnames gathered from observed certificates. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs.
-* `url` - Given a path to a CSV, reads it and applies deduping and filtering logic. Its only option is `--url`, which can be a URL (starts with `http:` or `https:`) or a local path.
+```bash
+./gather [source1,source2,...,sourceN] [options]
+```
+
+Right now there's one specific source (Censys.io), and then a general way of sourcing URLs or files by whatever name is convenient.
+
+**Censys.io** - The `censys` gatherer uses the [Censys.io API](https://censys.io/api), which has hostnames gathered from observed certificates. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs. Use `--export` to use the [Censys.io Export API](https://censys.io/api/v1/docs/export), which is faster and more complete but requires researcher credentials.
+
+**Remote or local CSV** - By using any other name besides `censys`, this will define a gatherer based on an HTTP/HTTPS URL or local path to a CSV. Its only option is a flag named after itself. For example, using a gatherer name of `dap` will mean that domain-scan expects `--dap` to point to the URL or local file.
+
+Hostnames found from multiple sources are deduped, and filtered by suffix or base domain according to the options given.
+
+The resulting `gathered.csv` will have the following columns:
+
+* the hostname
+* the hostname's base domain
+* one column for each checked source, with a value of True/False based on the hostname's presence in each source
+
+See [specific usage examples](#gathering-usage-examples) below.
 
 General options:
 
@@ -185,37 +200,45 @@ Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 s
 ./gather censys --suffix=.gov --start=1 --end=2 --delay=5
 ```
 
+### Gathering Usage Examples
+
+To gather .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export):
+
+```bash
+./gather censys --suffix=.gov --export --debug
+```
+
+To gather .gov hostnames from a hosted CSV, such as one from the [Digital Analytics Program](https://analytics.usa.gov):
+
+```bash
+./gather dap --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv
+```
+
+Or to gather federal-only .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export), a remote CSV, and a local CSV:
+
+```bash
+./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://raw.githubusercontent.com/GSA/data/gh-pages/dotgov-domains/current-federal.csv --export
+```
+
 ### a11y setup
 
-Because scanning 1,000+ domains with `pa11y` takes a prohibitively long time, we're relying on [AWS Lambda](https://aws.amazon.com/lambda/) to provide parallelization.
-
-This requires:
-
-1) An AWS account with access to Lambda
-2) A `pa11y-lambda` function (follow the instructions [here](https://github.com/18F/pa11y-lambda)).
-
-Once those are set up, copy the `.env.example` file, rename it `.env` and fill in the following values:
-
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `AWS_REGION_NAME` (`us-east-1` should work fine)
-- `AWS_LAMBDA_PA11Y_FUNCTION_NAME` (whatever you ended up naming the Lambda function)
+`pa11y` expects a config file at `config/pa11y_config.json`. Details and documentation for this config can be found in the [pa11y repo](https://github.com/pa11y/pa11y#configuration).
 
 ---
 
 A brief note on redirects:
 
-For the accessibility scans we're running at 18F, we're using the `inspect` scanner to follow redirects _before_ the accessibility scan runs.  Pulse.cio.gov is set up to show accessibility scans for live, non-redirecting sites.  For example, if aaa.gov redirects to bbb.gov, we will show results for bbb.gov on the site, but not aaa.gov.
+For the accessibility scans we're running at 18F, we're using the `pshtt` scanner to follow redirects _before_ the accessibility scan runs.  Pulse.cio.gov is set up to show accessibility scans for live, non-redirecting sites.  For example, if aaa.gov redirects to bbb.gov, we will show results for bbb.gov on the site, but not aaa.gov.
 
 However, if you want to include results for redirecting site, note the following.  For example, if aaa.gov redirects to bbb.gov, `pa11y` will run against bbb.gov (but the result will be recorded for aaa.gov).
 
-In order to get the benefits of the `inspect` scanner, all `a11y` scans must include it. For example, to scan gsa.gov:
+In order to get the benefits of the `pshtt` scanner, all `a11y` scans must include it. For example, to scan gsa.gov:
 
 ```
-./scan gsa.gov --scanner=inspect,a11y
+./scan gsa.gov --scanner=pshtt,a11y
 ```
 
-Because of `domain-scan`'s caching, all the results of an `inspect` scan will be saved in the `cache/inspect` folder, and probably does not need to be re-run for every single `ally` scan.
+Because of `domain-scan`'s caching, all the results of an `pshtt` scan will be saved in the `cache/pshtt` folder, and probably does not need to be re-run for every single `ally` scan.
 
 ---
 
