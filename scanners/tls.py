@@ -20,9 +20,9 @@ workers = 1
 def scan(domain, options):
     logging.debug("[%s][tls]" % domain)
 
-    # If inspection data exists, check to see if we can skip.
+    # If pshtt data exists, check to see if we can skip.
     if utils.domain_doesnt_support_https(domain):
-        logging.debug("\tSkipping, HTTPS not supported in inspection.")
+        logging.debug("\tSkipping, HTTPS not supported.")
         return None
 
     # cache reformatted JSON from ssllabs
@@ -120,6 +120,7 @@ def scan(domain, options):
             endpoint['details']['sniRequired'],
             h2
         ]
+
 
 headers = [
     "Grade",  # unique to SSL Labs

@@ -5,30 +5,29 @@
 
 Scans domains for data on their HTTPS configuration and assorted other things.
 
-**Most of the work is farmed out to other command line tools.** The point of this project is to **coordinate** those tools and produce **consistent data output**.
+**Much of this work is farmed out to other command line tools.**
 
-Can be used with any domain, or CSV where domains are the first column, such as the [official .gov domain list](https://catalog.data.gov/dataset/gov-domains-api-c9856).
+The point of this project is to **coordinate** and **parallelize** those tools and produce **consistent data output**.
+
+Can be used with any domain, or any CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/raw/gh-pages/dotgov-domains/current-full.csv).
 
 ### Requirements
 
-The requirements here can be quite diverse, because this tool is just a coordinator for other tools. Communication between tools is handled via CLI and STDOUT.
-
-The overall tool requires **Python 3**. To install dependencies:
+`domain-scan` requires **Python 3**. To install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The individual scanners each require their own dependencies. You only need to have the dependencies installed for the scanners you plan to use.
+Some individual scanners require externally installed dependencies:
 
-* `pshtt` scanner: **Python 2** and **[pshtt](https://github.com/dhs-ncats/pshtt)**, ideally installed with `pyenv` via `pip install pshtt`.
-* `tls` scanner: **Go** and **[ssllabs-scan](https://github.com/ssllabs/ssllabs-scan)**, stable branch.
-* `sslyze` scanner: **[sslyze](https://github.com/nabla-c0d3/sslyze)** 1.0 or greater (installed automatically via `requirements.txt`).
-* `pageload` scanner: **Node** and **[phantomas](https://www.npmjs.com/package/phantomas)**, installed through npm.
+* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package.
+* `tls` scanner: The `ssllabs-scan` command, available by compiling and installing from the Go-based [ssllabs-scan](https://github.com/ssllabs/ssllabs-scan) repo (stable branch).
+* `pageload` scanner: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package.
 
 ##### Setting tool paths
 
-By default, domain-scan will expect the paths to any executables to be on the system PATH.
+By default, `domain-scan` will expect the paths to any executables to be on the system PATH.
 
 If you need to point it to a local directory instead, you'll need to set environment variables to override this.
 
@@ -79,7 +78,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
 * `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `analytics` - Participation in an analytics program.
+* `analytics` - Participation in an analytics program. (Optimized for USG.)
 * `pageload` - Page load and rendering metrics.
 * `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
 
@@ -120,13 +119,15 @@ Example: `results/meta.json`
 
 ### Using with Docker
 
-If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this GitHub repository and running:
+If you're using [Docker Compose](https://docs.docker.com/compose/), run:
 
 ```bash
 docker-compose up
 ```
 
-Then to scan, prefix commands with `docker-compose run`, like:
+(You may need to use `sudo`.)
+
+To scan, prefix commands with `docker-compose run`:
 
 ```bash
 docker-compose run scan <domain> --scan=<scanner>
@@ -185,6 +186,7 @@ Options:
 * `--start`: Page number to start on (defaults to `1`)
 * `--end`: Page number to end on (defaults to value of `--start`)
 * `--delay`: Sleep between pages, to meet API limits. Defaults to 5s. If you have researcher access, shorten to 2s.
+* `--query`: Specify the Censys.io search query to use (overwrites the default one based on `--suffix`)
 
 To use the SQL export (which "researcher" accounts can do):
 

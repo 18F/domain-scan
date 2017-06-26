@@ -117,6 +117,7 @@ def main():
 def filter_ip_pair(line):
     return str.split(line, ",")[-1].strip()
 
+
 filters = {'ip_pair': filter_ip_pair}
 
 main()

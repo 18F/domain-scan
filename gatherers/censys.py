@@ -49,6 +49,7 @@ import censys
 wildcard_pattern = re.compile("^\*\.")
 redacted_pattern = re.compile("^(\?\.)+")
 
+
 def gather(suffix, options, extra={}):
     # Register a (free) Censys.io account to get a UID and API key.
     uid = options.get("censys_id", None)
@@ -79,7 +80,10 @@ def paginated_mode(suffix, options, uid, api_key):
 
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
-    query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
+    if 'query' in options and options['query']:
+        query = options['query']
+    else:
+        query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
     logging.debug("Censys query:\n%s\n" % query)
 
     # time to sleep between requests (defaults to 5s)
@@ -160,6 +164,7 @@ def paginated_mode(suffix, options, uid, api_key):
 
     return hostnames_map
 
+
 def export_mode(suffix, options, uid, api_key):
     # Cache hostnames in a dict for de-duping.
     hostnames_map = {}
@@ -170,7 +175,11 @@ def export_mode(suffix, options, uid, api_key):
     # Wait 5 seconds between checking on the job.
     between_jobs = 5
 
-    export_api = export.CensysExport(uid, api_key)
+    try:
+        export_api = export.CensysExport(uid, api_key)
+    except censys.base.CensysUnauthorizedException:
+        logging.warn("The Censys.io Export API rejected the provided Censys credentials. The credentials may be inaccurate, or you may need to request access from the Censys.io team.")
+        exit(1)
 
     # Uses a FLATTEN command in order to work around a BigQuery
     # error around multiple "repeated" fields. *shrug*
@@ -241,8 +250,8 @@ def export_mode(suffix, options, uid, api_key):
                 if name:
                     hostnames_map[sanitize_name(name)] = None
 
-
     return hostnames_map
+
 
 # Given a hostname from Censys, remove * and ? marks.
 def sanitize_name(name):
@@ -252,6 +261,7 @@ def sanitize_name(name):
     name = re.sub(redacted_pattern, '', name).lower().strip()
 
     return name
+
 
 # Hit the API once just to get the last available page number.
 def get_end_page(query, certificate_api):

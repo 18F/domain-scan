@@ -63,4 +63,5 @@ def scan(domain, options):
 
     yield [data['participating']]
 
+
 headers = ["Participates in Analytics"]

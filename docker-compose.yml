@@ -3,12 +3,3 @@ scan:
   build: .
   volumes:
     - ./:/home/scanner
-
-a11y_process:
-  environment:
-    - PYTHONPATH=.
-  dockerfile: Dockerfile.a11y_process
-  build: .
-  volumes:
-    - ./:/home
-  command: python home/scripts/a11y/process_a11y.py --a11y home/results/a11y.csv --domains home/domains.csv
