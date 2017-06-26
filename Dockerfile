@@ -37,7 +37,6 @@ RUN \
       wget \
       zlib1g-dev \
 
-      # Preemptively install these so we don't have to clean up after RVM.
       autoconf \
       automake \
       bison \
@@ -75,26 +74,13 @@ ENV PATH $PYENV_ROOT/bin:$PATH
 
 RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
     && eval "$(pyenv init -)" \
-    && pyenv install 2.7.11 \
-    && pyenv install 3.5.0 \
-    && pyenv local 3.5.0
+    && pyenv install 3.6.1 \
+    && pyenv local 3.6.1
 
 COPY requirements.txt requirements.txt
-RUN pip3 install --upgrade pip
-RUN pip3 install --upgrade setuptools
-RUN pip3 install -r requirements.txt
-
-###
-# Ruby
-
-# Get RVM.
-RUN gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
-RUN curl -sSL https://get.rvm.io | bash -s stable --ruby=2.1.5
-RUN /bin/bash -l -c "rvm --default use 2.1.5"
-
-# Install Bundler for each version of ruby
-RUN /bin/bash -l -c "gem install bundler --no-ri --no-rdoc"
-RUN /bin/bash -l -c "gem install site-inspector -v 1.0.2 --no-ri --no-rdoc"
+RUN pip install --upgrade pip
+RUN pip install --upgrade setuptools
+RUN pip install -r requirements.txt
 
 ###
 # Go
@@ -143,8 +129,7 @@ RUN npm install \
 ###
 # pshtt
 
-RUN PYENV_VERSION=2.7.11 pyenv exec pip install pshtt
-ENV PSHTT_PATH /opt/pyenv/versions/2.7.11/bin/pshtt
+RUN pip install pshtt
 
 ###
 # Create Unprivileged User
@@ -154,8 +139,6 @@ ENV SCANNER_HOME /home/scanner
 RUN mkdir $SCANNER_HOME
 
 COPY . $SCANNER_HOME
-
-RUN echo ". /usr/local/rvm/scripts/rvm" > $SCANNER_HOME/.bashrc
 
 RUN groupadd -r scanner \
   && useradd -r -c "Scanner user" -g scanner scanner \
