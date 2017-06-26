@@ -132,7 +132,7 @@ def scan(domain, options):
     else:
         url = domain
 
-    calculated_domain = re.sub("https?:\/\/", "", url)
+    # calculated_domain = re.sub("https?:\/\/", "", url)
 
     # We'll cache prettified JSON from the output.
     cache = utils.cache_path(domain, "third_parties")
@@ -175,6 +175,7 @@ def scan(domain, options):
         # services['unknown']
     ] + known_matches
 
+
 # Given a 'domains' array from phantomas output, create a data
 # object with data on detected external, internal, and
 # affiliated domains.
@@ -189,7 +190,7 @@ def services_for(data, domain, options):
     hosts = {}
     for string in data['offenders']['domains']:
         pieces = string.split(": ")
-        hostname = pieces[0].lower() # lowercase to be sure
+        hostname = pieces[0].lower()  # lowercase to be sure
         number = int(pieces[1].split(" ")[0])
         hosts[hostname] = number
 
@@ -211,7 +212,7 @@ def services_for(data, domain, options):
         if (
             (base_host == domain) or (www_host == domain) or
             (base_host == www_domain) or (www_host == www_domain)
-            ):
+        ):
             continue
 
         # internal if it shares the same base domain
@@ -250,9 +251,11 @@ def services_for(data, domain, options):
 def clean_domain_output(output):
     return output.split(" ")[0]
 
+
 # Jam multiple domains into one CSV cell.
 def serialize(domains):
     return str.join(', ', domains)
+
 
 base_fields = [
     'Number of External Domains',
