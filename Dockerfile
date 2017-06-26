@@ -155,6 +155,15 @@ RUN mkdir $SCANNER_HOME
 
 COPY . $SCANNER_HOME
 
+###
+# Uncomment the two instructions below to run pshtt scans using a modified trust
+# store that includes the Federal Common Policy CA. This is useful for Federal
+# agencies that are interested in seeing their pshtt status from the perspective
+# of a client footprint that trusts FPKI.
+###
+#ENV REQUESTS_CA_BUNDLE=$SCANNER_HOME/ssl/requests_plus_fcpca.pem
+#RUN echo $REQUESTS_CA_BUNDLE
+
 RUN echo ". /usr/local/rvm/scripts/rvm" > $SCANNER_HOME/.bashrc
 
 RUN groupadd -r scanner \
