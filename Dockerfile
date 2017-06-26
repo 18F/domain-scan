@@ -1,4 +1,4 @@
-# VERSION 0.1.3
+# VERSION 0.3.0
 
 # USAGE
 
@@ -6,8 +6,10 @@ FROM      ubuntu:14.04.4
 MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 
 ###
-# Depenedencies
+# Dependencies
 ###
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN \
     apt-get update \
@@ -29,10 +31,6 @@ RUN \
       libxslt1-dev \
       libyaml-dev \
       make \
-      nodejs \
-      npm \
-      python3-dev \
-      python3-pip \
       unzip \
       wget \
       zlib1g-dev \
@@ -52,58 +50,67 @@ RUN \
       # Additional dependencies for python-build
       libbz2-dev \
       llvm \
-      libncursesw5-dev \
+      libncursesw5-dev
+
+RUN apt-get install \
+      -qq \
+      --yes \
+      --no-install-recommends \
+      --no-install-suggests \
+    nodejs \
+      npm \
+      python3-dev \
+      python3-pip
 
     # Clean up packages.
-    && apt-get clean \
+RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
 
 ###
 ## Python
 
-ENV PYENV_FILE v20160310.zip
+ENV PYENV_RELEASE 1.1.1
+ENV PYENV_PYTHON_VERSION 3.6.1
 ENV PYENV_ROOT /opt/pyenv
+ENV PYENV_REPO https://github.com/pyenv/pyenv
 
-RUN wget https://github.com/yyuu/pyenv/archive/${PYENV_FILE} \
+RUN wget ${PYENV_REPO}/archive/v${PYENV_RELEASE}.zip \
       --no-verbose \
-  && unzip $PYENV_FILE -d $PYENV_ROOT \
-  && mv $PYENV_ROOT/pyenv-20160310/* $PYENV_ROOT/ \
-  && rm -r $PYENV_ROOT/pyenv-20160310
+  && unzip v$PYENV_RELEASE.zip -d $PYENV_ROOT \
+  && mv $PYENV_ROOT/pyenv-$PYENV_RELEASE/* $PYENV_ROOT/ \
+  && rm -r $PYENV_ROOT/pyenv-$PYENV_RELEASE
 
 ENV PATH $PYENV_ROOT/bin:$PATH
 
 RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
     && eval "$(pyenv init -)" \
-    && pyenv install 3.6.1 \
-    && pyenv local 3.6.1
+    && pyenv install $PYENV_PYTHON_VERSION \
+    && pyenv local $PYENV_PYTHON_VERSION
 
 COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip
-RUN pip install --upgrade setuptools
-RUN pip install -r requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade setuptools
+RUN pip3 install -r requirements.txt
 
 ###
 # Go
 
-ENV GOLANG_VERSION 1.3.3
+ENV GOLANG_VERSION 1.8.3
 
-RUN curl -sSL https://golang.org/dl/go${GOLANG_VERSION}.src.tar.gz \
+
+
+RUN curl -sSL https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz \
     | tar -v -C /usr/src -xz
-
-RUN cd /usr/src/go/src \
-      && ./make.bash --no-clean 2>&1
 
 ENV PATH /usr/src/go/bin:$PATH
 ENV GOPATH /go
+ENV GOROOT /usr/src/go
 ENV PATH /go/bin:$PATH
 
 ###
 # Node
 RUN ln -s /usr/bin/nodejs /usr/bin/node
-
-###
-# Installation
-###
 
 ###
 # ssllabs-scan
@@ -129,11 +136,11 @@ RUN npm install \
 ###
 # pshtt
 
-RUN pip install pshtt
+RUN pip3 install pshtt
+
 
 ###
-# Create Unprivileged User
-###
+# Create unprivileged User
 
 ENV SCANNER_HOME /home/scanner
 RUN mkdir $SCANNER_HOME
@@ -142,12 +149,11 @@ COPY . $SCANNER_HOME
 
 RUN groupadd -r scanner \
   && useradd -r -c "Scanner user" -g scanner scanner \
-  && chown -R scanner:scanner ${SCANNER_HOME} \
-  && usermod -a -G rvm scanner
+  && chown -R scanner:scanner ${SCANNER_HOME}
+
 
 ###
 # Prepare to Run
-###
 
 WORKDIR $SCANNER_HOME
 
