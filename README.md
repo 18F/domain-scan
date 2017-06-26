@@ -119,13 +119,15 @@ Example: `results/meta.json`
 
 ### Using with Docker
 
-If using [Docker Compose](https://docs.docker.com/compose/), it is as simple as cloning this GitHub repository and running:
+If you're using [Docker Compose](https://docs.docker.com/compose/), run:
 
 ```bash
 docker-compose up
 ```
 
-Then to scan, prefix commands with `docker-compose run`, like:
+(You may need to use `sudo`.)
+
+To scan, prefix commands with `docker-compose run`:
 
 ```bash
 docker-compose run scan <domain> --scan=<scanner>

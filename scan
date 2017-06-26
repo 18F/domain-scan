@@ -99,7 +99,7 @@ def scan_domains(scanners, domains):
     # Run through each scanner and open a file and CSV for each.
     handles = {}
     for scanner in scanners:
-        name = scanner.__name__.split(".")[-1]  # e.g. 'inspect'
+        name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
         scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
