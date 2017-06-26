@@ -67,12 +67,14 @@ def scan(domain, options):
         # I don't think this tool's threat model includes untrusted CSV, either.
         # raw = utils.unsafe_execute("%s && %s %s %s" % (pyenv_init, command, domain, flags))
 
-        raw = utils.scan([command,
-                         '--json',
-                         '--user-agent', '\"%s\"' % user_agent,
-                         '--timeout', '%i' % timeout,
-                         '--preload-cache', '%s' % preload_cache,
-                         '%s' % domain])
+        raw = utils.scan([
+            command,
+            '--json',
+            '--user-agent', '\"%s\"' % user_agent,
+            '--timeout', '%i' % timeout,
+            '--preload-cache', '%s' % preload_cache,
+            '%s' % domain
+        ])
 
         if not raw:
             utils.write(utils.invalid({}), cache_pshtt)
