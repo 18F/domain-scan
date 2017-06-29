@@ -137,9 +137,14 @@ def scan_domains(scanners, domains):
         else:
             workers = int(options.get("workers", 10))
 
+        if hasattr(scanner, "timeout"):
+            timeout = scanner.timeout
+        else:
+            timeout = None
+
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, options) for domain in domains_from(domains))
-            executor.map(process_scan, tasks)
+            executor.map(process_scan, tasks, timeout=timeout)
 
     # Close up all the files, --sort if requested (expensive).
     for scanner in scanners:
