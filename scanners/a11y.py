@@ -6,7 +6,7 @@ from scanners import utils
 
 
 workers = 3
-timeout = 300000
+timeout = 12
 pa11y = os.environ.get("PA11Y_PATH", "pa11y")
 headers = [
     "redirectedTo",
@@ -62,10 +62,8 @@ def run_a11y_scan(domain, cache):
     logging.debug("[%s][a11y]" % domain)
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
     command = [pa11y, domain, "--reporter", "json", "--config", "config/pa11y_config.json", "--level", "none", "--timeout", "300000"]
-    logging.debug("running this: %s" % command)
     raw = utils.scan(command)
     if raw:
-        logging.debug("got this: %s" % raw)
         results = json.loads(raw)
     else:
         results = [{
