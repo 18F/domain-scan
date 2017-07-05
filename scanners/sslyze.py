@@ -22,9 +22,9 @@ command = os.environ.get("SSLYZE_PATH", "sslyze")
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
-    # Optional: skip domains which don't support HTTPS in prior inspection
+    # Optional: skip domains which don't support HTTPS in pshtt scan.
     if utils.domain_doesnt_support_https(domain):
-        logging.debug("\tSkipping, HTTPS not supported in inspection.")
+        logging.debug("\tSkipping, HTTPS not supported.")
         return None
 
     # Optional: if pshtt data says canonical endpoint uses www and this domain
