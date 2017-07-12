@@ -2,6 +2,8 @@ import json
 import logging
 import os
 
+import yaml
+
 from scanners import utils
 
 
@@ -27,14 +29,16 @@ def get_from_pshtt_cache(domain):
     return pshtt_data
 
 
-def get_domain_to_scan(pshtt_data, domain):
+def get_domain_to_scan(domain):
     domain_to_scan = None
-
-    redirect = pshtt_data.get('Redirect', None)
-    if redirect:
-        domain_to_scan = None
+    with open('config/a11y-redirects.yml', 'r') as f:
+        redirects = yaml.load(f)
+    if domain.upper() in redirects:
+        if not redirects[domain.upper()]['blacklist']:
+            domain_to_scan = redirects[domain.upper()]['redirect']
     else:
         domain_to_scan = domain
+
     return domain_to_scan
 
 
@@ -106,12 +110,14 @@ def get_errors_from_scan_or_cache(domain, options):
 def scan(domain, options):
     logging.debug("[%s][a11y]" % domain)
 
-    #pshtt_data = get_from_pshtt_cache(domain)
-    #domain_to_scan = get_domain_to_scan(pshtt_data, domain)
-    if utils.domain_is_redirect(domain) or utils.domain_not_live(domain):
-        logging.debug("Skipping a11y scan for %s" % domain)
-        return None
-    errors = get_errors_from_scan_or_cache(domain, options)
+    domain_to_scan = get_domain_to_scan(domain)
+    if (utils.domain_is_redirect(domain) or
+        utils.domain_not_live(domain) or
+        not domain_to_scan):
+            logging.debug("Skipping a11y scan for %s" % domain)
+            return None
+    logging.debug("Running scan for %s" % domain)
+    errors = get_errors_from_scan_or_cache(domain_to_scan, options)
 
     for data in errors:
         logging.debug("Writing data for %s" % domain)
