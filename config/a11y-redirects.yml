@@ -1,18 +1,33 @@
-SELECTUSA.GOV:
+selectusa.gov:
   redirect: https://www.selectusa.gov/welcome
   blacklist: false
-FLIGHTSCHOOLCANDIDATES.GOV:
-  redirect: https://www.flightschoolcandidates.gov/afsp2/?acct_type=c&section=WN
+flightschoolcandidates.gov:
+  redirect: https://www.flightschoolcandidates.gov/afsp2/?acct_type=c&section=wn
   blacklist: false
-NATIONALHOUSING.GOV:
-  redirect: https://portal.hud.gov/hudportal/HUD
-  blacklist: false
-ONHIR.GOV:
+onhir.gov:
   redirect: https://www.doi.gov/
   blacklist: false
-BANKNET.GOV:
+banknet.gov:
   redirect: https://www.banknet.gov/entrance/default.html
   blacklist: false
-BROADBAND.GOV:
+broadband.gov:
   redirect: https://www.fcc.gov/general/national-broadband-plan
+  blacklist: false
+privacyshield.gov:
+  redirect: https://www.privacyshield.gov/welcome
+  blacklist: false
+nationalhousinglocator.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+disasterhousing.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+nls.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+nationalhousing.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+nationalbanknet.gov:
+  redirect: https://www.banknet.gov/entrance/default.html
   blacklist: false

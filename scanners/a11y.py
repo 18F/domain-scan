@@ -33,9 +33,9 @@ def get_domain_to_scan(domain):
     domain_to_scan = None
     with open('config/a11y-redirects.yml', 'r') as f:
         redirects = yaml.load(f)
-    if domain.upper() in redirects:
-        if not redirects[domain.upper()]['blacklist']:
-            domain_to_scan = redirects[domain.upper()]['redirect']
+    if domain in redirects:
+        if not redirects[domain]['blacklist']:
+            domain_to_scan = redirects[domain]['redirect']
     else:
         domain_to_scan = domain
 
@@ -67,9 +67,7 @@ def run_a11y_scan(domain, cache):
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
     command = [pa11y, domain, "--reporter", "json", "--config", "config/pa11y_config.json", "--level", "none", "--timeout", "300000"]
     raw = utils.scan(command)
-    if raw:
-        results = json.loads(raw)
-    else:
+    if not raw or raw == '[]\n':
         results = [{
             'typeCode': '',
             'code': '',
@@ -78,6 +76,8 @@ def run_a11y_scan(domain, cache):
             'selector': '',
             'type': ''
         }]
+    else:
+        results = json.loads(raw)
 
     cache_errors(results, domain, cache)
 
