@@ -15,9 +15,6 @@ command = os.environ.get("TRUSTYMAIL_PATH", "trustymail")
 # default to a long timeout
 timeout = 30
 
-# default to a custom user agent, can be overridden
-user_agent = os.environ.get("TRUSTYMAIL_USER_AGENT", "github.com/18f/domain-scan, trustymail.py")
-
 
 def scan(domain, options):
     logging.debug("[%s][trustymail]" % domain)
@@ -25,7 +22,7 @@ def scan(domain, options):
     # cache output from pshtt
     cache_trustymail = utils.cache_path(domain, "trustymail", ext="json")
 
-    if (os.path.exists(cache_trustymail)):
+    if os.path.exists(cache_trustymail):
         logging.debug("\tCached.")
         raw = open(cache_trustymail).read()
         data = json.loads(raw)
@@ -56,11 +53,6 @@ def scan(domain, options):
     row = []
     for field in headers:
         value = data[field]
-
-        # # TODO: Fix this upstream
-        # if (field != "HSTS Header") and (field != "HSTS Max Age") and (field != "Redirect To"):
-        #     if value is None:
-        #         value = False
 
         row.append(value)
 
