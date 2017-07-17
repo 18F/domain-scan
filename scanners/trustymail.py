@@ -63,6 +63,6 @@ headers = [
     "Live", "Sends Mail", "Mail Servers",
     "SPF Record", "Valid SPF", "SPF Results",
     "DMARC Record", "Valid DMARC", "DMARC Results",
-    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain",
+    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain", "DMARC Policy",
     "Syntax Errors"
 ]
