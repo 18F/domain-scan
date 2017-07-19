@@ -65,7 +65,8 @@ def cache_errors(errors, domain, cache):
 def run_a11y_scan(domain, cache):
     logging.debug("[%s][a11y]" % domain)
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
-    command = [pa11y, domain, "--reporter", "json", "--config", "config/pa11y_config.json", "--level", "none", "--timeout", "300000"]
+    domain_to_scan = get_domain_to_scan(domain)
+    command = [pa11y, domain_to_scan, "--reporter", "json", "--config", "config/pa11y_config.json", "--level", "none", "--timeout", "300000"]
     raw = utils.scan(command)
     if not raw or raw == '[]\n':
         results = [{
@@ -117,7 +118,7 @@ def scan(domain, options):
             logging.debug("Skipping a11y scan for %s" % domain)
             return None
     logging.debug("Running scan for %s" % domain)
-    errors = get_errors_from_scan_or_cache(domain_to_scan, options)
+    errors = get_errors_from_scan_or_cache(domain, options)
 
     for data in errors:
         logging.debug("Writing data for %s" % domain)

@@ -31,3 +31,12 @@ nationalhousing.gov:
 nationalbanknet.gov:
   redirect: https://www.banknet.gov/entrance/default.html
   blacklist: false
+dea.gov:
+  redirect: https://www.dea.gov/index.shtml
+  blacklist: false
+ourdocuments.gov:
+  redirect: https://www.ourdocuments.gov/index.php?flash=false&
+  blacklist: false
+nmcourt.fed.us:
+  redirect: http://nmcourt.fed.us/web/index.htm
+  blacklist: false
