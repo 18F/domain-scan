@@ -16,7 +16,7 @@ export.gov:
 flightschoolcandidates.gov:
   redirect: https://www.flightschoolcandidates.gov/afsp2/?acct_type=c&section=wn
   blacklist: false
-hydrogen.gov
+hydrogen.gov:
   redirect: https://hydrogen.gov/
   blacklist: false
 nationalhousing.gov:
