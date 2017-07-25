@@ -46,6 +46,9 @@ ourdocuments.gov:
 privacyshield.gov:
   redirect: https://www.privacyshield.gov/welcome
   blacklist: false
+science.gov
+  redirect: https://www.sciencebase.gov/catalog/
+  blacklist: false
 selectusa.gov:
   redirect: https://www.selectusa.gov/welcome
   blacklist: false
