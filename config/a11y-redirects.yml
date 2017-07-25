@@ -46,12 +46,12 @@ ourdocuments.gov:
 privacyshield.gov:
   redirect: https://www.privacyshield.gov/welcome
   blacklist: false
-science.gov
+science.gov:
   redirect: https://www.sciencebase.gov/catalog/
   blacklist: false
 selectusa.gov:
   redirect: https://www.selectusa.gov/welcome
   blacklist: false
-stopfakes.gov
+stopfakes.gov:
   redirect: https://www.stopfakes.gov/welcome
   blacklist: false
