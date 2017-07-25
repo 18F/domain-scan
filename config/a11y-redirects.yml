@@ -52,3 +52,6 @@ science.gov
 selectusa.gov:
   redirect: https://www.selectusa.gov/welcome
   blacklist: false
+stopfakes.gov
+  redirect: https://www.stopfakes.gov/welcome
+  blacklist: false
