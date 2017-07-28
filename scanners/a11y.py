@@ -111,9 +111,9 @@ def scan(domain, options):
     logging.debug("[%s][a11y]" % domain)
 
     domain_to_scan = get_domain_to_scan(domain)
-    if (utils.domain_is_redirect(domain)
-            or utils.domain_not_live(domain)
-            or not domain_to_scan):
+    if (utils.domain_is_redirect(domain) or
+            utils.domain_not_live(domain) or
+            not domain_to_scan):
         logging.debug("Skipping a11y scan for %s" % domain)
         return None
     logging.debug("Running scan for %s" % domain)
