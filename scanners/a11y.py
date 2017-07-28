@@ -8,7 +8,6 @@ from scanners import utils
 
 
 workers = 3
-timeout = 12
 pa11y = os.environ.get("PA11Y_PATH", "pa11y")
 headers = [
     "redirectedTo",
