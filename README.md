@@ -78,7 +78,7 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
 * `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `analytics` - Participation in an analytics program. (Optimized for USG.)
+* `analytics` - Participation in an [`analytics`](https://github.com/18F/analytics-reporter) program. (Optimized for USG.)
 * `pageload` - Page load and rendering metrics.
 * `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
 
