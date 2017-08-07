@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import requests
 
 import yaml
 
@@ -18,6 +19,63 @@ headers = [
     "selector"
 ]
 
+redirects = {}
+
+config = ""
+
+def init(options):
+    global redirects
+    global config
+
+    redirects_file = options.get("a11y_redirects")
+    config_file = options.get("a11y_config")
+
+    # Parse redirects
+    if redirects_file:
+        if not redirects_file.endswith(".yml"):
+            logging.error("--a11y_redirects should be a YML file")
+            return False
+        # if remote, try to download
+        if redirects_file.startswith("http:") or redirects_file.startswith("https:"):
+            redirects_path = os.path.join(utils.cache_dir(), "a11y_redirects.yml")
+
+            try:
+                response = requests.get(redirects_file)
+                utils.write(response.text, redirects_path)
+            except:
+                logging.error("--a11y_redirects URL not downloaded successfully.")
+                return False
+
+        # Otherwise, read it off the disk
+        else:
+            redirects_path = redirects_file
+
+            if (not os.path.exists(redirects_path)):
+                logging.error("--a11y_redirects file not found.")
+                return False
+
+        with open(redirects_path, 'r') as f:
+            redirects = yaml.load(f)
+    # Get config
+    if config_file:
+        if not config_file.endswith(".json"):
+            logging.error("--a11y_config should be a json file")
+            return False
+        # if remote, try to download
+        if config_file.startswith("http:") or config_file.startswith("https:"):
+            config_path = os.path.join(utils.cache_dir(), "a11y_config.json")
+
+            try:
+                response = requests.get(config_file)
+                utils.write(response.text, config_path)
+            except:
+                logging.error("--a11y_config URL not downloaded successfully.")
+                return False
+
+        config = config_path
+    return True
+
+
 
 def get_from_pshtt_cache(domain):
     pshtt_cache = utils.cache_path(domain, "pshtt")
@@ -29,9 +87,9 @@ def get_from_pshtt_cache(domain):
 
 
 def get_domain_to_scan(domain):
+    global redirects
+
     domain_to_scan = None
-    with open('config/a11y-redirects.yml', 'r') as f:
-        redirects = yaml.load(f)
     if domain in redirects:
         if not redirects[domain]['blacklist']:
             domain_to_scan = redirects[domain]['redirect']
@@ -62,10 +120,13 @@ def cache_errors(errors, domain, cache):
 
 
 def run_a11y_scan(domain, cache):
+    global config
     logging.debug("[%s][a11y]" % domain)
     pa11y = os.environ.get("PA11Y_PATH", "pa11y")
     domain_to_scan = get_domain_to_scan(domain)
-    command = [pa11y, domain_to_scan, "--reporter", "json", "--config", "config/pa11y_config.json", "--level", "none", "--timeout", "300000"]
+    command = [pa11y, domain_to_scan, "--reporter", "json", "--level", "none", "--timeout", "300000"]
+    if config:
+        command += ["--config", config]
     raw = utils.scan(command)
     if not raw or raw == '[]\n':
         results = [{
