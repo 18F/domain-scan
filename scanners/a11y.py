@@ -23,6 +23,7 @@ redirects = {}
 
 config = ""
 
+
 def init(options):
     global redirects
     global config
@@ -74,7 +75,6 @@ def init(options):
 
         config = config_path
     return True
-
 
 
 def get_from_pshtt_cache(domain):
