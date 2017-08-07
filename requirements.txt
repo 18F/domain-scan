@@ -1,6 +1,7 @@
 ipython
 requests
 strict-rfc3339
+pyyaml
 
 # to support sslyze scanner
 sslyze

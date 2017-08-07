@@ -136,7 +136,7 @@ RUN npm install \
 ###
 # pshtt
 
-RUN pip3 install pshtt
+RUN pip3 install pshtt==0.2.1
 
 
 ###

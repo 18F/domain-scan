@@ -1,6 +1,5 @@
 {
   "standard": "WCAG2AA",
-  "wait": 500,
   "ignore": [
     "notice",
     "warning",

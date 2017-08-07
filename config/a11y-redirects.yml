@@ -1,0 +1,63 @@
+banknet.gov:
+  redirect: https://www.banknet.gov/entrance/default.html
+  blacklist: false
+broadband.gov:
+  redirect: https://www.fcc.gov/general/national-broadband-plan
+  blacklist: false
+dea.gov:
+  redirect: https://www.dea.gov/index.shtml
+  blacklist: false
+disasterhousing.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+export.gov:
+  redirect: https://www.export.gov/welcome
+  blacklist: false
+flightschoolcandidates.gov:
+  redirect: https://www.flightschoolcandidates.gov/afsp2/?acct_type=c&section=wn
+  blacklist: false
+gsaauctions.gov:
+  redirect: https://gsaauctions.gov/gsaauctions/gsaauctions/
+  blacklist: false
+hydrogen.gov:
+  redirect: https://hydrogen.gov/
+  blacklist: false
+nationalhousing.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+nationalhousinglocator.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+nationalbanknet.gov:
+  redirect: https://www.banknet.gov/entrance/default.html
+  blacklist: false
+nls.gov:
+  redirect: https://portal.hud.gov/hudportal/hud
+  blacklist: true
+nmcourt.fed.us:
+  redirect: http://nmcourt.fed.us/web/index.htm
+  blacklist: false
+onhir.gov:
+  redirect: https://www.doi.gov/
+  blacklist: false
+ourdocuments.gov:
+  redirect: https://www.ourdocuments.gov/index.php?flash=false&
+  blacklist: false
+privacyshield.gov:
+  redirect: https://www.privacyshield.gov/welcome
+  blacklist: false
+science.gov:
+  redirect: https://www.sciencebase.gov/catalog/
+  blacklist: false
+selectusa.gov:
+  redirect: https://www.selectusa.gov/welcome
+  blacklist: false
+stopfakes.gov:
+  redirect: https://www.stopfakes.gov/welcome
+  blacklist: false
+sciencebase.gov:
+  redirect: https://www.sciencebase.gov/catalog/
+  blacklist: false
+realestatesales.gov:
+  redirect: https://realestatesales.gov/gsaauctions/gsaauctions/
+  blacklist: false
