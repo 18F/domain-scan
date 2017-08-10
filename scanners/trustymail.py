@@ -22,7 +22,9 @@ def scan(domain, options):
     # cache output from pshtt
     cache_trustymail = utils.cache_path(domain, "trustymail", ext="json")
 
-    if os.path.exists(cache_trustymail):
+    force = options.get("force", False)
+
+    if (force is False) and (os.path.exists(cache_trustymail)):
         logging.debug("\tCached.")
         raw = open(cache_trustymail).read()
         data = json.loads(raw)
