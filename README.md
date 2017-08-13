@@ -21,7 +21,8 @@ pip install -r requirements.txt
 
 Some individual scanners require externally installed dependencies:
 
-* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package.
+* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from [DHS NCATS](https://github.com/dhs-ncats/services#services).
+* `trustymail` scanner: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from [DHS NCATS](https://github.com/dhs-ncats/services#services).
 * `tls` scanner: The `ssllabs-scan` command, available by compiling and installing from the Go-based [ssllabs-scan](https://github.com/ssllabs/ssllabs-scan) repo (stable branch).
 * `pageload` scanner: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package.
 
@@ -75,7 +76,8 @@ Parallelization will also cause the resulting domains to be written in an unpred
 
 **Scanners:**
 
-* `pshtt` - HTTP/HTTPS/HSTS configuration with the python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
+* `pshtt` - HTTP/HTTPS/HSTS configuration with the Python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
+* `trustymail` - MX/SPF/DMARC configuration with the Python-only [`trustymail`](https://github.com/dhs-ncats/trustymail) tool.
 * `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
 * `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
 * `analytics` - Participation in an analytics program. (Optimized for USG.)
