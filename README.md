@@ -21,8 +21,8 @@ pip install -r requirements.txt
 
 Some individual scanners require externally installed dependencies:
 
-* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from [DHS NCATS](https://github.com/dhs-ncats/services#services).
-* `trustymail` scanner: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from [DHS NCATS](https://github.com/dhs-ncats/services#services).
+* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from [DHS NCATS](https://github.com/dhs-ncats).
+* `trustymail` scanner: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from [DHS NCATS](https://github.com/dhs-ncats).
 * `tls` scanner: The `ssllabs-scan` command, available by compiling and installing from the Go-based [ssllabs-scan](https://github.com/ssllabs/ssllabs-scan) repo (stable branch).
 * `pageload` scanner: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package.
 
