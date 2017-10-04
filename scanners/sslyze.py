@@ -65,7 +65,7 @@ def scan(domain, options):
             "--reneg", "--resum", "--certinfo",
             "--http_get", "--hide_rejected_ciphers",
             "--compression", "--openssl_ccs",
-            "--fallback", "--quiet",
+            "--fallback", "--http_headers", "--quiet",
             scan_domain, "--json_out=%s" % cache_json
         ])
 
@@ -105,6 +105,8 @@ def scan(domain, options):
         data['certs'].get('not_before'), data['certs'].get('not_after'),
         data['certs'].get('served_issuer'), data['certs'].get('constructed_issuer'),
 
+        data['config']['hsts_enabled'], data['config']['hsts_sub'],
+>       data['config']['hsts_age'], data['config']['hsts_pre'],
         data.get('errors')
     ]
 
@@ -123,6 +125,8 @@ headers = [
     "SHA-1 in Constructed Chain",
     "Not Before", "Not After",
     "Highest Served Issuer", "Highest Constructed Issuer",
+    
+    "HSTS Enabled","HSTS Subdomains","HSTS Age","HSTS Preload",
 
     "Errors"
 ]
@@ -170,6 +174,17 @@ def parse_sslyze(raw_json):
     # if ocsp:
     #     data['config']['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
 
+    data['config']['hsts_enabled'] = False
+    data['config']['hsts_sub'] = False
+    data['config']['hsts_age'] = 0
+    data['config']['hsts_pre'] = False
+
+    if target['http_headers']['hsts_header'] != None:
+        data['config']['hsts_enabled'] = True
+        data['config']['hsts_sub'] = target['http_headers']['hsts_header']['include_subdomains']
+        data['config']['hsts_age'] = target['http_headers']['hsts_header']['max_age']
+        data['config']['hsts_pre'] = target['http_headers']['hsts_header']['preload']
+    
     accepted_ciphers = (
         target['sslv2'].get("accepted_cipher_list", []) +
         target['sslv3'].get("accepted_cipher_list", []) +
