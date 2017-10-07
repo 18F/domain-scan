@@ -94,5 +94,5 @@ headers = [
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preload Pending", "HSTS Preloaded",
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
-    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", "Unknown Error"
+    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", "Unknown Error",
 ]
