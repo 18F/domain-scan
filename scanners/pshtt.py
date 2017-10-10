@@ -88,10 +88,11 @@ def scan(domain, options):
 
 headers = [
     "Canonical URL", "Live", "Redirect", "Redirect To",
-    "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS", "Strictly Forces HTTPS",
-    "HTTPS Bad Chain", "HTTPS Bad Hostname", "HTTPS Expired Cert",
+    "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS",
+    "Strictly Forces HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
+    "HTTPS Expired Cert", "HTTPS Self Signed Cert",
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preload Pending", "HSTS Preloaded",
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
-    "Domain Enforces HTTPS", "Domain Uses Strong HSTS"
+    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", "Unknown Error",
 ]
