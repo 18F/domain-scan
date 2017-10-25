@@ -104,7 +104,20 @@ def scan(domain, options):
         if npn:
             spdy = ("spdy" in npn)
             h2 = ("h2" in npn)
+            
+        hstsheader = False
+        hstsstatus = False
+        hstsage = False
 
+        if endpoint['details']['hstsPolicy']:
+            if endpoint['details']['hstsPolicy']['status'] == 'present':
+                hstsheader = endpoint['details']['hstsPolicy']['header']
+                hstsstatus = endpoint['details']['hstsPolicy']['status']
+                if endpoint['details']['hstsPolicy']['maxAge']:
+                    hstsage = endpoint['details']['hstsPolicy']['maxAge']
+            else:
+                hstsstatus = endpoint['details']['hstsPolicy']['status']
+            
         yield [
             endpoint['grade'],
             endpoint['details']['cert']['sigAlg'],
@@ -118,6 +131,9 @@ def scan(domain, options):
             tlsv12,
             spdy,
             endpoint['details']['sniRequired'],
+            hstsheader,
+            hstsstatus,
+            hstsage,
             h2
         ]
 
@@ -129,5 +145,6 @@ headers = [
     "Fallback SCSV",  # good things
     "RC4", "SSLv3",  # old things
     "TLSv1.2", "SPDY", "Requires SNI",  # forward
+    "HSTS Header", "HSTS Status", "HSTS Age",
     "HTTP/2"  # ever forward
 ]
