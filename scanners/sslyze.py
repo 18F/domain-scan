@@ -97,6 +97,7 @@ def scan(domain, options):
         data['config'].get('any_dhe'), data['config'].get('all_dhe'),
         data['config'].get('weakest_dh'),
         data['config'].get('any_rc4'), data['config'].get('all_rc4'),
+        data['config'].get('any_3des'),
 
         data['certs'].get('key_type'), data['certs'].get('key_length'),
         data['certs'].get('leaf_signature'),
@@ -116,6 +117,7 @@ headers = [
     "Any Forward Secrecy", "All Forward Secrecy",
     "Weakest DH Group Size",
     "Any RC4", "All RC4",
+    "Any 3DES",
 
     "Key Type", "Key Length",
     "Signature Algorithm",
@@ -186,12 +188,17 @@ def parse_sslyze(raw_json):
         any_dhe = False
         all_rc4 = True
         all_dhe = True
+        any_3des = False
+
         for cipher in accepted_ciphers:
             name = cipher["openssl_name"]
             if "RC4" in name:
                 any_rc4 = True
             else:
                 all_rc4 = False
+
+            if ("3DES" in name) or ("DES-CBC3" in name):
+                any_3des = True
 
             if name.startswith("DHE-") or name.startswith("ECDHE-"):
                 any_dhe = True
@@ -202,6 +209,7 @@ def parse_sslyze(raw_json):
         data['config']['all_rc4'] = all_rc4
         data['config']['any_dhe'] = any_dhe
         data['config']['all_dhe'] = all_dhe
+        data['config']['any_3des'] = any_3des
 
         # Find the weakest available DH group size, if any are available.
         weakest_dh = 1234567890  # nonsense maximum
