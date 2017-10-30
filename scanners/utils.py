@@ -320,7 +320,7 @@ def load_domains(domain_csv, whole_rows=False):
                 continue
 
             row[0] = row[0].lower()
-            
+
             # Skip any header row.
             if (not domains) and (row[0].startswith("domain")):
                 continue
