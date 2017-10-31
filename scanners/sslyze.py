@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 command = os.environ.get("SSLYZE_PATH", "sslyze")
 
 # This timeout is enforced in this file, in Python, not in sslyze.
-timeout = 1
+timeout = 20
 
 
 # Blocked off the scan command to use a forcible timeout
