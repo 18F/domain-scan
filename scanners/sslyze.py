@@ -2,6 +2,8 @@ import logging
 from scanners import utils
 import os
 
+import timeout_decorator
+
 import json
 import cryptography
 import cryptography.hazmat.backends.openssl
@@ -18,6 +20,14 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 
 command = os.environ.get("SSLYZE_PATH", "sslyze")
 
+# This timeout is enforced in this file, in Python, not in sslyze.
+timeout = 20
+
+
+# Blocked off the scan command to use a forcible timeout
+@timeout_decorator.timeout(timeout, use_signals=False)
+def actual_scan(scan_args):
+    return utils.scan(scan_args)
 
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
@@ -59,15 +69,21 @@ def scan(domain, options):
 
         # This is --regular minus --heartbleed
         # See: https://github.com/nabla-c0d3/sslyze/issues/217
-        raw_response = utils.scan([
-            command,
-            "--sslv2", "--sslv3", "--tlsv1", "--tlsv1_1", "--tlsv1_2",
-            "--reneg", "--resum", "--certinfo",
-            "--http_get", "--hide_rejected_ciphers",
-            "--compression", "--openssl_ccs",
-            "--fallback", "--quiet",
-            scan_domain, "--json_out=%s" % cache_json
-        ])
+        raw_response = None
+
+        try:
+            raw_response = actual_scan([
+                command,
+                "--sslv2", "--sslv3", "--tlsv1", "--tlsv1_1", "--tlsv1_2",
+                "--reneg", "--resum", "--certinfo",
+                "--http_get", "--hide_rejected_ciphers",
+                "--compression", "--openssl_ccs",
+                "--fallback", "--quiet",
+                scan_domain, "--json_out=%s" % cache_json
+            ])
+        except timeout_decorator.timeout_decorator.TimeoutError:
+            # logging.warn(utils.format_last_exception())
+            logging.warn("\tTimeout error (%is) running sslyze." % timeout)
 
         if raw_response is None:
             # TODO: save standard invalid JSON data...?
