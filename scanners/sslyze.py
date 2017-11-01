@@ -4,9 +4,15 @@ import os
 
 import timeout_decorator
 
+import sslyze
+from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
+from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
+from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+
 import json
 import cryptography
 import cryptography.hazmat.backends.openssl
+from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 
 ###
@@ -67,38 +73,23 @@ def scan(domain, options):
         # use scan_domain (possibly www-prefixed) to do actual scan
         logging.debug("\t %s %s" % (command, scan_domain))
 
-        # This is --regular minus --heartbleed
-        # See: https://github.com/nabla-c0d3/sslyze/issues/217
         raw_response = None
 
         try:
-            raw_response = actual_scan([
-                command,
-                "--sslv2", "--sslv3", "--tlsv1", "--tlsv1_1", "--tlsv1_2",
-                "--reneg", "--resum", "--certinfo",
-                "--http_get", "--hide_rejected_ciphers",
-                "--compression", "--openssl_ccs",
-                "--fallback", "--quiet",
-                scan_domain, "--json_out=%s" % cache_json
-            ])
+            data = run_sslyze(scan_domain)
         except timeout_decorator.timeout_decorator.TimeoutError:
             # logging.warn(utils.format_last_exception())
             logging.warn("\tTimeout error (%is) running sslyze." % timeout)
 
-        if raw_response is None:
+        if data is None:
             # TODO: save standard invalid JSON data...?
             utils.write(utils.invalid({}), cache_json)
             logging.warn("\tBad news scanning, sorry!")
             return None
 
-        raw_json = utils.scan(["cat", cache_json])
-        if not raw_json:
-            logging.warn("\tBad news reading JSON, sorry!")
-            return None
-
+        # not so raw...
+        raw_json = utils.json_for(data)
         utils.write(raw_json, cache_json)
-
-    data = parse_sslyze(raw_json)
 
     if data is None:
         logging.warn("\tNo valid target for scanning, couldn't connect.")
@@ -145,33 +136,69 @@ headers = [
     "Errors"
 ]
 
+
 # Get the relevant fields out of sslyze's JSON format.
 #
 # Certificate PEM data must be separately parsed using
 # the Python cryptography module.
-#
-# If we were using the sslyze Python API, this would be
-# done for us automatically, but serializing the results
-# to disk for caching would be prohibitively complex.
 
+def run_sslyze(hostname):
+    server_info, scanner = init_sslyze(hostname)
 
-def parse_sslyze(raw_json):
+    logging.debug("\t Running scans...")
 
-    data = json.loads(raw_json)
+    # Initialize commands and result containers
+    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2 = None, None, None, None, None
 
-    # 1. Isolate first successful scanned IP.
-    if len(data['accepted_targets']) == 0:
+    # Queue them all up
+    run_command(Sslv20ScanCommand(), server_info, scanner)
+    run_command(Sslv30ScanCommand(), server_info, scanner)
+    run_command(Tlsv10ScanCommand(), server_info, scanner)
+    run_command(Tlsv11ScanCommand(), server_info, scanner)
+    run_command(Tlsv12ScanCommand(), server_info, scanner)
+    run_command(CertificateInfoScanCommand(), server_info, scanner)
+
+    # Reassign them back to predictable places after they're all done
+    was_error = False
+    for result in scanner.get_results():
+        try:
+            if isinstance(result, PluginRaisedExceptionScanResult):
+                logging.warn(u'Scan command failed: {}'.format(result.as_text()))
+                return None
+
+            if type(result.scan_command) == Sslv20ScanCommand:
+                sslv2 = result
+            elif type(result.scan_command) == Sslv30ScanCommand:
+                sslv3 = result
+            elif type(result.scan_command) == Tlsv10ScanCommand:
+                tlsv1 = result
+            elif type(result.scan_command) == Tlsv11ScanCommand:
+                tlsv1_1 = result
+            elif type(result.scan_command) == Tlsv12ScanCommand:
+                tlsv1_2 = result
+            elif type(result.scan_command) == CertificateInfoScanCommand:
+                certs = result
+            else:
+                logging.warn("\tCouldn't match scan result with command! %s" % result)
+                was_error = True
+
+        except Exception as err:
+            logging.warn("\t Exception inside async scanner result processing.")
+            was_error = True
+            utils.notify(err)
+
+    # There was an error during async processing.
+    if was_error:
         return None
-    target = data['accepted_targets'][0]['commands_results']
 
-    # Protocol version support.
+    # Parse the results into a dict, which will also be cached as JSON.
     data = {
         'protocols': {
-            'sslv2': supported_protocol(target, 'sslv2'),
-            'sslv3': supported_protocol(target, 'sslv3'),
-            'tlsv1.0': supported_protocol(target, 'tlsv1'),
-            'tlsv1.1': supported_protocol(target, 'tlsv1_1'),
-            'tlsv1.2': supported_protocol(target, 'tlsv1_2')
+            'sslv2': supported_protocol(sslv2),
+            'sslv3': supported_protocol(sslv3),
+            'tlsv1.0': supported_protocol(tlsv1),
+            'tlsv1.1': supported_protocol(tlsv1_1),
+            'tlsv1.2': supported_protocol(tlsv1_2)
         },
 
         'config': {},
@@ -181,19 +208,12 @@ def parse_sslyze(raw_json):
         'errors': None
     }
 
-    # TODO: Whether OCSP stapling is enabled.
-    # Relevant fields: https://nabla-c0d3.github.io/sslyze/documentation/available-scan-commands.html#sslyze.plugins.certificate_info_plugin.CertificateInfoScanResult.ocsp_response
-
-    # ocsp = target.select_one('ocspStapling')
-    # if ocsp:
-    #     data['config']['ocsp_stapling'] = (ocsp["isSupported"] == 'True')
-
     accepted_ciphers = (
-        target['sslv2'].get("accepted_cipher_list", []) +
-        target['sslv3'].get("accepted_cipher_list", []) +
-        target['tlsv1'].get("accepted_cipher_list", []) +
-        target['tlsv1_1'].get("accepted_cipher_list", []) +
-        target['tlsv1_2'].get("accepted_cipher_list", [])
+        (sslv2.accepted_cipher_list or []) +
+        (sslv3.accepted_cipher_list or []) +
+        (tlsv1.accepted_cipher_list or []) +
+        (tlsv1_1.accepted_cipher_list or []) +
+        (tlsv1_2.accepted_cipher_list or [])
     )
 
     if len(accepted_ciphers) > 0:
@@ -207,7 +227,7 @@ def parse_sslyze(raw_json):
         any_3des = False
 
         for cipher in accepted_ciphers:
-            name = cipher["openssl_name"]
+            name = cipher.openssl_name
             if "RC4" in name:
                 any_rc4 = True
             else:
@@ -230,8 +250,8 @@ def parse_sslyze(raw_json):
         # Find the weakest available DH group size, if any are available.
         weakest_dh = 1234567890  # nonsense maximum
         for cipher in accepted_ciphers:
-            if cipher.get('dh_info', None) is not None:
-                size = int(cipher['dh_info']['GroupSize'])
+            if cipher.dh_info is not None:
+                size = int(cipher.dh_info['GroupSize'])
                 if size < weakest_dh:
                     weakest_dh = size
 
@@ -240,71 +260,65 @@ def parse_sslyze(raw_json):
 
         data['config']['weakest_dh'] = weakest_dh
 
-    # If there was an exception parsing the certificate, catch it before fetching cert info.
-    if False:
-        data['errors'] = "TODO"
+    # Served chain.
+    served_chain = certs.certificate_chain
 
+    # Constructed chain may not be there if it didn't validate.
+    constructed_chain = certs.verified_certificate_chain
+
+    highest_served = parse_cert(served_chain[-1])
+    issuer = cert_issuer_name(highest_served)
+
+    if issuer:
+        data['certs']['served_issuer'] = issuer
     else:
+        data['certs']['served_issuer'] = "(None found)"
 
-        # Served chain.
-        served_chain = target['certinfo']['certificate_chain']
-
-        # Constructed chain may not be there if it didn't validate.
-        constructed_chain = target['certinfo']['verified_certificate_chain']
-
-        highest_served = parse_cert(served_chain[-1])
-        issuer = cert_issuer_name(highest_served)
-
+    if (constructed_chain and (len(constructed_chain) > 0)):
+        highest_constructed = parse_cert(constructed_chain[-1])
+        issuer = cert_issuer_name(highest_constructed)
         if issuer:
-            data['certs']['served_issuer'] = issuer
+            data['certs']['constructed_issuer'] = issuer
         else:
-            data['certs']['served_issuer'] = "(None found)"
+            data['certs']['constructed_issuer'] = "(None constructed)"
 
-        if (constructed_chain and (len(constructed_chain) > 0)):
-            highest_constructed = parse_cert(constructed_chain[-1])
-            issuer = cert_issuer_name(highest_constructed)
-            if issuer:
-                data['certs']['constructed_issuer'] = issuer
-            else:
-                data['certs']['constructed_issuer'] = "(None constructed)"
+    leaf = parse_cert(served_chain[0])
+    leaf_key = leaf.public_key()
 
-        leaf = parse_cert(served_chain[0])
-        leaf_key = leaf.public_key()
+    if hasattr(leaf_key, "key_size"):
+        data['certs']['key_length'] = leaf_key.key_size
+    elif hasattr(leaf_key, "curve"):
+        data['certs']['key_length'] = leaf_key.curve.key_size
+    else:
+        data['certs']['key_length'] = None
 
-        if hasattr(leaf_key, "key_size"):
-            data['certs']['key_length'] = leaf_key.key_size
-        elif hasattr(leaf_key, "curve"):
-            data['certs']['key_length'] = leaf_key.curve.key_size
-        else:
-            data['certs']['key_length'] = None
+    if isinstance(leaf_key, rsa.RSAPublicKey):
+        leaf_key_type = "RSA"
+    elif isinstance(leaf_key, dsa.DSAPublicKey):
+        leaf_key_type = "DSA"
+    elif isinstance(leaf_key, ec.EllipticCurvePublicKey):
+        leaf_key_type = "ECDSA"
+    else:
+        leaf_key_type == str(leaf_key.__class__)
 
-        if isinstance(leaf_key, rsa.RSAPublicKey):
-            leaf_key_type = "RSA"
-        elif isinstance(leaf_key, dsa.DSAPublicKey):
-            leaf_key_type = "DSA"
-        elif isinstance(leaf_key, ec.EllipticCurvePublicKey):
-            leaf_key_type = "ECDSA"
-        else:
-            leaf_key_type == str(leaf_key.__class__)
+    data['certs']['key_type'] = leaf_key_type
 
-        data['certs']['key_type'] = leaf_key_type
+    # Signature of the leaf certificate only.
+    data['certs']['leaf_signature'] = leaf.signature_hash_algorithm.name
 
-        # Signature of the leaf certificate only.
-        data['certs']['leaf_signature'] = leaf.signature_hash_algorithm.name
+    # Beginning and expiration dates of the leaf certificate
+    data['certs']['not_before'] = leaf.not_valid_before
+    data['certs']['not_after'] = leaf.not_valid_after
 
-        # Beginning and expiration dates of the leaf certificate
-        data['certs']['not_before'] = leaf.not_valid_before
-        data['certs']['not_after'] = leaf.not_valid_after
+    any_sha1_served = False
+    for cert in served_chain:
+        if parse_cert(cert).signature_hash_algorithm.name == "sha1":
+            any_sha1_served = True
 
-        any_sha1_served = False
-        for cert in served_chain:
-            if parse_cert(cert).signature_hash_algorithm.name == "sha1":
-                any_sha1_served = True
+    data['certs']['any_sha1_served'] = any_sha1_served
 
-        data['certs']['any_sha1_served'] = any_sha1_served
-
-        if data['certs'].get('constructed_issuer'):
-            data['certs']['any_sha1_constructed'] = target['certinfo']['has_sha1_in_certificate_chain']
+    if data['certs'].get('constructed_issuer'):
+        data['certs']['any_sha1_constructed'] = certs.has_sha1_in_certificate_chain
 
     return data
 
@@ -313,7 +327,7 @@ def parse_sslyze(raw_json):
 # the cryptography module to parse its PEM contents.
 def parse_cert(cert):
     backend = cryptography.hazmat.backends.openssl.backend
-    pem_bytes = cert['as_pem'].encode('utf-8')
+    pem_bytes = cert.public_bytes(Encoding.PEM).decode('ascii').encode('utf-8')
     return cryptography.x509.load_pem_x509_certificate(pem_bytes, backend)
 
 
@@ -327,13 +341,40 @@ def cert_issuer_name(parsed):
         return None
     return attrs[0].value
 
+# Given CipherSuiteScanResult, whether the protocol is supported
+def supported_protocol(result):
+    return (len(result.accepted_cipher_list) > 0)
 
-# examines whether the protocol version turned out ot be supported
-def supported_protocol(target, protocol):
-    if target[protocol].get("error_message", None) is not None:
-        logging.debug("Error connecting to %s: %s" % (protocol, target[protocol]["error_message"]))
-        return False
-    elif target[protocol].get("accepted_cipher_list", None) is None:
-        return False
-    else:
-        return (len(target[protocol]["accepted_cipher_list"]) > 0)
+
+## SSlyze boilerplate
+
+def init_sslyze(hostname):
+    try:
+        server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
+    except Exception as err:
+        utils.notify(err)
+        logging.warn("\tUnknown exception when initializing server connectivity info.")
+        return None
+
+    try:
+        server_info.test_connectivity_to_server()
+    except sslyze.server_connectivity.ServerConnectivityError as err:
+        logging.warn("\tServer connectivity not established.")
+        return None
+    except Exception as err:
+        utils.notify(err)
+        logging.warn("\tUnknown exception when performing server connectivity info.")
+        return None
+
+    scanner = ConcurrentScanner()
+
+    return server_info, scanner
+
+def run_command(command, server_info, scanner):
+    try:
+        return scanner.queue_scan_command(server_info, command)
+    except Exception as err:
+        utils.notify(err)
+        logging.warn("Unknown exception running sslyze command.")
+        return None
+
