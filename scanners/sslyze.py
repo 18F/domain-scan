@@ -68,8 +68,6 @@ def scan(domain, options):
         # use scan_domain (possibly www-prefixed) to do actual scan
         logging.debug("\t %s %s" % (command, scan_domain))
 
-        raw_response = None
-
         try:
             # TODO: timeout not actually enforced, due to issues
             # with multiprocessing.
@@ -339,13 +337,13 @@ def cert_issuer_name(parsed):
         return None
     return attrs[0].value
 
+
 # Given CipherSuiteScanResult, whether the protocol is supported
 def supported_protocol(result):
     return (len(result.accepted_cipher_list) > 0)
 
 
-## SSlyze boilerplate
-
+# SSlyze initialization boilerplate
 def init_sslyze(hostname):
     try:
         server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
@@ -368,6 +366,7 @@ def init_sslyze(hostname):
 
     return server_info, scanner
 
+
 def run_command(command, server_info, scanner):
     try:
         return scanner.queue_scan_command(server_info, command)
@@ -375,4 +374,3 @@ def run_command(command, server_info, scanner):
         utils.notify(err)
         logging.warn("Unknown exception running sslyze command.")
         return None
-
