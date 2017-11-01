@@ -30,11 +30,6 @@ command = os.environ.get("SSLYZE_PATH", "sslyze")
 timeout = 20
 
 
-# Blocked off the scan command to use a forcible timeout
-@timeout_decorator.timeout(timeout, use_signals=False)
-def actual_scan(scan_args):
-    return utils.scan(scan_args)
-
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
@@ -76,6 +71,9 @@ def scan(domain, options):
         raw_response = None
 
         try:
+            # TODO: timeout not actually enforced, due to issues
+            # with multiprocessing.
+            # If we have to, we can try single-threading to enforce a timeout.
             data = run_sslyze(scan_domain)
         except timeout_decorator.timeout_decorator.TimeoutError:
             # logging.warn(utils.format_last_exception())
