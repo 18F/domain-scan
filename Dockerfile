@@ -2,7 +2,7 @@
 
 # USAGE
 
-FROM      ubuntu:14.04.4
+FROM      ubuntu:16.04
 MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 
 ###
@@ -34,7 +34,6 @@ RUN \
       unzip \
       wget \
       zlib1g-dev \
-
       autoconf \
       automake \
       bison \
@@ -46,7 +45,6 @@ RUN \
       libtool \
       pkg-config \
       sqlite3 \
-
       # Additional dependencies for python-build
       libbz2-dev \
       llvm \
@@ -57,7 +55,7 @@ RUN apt-get install \
       --yes \
       --no-install-recommends \
       --no-install-suggests \
-    nodejs \
+      nodejs \
       npm \
       python3-dev \
       python3-pip
