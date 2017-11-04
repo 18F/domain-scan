@@ -5,6 +5,7 @@ import os
 import timeout_decorator
 
 import sslyze
+from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
@@ -22,6 +23,11 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 #
 # If data exists for a domain from `pshtt`, will check results
 # and only process domains with valid HTTPS, or broken chains.
+#
+# Supported options:
+#
+# --sslyze-serial - If set, will use a synchronous (single-threaded
+#   in-process) scanner. Defaults to false.
 ###
 
 command = os.environ.get("SSLYZE_PATH", "sslyze")
@@ -72,7 +78,7 @@ def scan(domain, options):
             # TODO: timeout not actually enforced, due to issues
             # with multiprocessing.
             # If we have to, we can try single-threading to enforce a timeout.
-            data = run_sslyze(scan_domain)
+            data = run_sslyze(scan_domain, options)
         except timeout_decorator.timeout_decorator.TimeoutError:
             # logging.warn(utils.format_last_exception())
             logging.warn("\tTimeout error (%is) running sslyze." % timeout)
@@ -138,54 +144,17 @@ headers = [
 # Certificate PEM data must be separately parsed using
 # the Python cryptography module.
 
-def run_sslyze(hostname):
-    server_info, scanner = init_sslyze(hostname)
+def run_sslyze(hostname, options):
+    sync = options.get("sslyze-serial", False)
 
-    logging.debug("\t Running scans...")
+    # Initialize either a synchronous or concurrent scanner.
+    server_info, scanner = init_sslyze(hostname, sync)
 
-    # Initialize commands and result containers
-    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2 = None, None, None, None, None
-
-    # Queue them all up
-    run_command(Sslv20ScanCommand(), server_info, scanner)
-    run_command(Sslv30ScanCommand(), server_info, scanner)
-    run_command(Tlsv10ScanCommand(), server_info, scanner)
-    run_command(Tlsv11ScanCommand(), server_info, scanner)
-    run_command(Tlsv12ScanCommand(), server_info, scanner)
-    run_command(CertificateInfoScanCommand(), server_info, scanner)
-
-    # Reassign them back to predictable places after they're all done
-    was_error = False
-    for result in scanner.get_results():
-        try:
-            if isinstance(result, PluginRaisedExceptionScanResult):
-                logging.warn(u'Scan command failed: {}'.format(result.as_text()))
-                return None
-
-            if type(result.scan_command) == Sslv20ScanCommand:
-                sslv2 = result
-            elif type(result.scan_command) == Sslv30ScanCommand:
-                sslv3 = result
-            elif type(result.scan_command) == Tlsv10ScanCommand:
-                tlsv1 = result
-            elif type(result.scan_command) == Tlsv11ScanCommand:
-                tlsv1_1 = result
-            elif type(result.scan_command) == Tlsv12ScanCommand:
-                tlsv1_2 = result
-            elif type(result.scan_command) == CertificateInfoScanCommand:
-                certs = result
-            else:
-                logging.warn("\tCouldn't match scan result with command! %s" % result)
-                was_error = True
-
-        except Exception as err:
-            logging.warn("\t Exception inside async scanner result processing.")
-            was_error = True
-            utils.notify(err)
-
-    # There was an error during async processing.
-    if was_error:
-        return None
+    # Whether sync or concurrent, get responses for all scans.
+    if sync:
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info)
+    else:
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info)
 
     # Parse the results into a dict, which will also be cached as JSON.
     data = {
@@ -344,7 +313,7 @@ def supported_protocol(result):
 
 
 # SSlyze initialization boilerplate
-def init_sslyze(hostname):
+def init_sslyze(hostname, sync=False):
     try:
         server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
     except Exception as err:
@@ -362,15 +331,93 @@ def init_sslyze(hostname):
         logging.warn("\tUnknown exception when performing server connectivity info.")
         return None
 
-    scanner = ConcurrentScanner()
+    if sync:
+        scanner = SynchronousScanner()
+    else:
+        scanner = ConcurrentScanner()
 
     return server_info, scanner
 
+# Run each scan in-process, one at a time.
+# Takes longer, but no multi-process funny business.
+def scan_serial(scanner, server_info):
+    logging.debug("\tRunning scans in serial.")
+    logging.debug("\t\tSSLv2 scan.")
+    sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
+    logging.debug("\t\tSSLv3 scan.")
+    sslv3 = scanner.run_scan_command(server_info, Sslv30ScanCommand())
+    logging.debug("\t\tTLSv1.0 scan.")
+    tlsv1 = scanner.run_scan_command(server_info, Tlsv10ScanCommand())
+    logging.debug("\t\tTLSv1.1 scan.")
+    tlsv1_1 = scanner.run_scan_command(server_info, Tlsv11ScanCommand())
+    logging.debug("\t\tTLSv1.2 scan.")
+    tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
+    logging.debug("\t\tCertificate information scan.")
+    certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+    logging.debug("\tDone scanning.")
 
-def run_command(command, server_info, scanner):
-    try:
-        return scanner.queue_scan_command(server_info, command)
-    except Exception as err:
-        utils.notify(err)
-        logging.warn("Unknown exception running sslyze command.")
+    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
+
+# Run each scan in parallel, using multi-processing.
+# Faster, but can generate many processes.
+def scan_parallel(scanner, server_info):
+    logging.debug("\tRunning scans in parallel.")
+
+    def queue(command):
+        try:
+            return scanner.queue_scan_command(server_info, command)
+        except Exception as err:
+            utils.notify(err)
+            logging.warn("Unknown exception queueing sslyze command.")
+            return None
+
+
+    # Initialize commands and result containers
+    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = None, None, None, None, None, None
+
+    # Queue them all up
+    queue(Sslv20ScanCommand())
+    queue(Sslv30ScanCommand())
+    queue(Tlsv10ScanCommand())
+    queue(Tlsv11ScanCommand())
+    queue(Tlsv12ScanCommand())
+    queue(CertificateInfoScanCommand())
+
+    # Reassign them back to predictable places after they're all done
+    was_error = False
+    for result in scanner.get_results():
+        try:
+            if isinstance(result, PluginRaisedExceptionScanResult):
+                logging.warn(u'Scan command failed: {}'.format(result.as_text()))
+                return None
+
+            if type(result.scan_command) == Sslv20ScanCommand:
+                sslv2 = result
+            elif type(result.scan_command) == Sslv30ScanCommand:
+                sslv3 = result
+            elif type(result.scan_command) == Tlsv10ScanCommand:
+                tlsv1 = result
+            elif type(result.scan_command) == Tlsv11ScanCommand:
+                tlsv1_1 = result
+            elif type(result.scan_command) == Tlsv12ScanCommand:
+                tlsv1_2 = result
+            elif type(result.scan_command) == CertificateInfoScanCommand:
+                certs = result
+            else:
+                logging.warn("\tCouldn't match scan result with command! %s" % result)
+                was_error = True
+
+        except Exception as err:
+            logging.warn("\t Exception inside async scanner result processing.")
+            was_error = True
+            utils.notify(err)
+
+    # There was an error during async processing.
+    if was_error:
         return None
+
+    logging.debug("\tDone scanning.")
+
+    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
+
+
