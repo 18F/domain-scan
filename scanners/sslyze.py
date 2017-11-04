@@ -316,6 +316,9 @@ def supported_protocol(result):
 def init_sslyze(hostname, sync=False):
     try:
         server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
+    except sslyze.server_connectivity.ServerConnectivityError as error:
+        logging.warn("\tServer connectivity not established during initialization.")
+        return None
     except Exception as err:
         utils.notify(err)
         logging.warn("\tUnknown exception when initializing server connectivity info.")
@@ -324,7 +327,7 @@ def init_sslyze(hostname, sync=False):
     try:
         server_info.test_connectivity_to_server()
     except sslyze.server_connectivity.ServerConnectivityError as err:
-        logging.warn("\tServer connectivity not established.")
+        logging.warn("\tServer connectivity not established during test.")
         return None
     except Exception as err:
         utils.notify(err)
