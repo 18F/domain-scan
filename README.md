@@ -174,6 +174,7 @@ General options:
 * `--suffix`: **Required.** suffix to filter on (e.g. `.gov`)
 * `--parents`: A path or URL to a CSV whose first column is second-level domains. Any subdomain not contained within these second-level domains will be excluded.
 * `--include-parents`: Include second-level domains. (Defaults to false.)
+* `--ignore-www`: Ignore the `www.` prefixes of hostnames. If `www.staging.example.com` is found, it will be treated as `staging.example.com`.
 * `--debug`: display extra output
 
 ### `censys`: the Censys.io API
