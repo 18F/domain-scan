@@ -22,8 +22,8 @@ def handler(event, context):
   )
 
   # Results are yielded one by one.
+  output = []
   for result in results:
-    print("Canonical URL: %s" % result['Canonical URL'])
-    print(result)
+    output.append("HSTS for %s: %s" % (result['Domain'], result["HSTS Header"]))
 
-  return ("Scanned %i domains!" % len(results))
+  return "\n".join(output)
