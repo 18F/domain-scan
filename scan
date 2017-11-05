@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import multiprocessing
 import os
 import sys
 import glob
@@ -175,4 +176,10 @@ def domains_from(arg):
 
 
 if __name__ == '__main__':
+
+    # Makes it safer for multi-threaded executions of domain-scan
+    # to make use of the multiprocessing module without causing
+    # deadlocks.
+    multiprocessing.set_start_method('forkserver')
+
     run(options)
