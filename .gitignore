@@ -1,5 +1,6 @@
 /lambda/build
 *.zip
+/lambda/*.txt
 
 /cache
 /data
