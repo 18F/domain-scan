@@ -34,6 +34,7 @@ network_timeout = 5
 
 command = os.environ.get("SSLYZE_PATH", "sslyze")
 
+
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
@@ -152,7 +153,7 @@ def run_sslyze(hostname, options):
     # Initialize either a synchronous or concurrent scanner.
     server_info, scanner = init_sslyze(hostname, options, sync=sync)
 
-    if server_info == None:
+    if server_info is None:
         data['errors'] = "Connectivity not established."
         return data
 
@@ -293,6 +294,7 @@ def analyze_certs(certs):
 
     return data['certs']
 
+
 # Given the cert sub-obj from the sslyze JSON, use
 # the cryptography module to parse its PEM contents.
 def parse_cert(cert):
@@ -368,7 +370,7 @@ def scan_serial(scanner, server_info, options):
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
 
     # Default to cert info on
-    if options.get("sslyze-no-certs", False) == False:
+    if options.get("sslyze-no-certs", False) is False:
         logging.debug("\t\tCertificate information scan.")
         certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
     else:
@@ -403,7 +405,7 @@ def scan_parallel(scanner, server_info, options):
     queue(Tlsv12ScanCommand())
 
     # Default to cert info on.
-    if options.get("sslyze-no-certs", False) == False:
+    if options.get("sslyze-no-certs", False) is False:
         queue(CertificateInfoScanCommand())
 
     # Reassign them back to predictable places after they're all done
