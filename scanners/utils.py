@@ -111,6 +111,12 @@ def write(content, destination, binary=False):
     f.close()
 
 
+def read(source):
+    with open(source) as f:
+        contents = f.read()
+    return contents
+
+
 def report_dir():
     return options().get("output", "./")
 
@@ -191,7 +197,7 @@ def cache_single(filename):
 def data_for(domain, operation):
     path = cache_path(domain, operation)
     if os.path.exists(path):
-        raw = open(path).read()
+        raw = read(path)
         data = json.loads(raw)
         if isinstance(data, dict) and (data.get('invalid', False)):
             return None

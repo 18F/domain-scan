@@ -55,7 +55,7 @@ def scan(domain, options):
 
     if (force is False) and (os.path.exists(cache_json)):
         logging.debug("\tCached.")
-        raw_json = open(cache_json).read()
+        raw_json = utils.read(cache_json)
         try:
             data = json.loads(raw_json)
             if (data.__class__ is dict) and data.get('invalid'):
