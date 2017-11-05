@@ -1,4 +1,5 @@
 /lambda
+*.out
 /cache
 /data
 *.csv
