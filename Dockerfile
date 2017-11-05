@@ -125,16 +125,6 @@ ENV PATH /go/bin:$PATH
 # Node
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
-###
-# ssllabs-scan
-
-RUN mkdir -p /go/src /go/bin \
-      && chmod -R 777 /go
-RUN go get github.com/ssllabs/ssllabs-scan
-RUN cd /go/src/github.com/ssllabs/ssllabs-scan/ \
-      && git checkout stable \
-      && go install
-ENV SSLLABS_PATH /go/bin/ssllabs-scan
 
 ###
 # phantomas
@@ -149,7 +139,12 @@ RUN npm install \
 ###
 # pshtt
 
-RUN pip3 install pshtt==0.2.1
+RUN apt-get install -qq --yes locales
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+RUN pip3 install pshtt
 
 
 ###
