@@ -8,9 +8,14 @@ def handler(event, context):
   # Debug logging.
   utils.configure_logging(True)
 
+  # Read in list of domains from event.
+  domains = event['domains']
+
+  # Strip away protocols.
+  domains = utils.format_domains(domains)
+
   results = pshtt.inspect_domains(
-    # Read in list of domains from event.
-    event['domains'],
+    domains,
 
     # Lambda function timeout overall is 45
     {'timeout': 30}
@@ -18,6 +23,7 @@ def handler(event, context):
 
   # Results are yielded one by one.
   for result in results:
+    print("Canonical URL: %s" % result['Canonical URL'])
     print(result)
 
-  print("Yay!")
+  return ("Scanned %i domains!" % len(results))
