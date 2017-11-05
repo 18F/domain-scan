@@ -158,9 +158,9 @@ def run_sslyze(hostname, options):
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info, options)
     else:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, options)
 
     data['protocols'] = {
         'sslv2': supported_protocol(sslv2),
@@ -222,8 +222,8 @@ def run_sslyze(hostname, options):
 
         data['config']['weakest_dh'] = weakest_dh
 
-    # TODO: do_cert?
-    # data['certs'] = analyze_certs(certs)
+    if certs:
+        data['certs'] = analyze_certs(certs)
 
     return data
 
@@ -354,7 +354,7 @@ def init_sslyze(hostname, options, sync=False):
 
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
-def scan_serial(scanner, server_info):
+def scan_serial(scanner, server_info, options):
     logging.debug("\tRunning scans in serial.")
     logging.debug("\t\tSSLv2 scan.")
     sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
@@ -367,10 +367,12 @@ def scan_serial(scanner, server_info):
     logging.debug("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
 
-    # TODO: do_cert?
-    # logging.debug("\t\tCertificate information scan.")
-    # certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
-    certs = None
+    # Default to cert info off
+    if options.get("sslyze-certs"):
+        logging.debug("\t\tCertificate information scan.")
+        certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+    else:
+        certs = None
 
     logging.debug("\tDone scanning.")
 
@@ -379,7 +381,7 @@ def scan_serial(scanner, server_info):
 
 # Run each scan in parallel, using multi-processing.
 # Faster, but can generate many processes.
-def scan_parallel(scanner, server_info):
+def scan_parallel(scanner, server_info, options):
     logging.debug("\tRunning scans in parallel.")
 
     def queue(command):
@@ -399,8 +401,10 @@ def scan_parallel(scanner, server_info):
     queue(Tlsv10ScanCommand())
     queue(Tlsv11ScanCommand())
     queue(Tlsv12ScanCommand())
-    # TODO: do_cert?
-    # queue(CertificateInfoScanCommand())
+
+    # Default to cert info off
+    if options.get("sslyze-certs"):
+        queue(CertificateInfoScanCommand())
 
     # Reassign them back to predictable places after they're all done
     was_error = False
