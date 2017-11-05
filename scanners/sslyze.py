@@ -28,6 +28,10 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 #   in-process) scanner. Defaults to false.
 ###
 
+# Number of seconds to wait during sslyze connection check.
+# Not much patience here, and very willing to move on.
+network_timeout = 5
+
 command = os.environ.get("SSLYZE_PATH", "sslyze")
 
 def scan(domain, options):
@@ -86,9 +90,9 @@ def scan(domain, options):
 
     yield [
         scan_domain,
-        data['protocols']['sslv2'], data['protocols']['sslv3'],
-        data['protocols']['tlsv1.0'], data['protocols']['tlsv1.1'],
-        data['protocols']['tlsv1.2'],
+        data['protocols'].get('sslv2'), data['protocols'].get('sslv3'),
+        data['protocols'].get('tlsv1.0'), data['protocols'].get('tlsv1.1'),
+        data['protocols'].get('tlsv1.2'),
 
         data['config'].get('any_dhe'), data['config'].get('all_dhe'),
         data['config'].get('weakest_dh'),
@@ -132,10 +136,25 @@ headers = [
 # the Python cryptography module.
 
 def run_sslyze(hostname, options):
+    # Parse the results into a dict, which will also be cached as JSON.
+    data = {
+        'protocols': {},
+
+        'config': {},
+
+        'certs': {},
+
+        'errors': None
+    }
+
     sync = options.get("sslyze-serial", False)
 
     # Initialize either a synchronous or concurrent scanner.
-    server_info, scanner = init_sslyze(hostname, sync)
+    server_info, scanner = init_sslyze(hostname, options, sync=sync)
+
+    if server_info == None:
+        data['errors'] = "Connectivity not established."
+        return data
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
@@ -143,21 +162,12 @@ def run_sslyze(hostname, options):
     else:
         sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info)
 
-    # Parse the results into a dict, which will also be cached as JSON.
-    data = {
-        'protocols': {
-            'sslv2': supported_protocol(sslv2),
-            'sslv3': supported_protocol(sslv3),
-            'tlsv1.0': supported_protocol(tlsv1),
-            'tlsv1.1': supported_protocol(tlsv1_1),
-            'tlsv1.2': supported_protocol(tlsv1_2)
-        },
-
-        'config': {},
-
-        'certs': {},
-
-        'errors': None
+    data['protocols'] = {
+        'sslv2': supported_protocol(sslv2),
+        'sslv3': supported_protocol(sslv3),
+        'tlsv1.0': supported_protocol(tlsv1),
+        'tlsv1.1': supported_protocol(tlsv1_1),
+        'tlsv1.2': supported_protocol(tlsv1_2)
     }
 
     accepted_ciphers = (
@@ -308,26 +318,31 @@ def supported_protocol(result):
 
 
 # SSlyze initialization boilerplate
-def init_sslyze(hostname, sync=False):
+def init_sslyze(hostname, options, sync=False):
+    global network_timeout
+
+    network_timeout = int(options.get("network_timeout", network_timeout))
+
     try:
         server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
     except sslyze.server_connectivity.ServerConnectivityError as error:
         logging.warn("\tServer connectivity not established during initialization.")
-        return None
+        return None, None
     except Exception as err:
         utils.notify(err)
         logging.warn("\tUnknown exception when initializing server connectivity info.")
-        return None
+        return None, None
 
     try:
-        server_info.test_connectivity_to_server()
+        logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
+        server_info.test_connectivity_to_server(network_timeout=network_timeout)
     except sslyze.server_connectivity.ServerConnectivityError as err:
         logging.warn("\tServer connectivity not established during test.")
-        return None
+        return None, None
     except Exception as err:
         utils.notify(err)
         logging.warn("\tUnknown exception when performing server connectivity info.")
-        return None
+        return None, None
 
     if sync:
         scanner = SynchronousScanner()
