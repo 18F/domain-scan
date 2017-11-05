@@ -341,6 +341,7 @@ def init_sslyze(hostname, sync=False):
 
     return server_info, scanner
 
+
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
 def scan_serial(scanner, server_info):
@@ -361,6 +362,7 @@ def scan_serial(scanner, server_info):
 
     return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
 
+
 # Run each scan in parallel, using multi-processing.
 # Faster, but can generate many processes.
 def scan_parallel(scanner, server_info):
@@ -373,7 +375,6 @@ def scan_parallel(scanner, server_info):
             utils.notify(err)
             logging.warn("Unknown exception queueing sslyze command.")
             return None
-
 
     # Initialize commands and result containers
     sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = None, None, None, None, None, None
@@ -422,5 +423,3 @@ def scan_parallel(scanner, server_info):
     logging.debug("\tDone scanning.")
 
     return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
-
-
