@@ -32,6 +32,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 # Not much patience here, and very willing to move on.
 network_timeout = 5
 
+
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
