@@ -367,8 +367,8 @@ def scan_serial(scanner, server_info, options):
     logging.debug("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
 
-    # Default to cert info off
-    if options.get("sslyze-certs"):
+    # Default to cert info on
+    if options.get("sslyze-no-certs", False) == False:
         logging.debug("\t\tCertificate information scan.")
         certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
     else:
@@ -402,8 +402,8 @@ def scan_parallel(scanner, server_info, options):
     queue(Tlsv11ScanCommand())
     queue(Tlsv12ScanCommand())
 
-    # Default to cert info off
-    if options.get("sslyze-certs"):
+    # Default to cert info on.
+    if options.get("sslyze-no-certs", False) == False:
         queue(CertificateInfoScanCommand())
 
     # Reassign them back to predictable places after they're all done
