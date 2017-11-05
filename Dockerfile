@@ -153,8 +153,6 @@ RUN pip3 install pshtt
 ENV SCANNER_HOME /home/scanner
 RUN mkdir $SCANNER_HOME
 
-COPY . $SCANNER_HOME
-
 RUN groupadd -r scanner \
   && useradd -r -c "Scanner user" -g scanner scanner \
   && chown -R scanner:scanner ${SCANNER_HOME}
@@ -169,3 +167,5 @@ WORKDIR $SCANNER_HOME
 VOLUME /data
 
 ENTRYPOINT ["./scan_wrap.sh"]
+
+COPY . $SCANNER_HOME
