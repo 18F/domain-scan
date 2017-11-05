@@ -212,6 +212,15 @@ def run_sslyze(hostname, options):
 
         data['config']['weakest_dh'] = weakest_dh
 
+    # TODO: do_cert?
+    # data['certs'] = analyze_certs(certs)
+
+    return data
+
+
+def analyze_certs(certs):
+    data = {'certs': {}}
+
     # Served chain.
     served_chain = certs.certificate_chain
 
@@ -272,8 +281,7 @@ def run_sslyze(hostname, options):
     if data['certs'].get('constructed_issuer'):
         data['certs']['any_sha1_constructed'] = certs.has_sha1_in_certificate_chain
 
-    return data
-
+    return data['certs']
 
 # Given the cert sub-obj from the sslyze JSON, use
 # the cryptography module to parse its PEM contents.
@@ -343,8 +351,12 @@ def scan_serial(scanner, server_info):
     tlsv1_1 = scanner.run_scan_command(server_info, Tlsv11ScanCommand())
     logging.debug("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
-    logging.debug("\t\tCertificate information scan.")
-    certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+
+    # TODO: do_cert?
+    # logging.debug("\t\tCertificate information scan.")
+    # certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+    certs = None
+
     logging.debug("\tDone scanning.")
 
     return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
@@ -372,7 +384,8 @@ def scan_parallel(scanner, server_info):
     queue(Tlsv10ScanCommand())
     queue(Tlsv11ScanCommand())
     queue(Tlsv12ScanCommand())
-    queue(CertificateInfoScanCommand())
+    # TODO: do_cert?
+    # queue(CertificateInfoScanCommand())
 
     # Reassign them back to predictable places after they're all done
     was_error = False
