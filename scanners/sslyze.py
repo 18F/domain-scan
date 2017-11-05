@@ -333,7 +333,7 @@ def init_sslyze(hostname, options, sync=False):
         return None, None
 
     try:
-        logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
+        # logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
         server_info.test_connectivity_to_server(network_timeout=network_timeout)
     except sslyze.server_connectivity.ServerConnectivityError as err:
         logging.warn("\tServer connectivity not established during test.")
