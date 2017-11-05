@@ -2,8 +2,6 @@ import logging
 from scanners import utils
 import os
 
-import timeout_decorator
-
 import sslyze
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
@@ -31,10 +29,6 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 ###
 
 command = os.environ.get("SSLYZE_PATH", "sslyze")
-
-# This timeout is enforced in this file, in Python, not in sslyze.
-timeout = 20
-
 
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
@@ -74,14 +68,7 @@ def scan(domain, options):
         # use scan_domain (possibly www-prefixed) to do actual scan
         logging.debug("\t %s %s" % (command, scan_domain))
 
-        try:
-            # TODO: timeout not actually enforced, due to issues
-            # with multiprocessing.
-            # If we have to, we can try single-threading to enforce a timeout.
-            data = run_sslyze(scan_domain, options)
-        except timeout_decorator.timeout_decorator.TimeoutError:
-            # logging.warn(utils.format_last_exception())
-            logging.warn("\tTimeout error (%is) running sslyze." % timeout)
+        data = run_sslyze(scan_domain, options)
 
         if data is None:
             # TODO: save standard invalid JSON data...?
