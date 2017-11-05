@@ -2,7 +2,7 @@
 
 # USAGE
 
-FROM      ubuntu:14.04.4
+FROM      ubuntu:16.04
 MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
 
 ###
@@ -34,7 +34,6 @@ RUN \
       unzip \
       wget \
       zlib1g-dev \
-
       autoconf \
       automake \
       bison \
@@ -46,7 +45,6 @@ RUN \
       libtool \
       pkg-config \
       sqlite3 \
-
       # Additional dependencies for python-build
       libbz2-dev \
       llvm \
@@ -57,10 +55,8 @@ RUN apt-get install \
       --yes \
       --no-install-recommends \
       --no-install-suggests \
-    nodejs \
-      npm \
-      python3-dev \
-      python3-pip
+      nodejs \
+      npm
 
     # Clean up packages.
 RUN apt-get clean \
@@ -81,12 +77,29 @@ RUN wget ${PYENV_REPO}/archive/v${PYENV_RELEASE}.zip \
   && mv $PYENV_ROOT/pyenv-$PYENV_RELEASE/* $PYENV_ROOT/ \
   && rm -r $PYENV_ROOT/pyenv-$PYENV_RELEASE
 
-ENV PATH $PYENV_ROOT/bin:$PATH
+#
+# Uncomment these lines if you just want to install python...
+#
+# ENV PATH $PYENV_ROOT/bin:$PYENV_ROOT/versions/${PYENV_PYTHON_VERSION}/bin:$PATH
+# RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
+#     && eval "$(pyenv init -)" \
+#     && pyenv install $PYENV_PYTHON_VERSION \
+#     && pyenv local ${PYENV_PYTHON_VERSION}
 
+#
+# ...uncomment these lines if you want to also debug python code in GDB
+#
+ENV PATH $PYENV_ROOT/bin:$PYENV_ROOT/versions/${PYENV_PYTHON_VERSION}-debug/bin:$PATH
 RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
     && eval "$(pyenv init -)" \
-    && pyenv install $PYENV_PYTHON_VERSION \
-    && pyenv local $PYENV_PYTHON_VERSION
+    && pyenv install --debug --keep $PYENV_PYTHON_VERSION \
+    && pyenv local ${PYENV_PYTHON_VERSION}-debug
+RUN ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python3.6-gdb.py
+RUN ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python3-gdb.py
+RUN ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python-gdb.py
+RUN apt-get -qq update && \
+    apt-get -qq --yes --no-install-recommends --no-install-suggests install gdb
+RUN echo add-auto-load-safe-path /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/ >> etc/gdb/gdbinit
 
 COPY requirements.txt requirements.txt
 RUN pip3 install --upgrade pip
@@ -112,16 +125,6 @@ ENV PATH /go/bin:$PATH
 # Node
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
-###
-# ssllabs-scan
-
-RUN mkdir -p /go/src /go/bin \
-      && chmod -R 777 /go
-RUN go get github.com/ssllabs/ssllabs-scan
-RUN cd /go/src/github.com/ssllabs/ssllabs-scan/ \
-      && git checkout stable \
-      && go install
-ENV SSLLABS_PATH /go/bin/ssllabs-scan
 
 ###
 # phantomas
@@ -136,7 +139,12 @@ RUN npm install \
 ###
 # pshtt
 
-RUN pip3 install pshtt==0.2.1
+RUN apt-get install -qq --yes locales
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+RUN pip3 install pshtt
 
 
 ###
@@ -144,8 +152,6 @@ RUN pip3 install pshtt==0.2.1
 
 ENV SCANNER_HOME /home/scanner
 RUN mkdir $SCANNER_HOME
-
-COPY . $SCANNER_HOME
 
 RUN groupadd -r scanner \
   && useradd -r -c "Scanner user" -g scanner scanner \
@@ -161,3 +167,5 @@ WORKDIR $SCANNER_HOME
 VOLUME /data
 
 ENTRYPOINT ["./scan_wrap.sh"]
+
+COPY . $SCANNER_HOME

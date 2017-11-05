@@ -50,7 +50,7 @@ def scan(domain, options):
 
     if (force is False) and (os.path.exists(cache_pshtt)):
         logging.debug("\tCached.")
-        raw = open(cache_pshtt).read()
+        raw = utils.read(cache_pshtt)
         data = json.loads(raw)
         if (data.__class__ is dict) and data.get('invalid'):
             return None

@@ -6,6 +6,7 @@ pyyaml
 # to support sslyze scanner
 sslyze
 cryptography
+timeout-decorator
 
 # to support censys gatherer
 censys
