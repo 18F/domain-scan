@@ -1,3 +1,6 @@
+/lambda/build
+*.zip
+
 /cache
 /data
 *.csv
