@@ -32,9 +32,6 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 # Not much patience here, and very willing to move on.
 network_timeout = 5
 
-command = os.environ.get("SSLYZE_PATH", "sslyze")
-
-
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)
 
@@ -71,7 +68,7 @@ def scan(domain, options):
 
     else:
         # use scan_domain (possibly www-prefixed) to do actual scan
-        logging.debug("\t %s %s" % (command, scan_domain))
+        logging.debug("\tsslyze %s" % scan_domain)
 
         data = run_sslyze(scan_domain, options)
 
