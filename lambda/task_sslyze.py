@@ -32,7 +32,7 @@ def handler(event, context):
         print("\tNo valid target for scanning, couldn't connect.")
 
     row = [
-        scan_domain,
+        domain,
         data['protocols'].get('sslv2'), data['protocols'].get('sslv3'),
         data['protocols'].get('tlsv1.0'), data['protocols'].get('tlsv1.1'),
         data['protocols'].get('tlsv1.2'),
