@@ -13,3 +13,6 @@ censys
 
 # Ubuntu 14.04 has an old version of six
 six>=1.6
+
+# For Lambda support
+boto3

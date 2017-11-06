@@ -1,19 +1,3 @@
-import logging
-from scanners import utils
-import os
-
-import sslyze
-from sslyze.synchronous_scanner import SynchronousScanner
-from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
-from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
-from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
-
-import json
-import cryptography
-import cryptography.hazmat.backends.openssl
-from cryptography.hazmat.primitives.serialization import Encoding
-from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
-
 ###
 # == sslyze ==
 #
@@ -28,10 +12,30 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 #   in-process) scanner. Defaults to false.
 ###
 
+import os
+
+import sslyze
+from sslyze.synchronous_scanner import SynchronousScanner
+from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
+from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
+from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+
+import json
+import cryptography
+import cryptography.hazmat.backends.openssl
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
+
+# TODO: Might need to change for Lambda entry.
+import logging
+from scanners import utils
+
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.
 network_timeout = 5
 
+##
+# Normal entry point.
 
 def scan(domain, options):
     logging.debug("[%s][sslyze]" % domain)

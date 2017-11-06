@@ -3,14 +3,17 @@
 import os
 import sys
 import glob
-from scanners import utils
 import datetime
 import logging
 import requests
 import importlib
 import shutil
 import csv
+import json
+import boto3
 from concurrent.futures import ThreadPoolExecutor
+
+from scanners import utils
 
 # basic setup - logs, output dirs
 options = utils.options()
@@ -18,6 +21,9 @@ domain_suffix = options.get("suffix")
 utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
+
+# Requires AWS credentials to have been established elsewhere.
+client = boto3.client('lambda')
 
 # some metadata about the scan itself
 start_time = utils.utc_timestamp()
@@ -106,25 +112,17 @@ def scan_domains(scanners, domains):
         scanner_writer.writerow(["Domain", "Base Domain"] + scanner.headers)
 
         handles[scanner] = {
+            'name': name,
             'file': scanner_file,
             'filename': scanner_filename,
             'writer': scanner_writer
         }
 
-    # The task wrapper that's parallelized using executor.map.
-    def process_scan(params):
-        scanner, domain, options = params
-
-        # A scanner can return multiple rows.
-        try:
-            rows = list(scanner.scan(domain, options))
-        except:
-            logging.warn(utils.format_last_exception())
-
-        if rows:
-            for row in rows:
-                if row:
-                    handles[scanner]['writer'].writerow([domain, utils.base_domain_for(domain)] + row)
+    # Experimental!
+    if options.get("lambda", False):
+        scan_method = perform_lambda_scan
+    else:
+        scan_method = perform_local_scan
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.
@@ -138,8 +136,8 @@ def scan_domains(scanners, domains):
             workers = int(options.get("workers", 10))
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            tasks = ((scanner, domain, options) for domain in domains_from(domains))
-            executor.map(process_scan, tasks)
+            tasks = ((scanner, domain, handles, options) for domain in domains_from(domains))
+            executor.map(scan_method, tasks)
 
     # Close up all the files, --sort if requested (expensive).
     for scanner in scanners:
@@ -156,6 +154,67 @@ def scan_domains(scanners, domains):
         'command': start_command
     }
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
+
+
+###
+# Local scan (default).
+def perform_local_scan(params):
+    scanner, domain, handles, options = params
+
+    # A scanner can return multiple rows.
+    try:
+        # This pulls this perticular scan's data all into memory.
+        rows = list(scanner.scan(domain, options))
+    except:
+        logging.warn(utils.format_last_exception())
+
+    # TODO function: write_rows(rows, domain, handles[scanner])
+    if rows:
+        for row in rows:
+            if row:
+                handles[scanner]['writer'].writerow([domain, utils.base_domain_for(domain)] + row)
+
+
+###
+# Lambda-based scan. (Experimental!)
+def perform_lambda_scan(params):
+    scanner, domain, handles, options = params
+
+    # For now, do synchronous Lambda requests, essentially just
+    # farming out the hard work to Lambda. This increases max workers
+    # somewhat, since waiting on responses is much, much cheaper than
+    # performing active scanning.
+    task_prefix = "task_" # default, maybe make optional later
+    task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
+
+    # JSON payload that arrives as the 'event' object in Lambda.
+    payload = {'domain': domain, 'options': options}
+
+    # Assumes Lambda task has already been created and set.
+    try:
+        logging.warn("\tInvoking Lambda function %s with payload:\n%s" % (task_name, payload))
+        api_response = client.invoke(
+            FunctionName=task_name,
+            InvocationType='RequestResponse',
+            LogType='None',
+            # ClientContext='string', # may be useful for passing pshtt data
+            Payload=bytes(utils.json_for(payload), encoding='utf-8')
+        )
+
+        # raw response is a string of a string
+        raw = api_response['Payload'].read()
+        less_raw = json.loads(raw)
+        rows = json.loads(less_raw)
+    except:
+        logging.warn(utils.format_last_exception())
+
+    # TODO function: write_rows(rows, domain, handles[scanner])
+    if rows:
+        for row in rows:
+            if row:
+                handles[scanner]['writer'].writerow([domain, utils.base_domain_for(domain)] + row)
+
+
 
 
 # Yield domain names from a single string, or a CSV of them.

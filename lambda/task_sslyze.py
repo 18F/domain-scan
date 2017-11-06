@@ -52,27 +52,9 @@ def handler(event, context):
         data.get('errors')
     ]
 
-    return json_for(row)
-
-
-headers = [
-    "Scanned Hostname",
-    "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
-
-    "Any Forward Secrecy", "All Forward Secrecy",
-    "Weakest DH Group Size",
-    "Any RC4", "All RC4",
-    "Any 3DES",
-
-    "Key Type", "Key Length",
-    "Signature Algorithm",
-    "SHA-1 in Served Chain",
-    "SHA-1 in Constructed Chain",
-    "Not Before", "Not After",
-    "Highest Served Issuer", "Highest Constructed Issuer",
-
-    "Errors"
-]
+    # Currently expects multiple rows, be explicit.
+    rows = [row]
+    return json_for(rows)
 
 
 # Get the relevant fields out of sslyze's JSON format.
@@ -89,7 +71,7 @@ def run_sslyze(hostname, options):
         'errors': None
     }
 
-    sync = True
+    sync = options.get("sslyze-serial", False)
 
     # Initialize either a synchronous or concurrent scanner.
     server_info, scanner = init_sslyze(hostname, options, sync=sync)
