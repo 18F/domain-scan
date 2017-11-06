@@ -20,27 +20,59 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 network_timeout = 5
 
 def handler(event, context):
-  print(event)
+    print(event)
 
-  options = event.get("options", {})
+    options = event.get("options", {})
 
-  # Results are yielded one by one.
-  output = []
-
-  # Read in list of domains from event.
-  domains = event['domains']
-
-  for domain in domains:
+    # Read in list of domains from event.
+    domain = event['domain']
     data = run_sslyze(domain, options)
 
     if data is None:
         print("\tNo valid target for scanning, couldn't connect.")
-        continue
 
-    print(json_for(data))
-    output.append("Scanned %s" % domain)
+    row = [
+        scan_domain,
+        data['protocols'].get('sslv2'), data['protocols'].get('sslv3'),
+        data['protocols'].get('tlsv1.0'), data['protocols'].get('tlsv1.1'),
+        data['protocols'].get('tlsv1.2'),
 
-  return "\n".join(output)
+        data['config'].get('any_dhe'), data['config'].get('all_dhe'),
+        data['config'].get('weakest_dh'),
+        data['config'].get('any_rc4'), data['config'].get('all_rc4'),
+        data['config'].get('any_3des'),
+
+        data['certs'].get('key_type'), data['certs'].get('key_length'),
+        data['certs'].get('leaf_signature'),
+        data['certs'].get('any_sha1_served'),
+        data['certs'].get('any_sha1_constructed'),
+        data['certs'].get('not_before'), data['certs'].get('not_after'),
+        data['certs'].get('served_issuer'), data['certs'].get('constructed_issuer'),
+
+        data.get('errors')
+    ]
+
+    return json_for(row)
+
+
+headers = [
+    "Scanned Hostname",
+    "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
+
+    "Any Forward Secrecy", "All Forward Secrecy",
+    "Weakest DH Group Size",
+    "Any RC4", "All RC4",
+    "Any 3DES",
+
+    "Key Type", "Key Length",
+    "Signature Algorithm",
+    "SHA-1 in Served Chain",
+    "SHA-1 in Constructed Chain",
+    "Not Before", "Not After",
+    "Highest Served Issuer", "Highest Constructed Issuer",
+
+    "Errors"
+]
 
 
 # Get the relevant fields out of sslyze's JSON format.

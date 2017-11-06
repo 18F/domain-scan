@@ -1,7 +1,11 @@
-##
-# Collection of commands, not meant to be run directly.
+#!/bin/bash
 
-export FUNCTION_NAME=sslyze_test
+##
+# Create a Lambda function from a zip file.
+
+FUNCTION_NAME=$1
+
+echo "Creating function: $FUNCTION_NAME"
 
 # Region and credentials set externally.
 # $AWS_LAMBDA_ROLE is a Role ARN.
@@ -15,7 +19,7 @@ aws lambda create-function \
   --memory-size 128
 
 # Update a function config in-place.
-aws lambda update-function-configuration \
-   --function-name $FUNCTION_NAME  \
-   --timeout 45
-
+#
+# aws lambda update-function-configuration \
+#    --function-name $FUNCTION_NAME  \
+#    --timeout 45
