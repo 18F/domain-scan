@@ -24,6 +24,9 @@ def handler(event, context):
 
     options = event.get("options", {})
 
+    # Force serial. multiprocessing.Queue not supported on Lambda.
+    options["sslyze-serial"] = True
+
     # Read in list of domains from event.
     domain = event['domain']
     data = run_sslyze(domain, options)
@@ -46,15 +49,15 @@ def handler(event, context):
         data['certs'].get('leaf_signature'),
         data['certs'].get('any_sha1_served'),
         data['certs'].get('any_sha1_constructed'),
-        data['certs'].get('not_before'), data['certs'].get('not_after'),
+        format_datetime(data['certs'].get('not_before')),
+        format_datetime(data['certs'].get('not_after')),
         data['certs'].get('served_issuer'), data['certs'].get('constructed_issuer'),
 
         data.get('errors')
     ]
 
     # Currently expects multiple rows, be explicit.
-    rows = [row]
-    return json_for(rows)
+    return [row]
 
 
 # Get the relevant fields out of sslyze's JSON format.
