@@ -2,6 +2,7 @@ import logging
 from scanners import utils
 import os
 import json
+import glob
 
 ###
 # == pshtt ==
@@ -20,22 +21,20 @@ user_agent = os.environ.get("PSHTT_USER_AGENT", "github.com/18f/domain-scan, psh
 
 # save (and look for) preload file in cache/preload-list.json
 # same format as inspect.py uses
-preload_cache = utils.cache_single("preload-list.json")
-
-# save (and look for) preload file in cache/public-suffix-list.json
-public_suffix_cache = utils.cache_single("public-suffix-list.json")
+third_parties_cache = utils.cache_single("pshtt/third_parties")
 
 
 # The preload and public suffix list caches are only important across
 # individual executions of pshtt. They are not intended to be cached across
 # individual executions of domain-scan itself.
 def init(options):
-    if os.path.exists(preload_cache):
-        logging.warn("Clearing cached preload-list.json file before scanning.")
-        os.remove(preload_cache)
-    if os.path.exists(public_suffix_cache):
-        logging.warn("Clearing cached public-suffix-list.json file before scanning.")
-        os.remove(public_suffix_cache)
+
+    if os.path.exists(third_parties_cache):
+        logging.warn("Clearing cached third party pshtt data before scanning.")
+        for path in glob.glob(os.path.join(third_parties_cache, "*")):
+            os.remove(path)
+        os.rmdir(third_parties_cache)
+
     return True
 
 
@@ -64,8 +63,7 @@ def scan(domain, options):
             '--json',
             '--user-agent', '\"%s\"' % user_agent,
             '--timeout', str(timeout),
-            '--preload-cache', preload_cache,
-            '--suffix-cache', public_suffix_cache
+            '--cache-third-parties', third_parties_cache
         ])
 
         if not raw:
