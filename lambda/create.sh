@@ -18,8 +18,3 @@ aws lambda create-function \
   --timeout 30 \
   --memory-size 128
 
-# Update a function config in-place.
-#
-# aws lambda update-function-configuration \
-#    --function-name $FUNCTION_NAME  \
-#    --timeout 45
