@@ -192,6 +192,7 @@ def perform_lambda_scan(params):
 
     # Assumes Lambda task has already been created and set.
     try:
+        logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
         # logging.debug("\tInvoking Lambda function %s with payload:\n%s" % (task_name, payload))
         api_response = client.invoke(
             FunctionName=task_name,
@@ -207,11 +208,12 @@ def perform_lambda_scan(params):
 
         if (type(response) is dict) and (response.get("errorMessage")):
             # TODO: Lambda error message output helper function
-            logging.warn("Lambda error! \n%s" % str(raw, encoding='utf-8'))
+            logging.warn("[%s][%s] Lambda error! \n\t%s" % (domain, task_name, str(raw, encoding='utf-8')))
         elif type(response) is list:
+            # logging.debug(response)
             rows = response
         else:
-            logging.warn("Unknown response type! \n%s" % str(raw, encoding='utf-8'))
+            logging.warn("[%s][%s] Unknown response type! \n\t%s" % (domain, task_name, str(raw, encoding='utf-8')))
 
     except:
         logging.warn(utils.format_last_exception())
