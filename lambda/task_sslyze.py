@@ -27,7 +27,6 @@ def handler(event, context):
     # Force serial. multiprocessing.Queue not supported on Lambda.
     options["sslyze-serial"] = True
 
-    # Read in list of domains from event.
     domain = event['domain']
     data = run_sslyze(domain, options)
 
