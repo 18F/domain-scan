@@ -24,10 +24,8 @@ utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
 
+# Default amount of local workers (threads) per-scanner.
 default_workers = 10
-
-# Will be initiated per-scanner.
-lambda_client = None
 
 # some metadata about the scan itself
 start_time = utils.utc_timestamp()
@@ -181,6 +179,7 @@ def perform_local_scan(params):
     # A scanner can return multiple rows.
     try:
         # This pulls this perticular scan's data all into memory.
+        logging.warn("[%s][%s] Running locally..." % (domain, handles[scanner]['name']))
         rows = list(scanner.scan(domain, options))
     except:
         exception = utils.format_last_exception()
@@ -210,7 +209,7 @@ def perform_lambda_scan(params):
 
     # Assumes Lambda task has already been created and set.
     logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
-        # logging.debug("\tInvoking Lambda function %s with payload:\n%s" % (task_name, payload))
+    # logging.debug("\tInvoking Lambda function %s with payload:\n%s" % (task_name, payload))
 
     try:
         api_response = lambda_client.invoke(
