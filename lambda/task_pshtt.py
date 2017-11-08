@@ -6,8 +6,11 @@ from pshtt import pshtt
 # Debug logging.
 utils.configure_logging(True)
 
-# 30 second network timeouts used by pshtt.
-timeout = 30
+# Recommended total Lambda task timeout.
+timeout = 300
+
+# 30 second timeouts for each individual request used by pshtt.
+pshtt_timeout = 30
 
 def handler(event, context):
   print(event)
@@ -19,7 +22,7 @@ def handler(event, context):
 
   results = pshtt.inspect_domains(
     [domain],
-    {'timeout': timeout}
+    {'timeout': pshtt_timeout}
   )
 
   # Should only be one.

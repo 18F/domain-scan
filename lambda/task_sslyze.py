@@ -15,6 +15,9 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 ###
 # Adapted from domain-scan sslyze scanner.
 
+# Recommended total Lambda task timeout.
+timeout = 45
+
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.
 network_timeout = 5
