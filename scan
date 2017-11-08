@@ -104,6 +104,7 @@ def run(options=None):
 # Produces a CSV for each scan, with each domain and results.
 ###
 def scan_domains(scanners, domains):
+    global lambda_client
 
     # Clear out existing result CSVs, to avoid inconsistent data.
     for result in glob.glob("%s/*.csv" % utils.results_dir()):
