@@ -38,10 +38,11 @@ start_command = str.join(" ", sys.argv)
 # Fields that always get prefixed before scan-specific data.
 prefix_headers = ["Domain", "Base Domain", "Scan Errors"]
 
+lambda_headers = ["Lambda Request ID", "Lambda Log Stream Name"]
+
 ###
 # Entry point. `options` is a dict of CLI flags.
 ###
-
 
 def run(options=None):
 
@@ -117,7 +118,13 @@ def scan_domains(scanners, domains):
         scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
-        scanner_writer.writerow(prefix_headers + scanner.headers)
+
+        # Write the header row, factoring in Lambda fields if needed.
+        headers = prefix_headers + scanner.headers
+        if options.get("lambda", False):
+            headers += lambda_headers
+
+        scanner_writer.writerow(headers)
 
         handles[scanner] = {
             'name': name,
@@ -203,6 +210,7 @@ def perform_lambda_scan(params):
 
     errors = []
     rows = None
+    lambda_fields = {}
 
     # Most of the function in the try block because it's otherwise
     # not easy to do error handling on a worker thread.
@@ -235,7 +243,7 @@ def perform_lambda_scan(params):
         api_response = lambda_client.invoke(
             FunctionName=task_name,
             InvocationType='RequestResponse',
-            LogType='None',
+            LogType='Tail',
             ClientContext=encoded_context,
             Payload=bytes_payload
         )
@@ -243,18 +251,22 @@ def perform_lambda_scan(params):
         raw = str(api_response['Payload'].read(), encoding='utf-8')
         response = json.loads(raw)
 
-        if (type(response) is dict):
-            # TODO: Lambda error message output helper function
-            # TODO: Lambda-specific errors
-            if response.get("errorMessage") is not None:
-                logging.warn("[%s][%s] Lambda error! \n\t%s" % (domain, task_name, raw))
-                errors.append("Lambda error: %s" % raw)
-            else:
-                logging.warn("[%s][%s] Unknown response type! \n\t%s" % (domain, task_name, raw))
-                errors.append("Unknown response from Lambda: %s" % raw)
+        # Store Lambda request ID for reference in Lambda logs.
+        lambda_fields['request_id'] = api_response['ResponseMetadata']['RequestId']
+
+        if response.get("errorMessage") is not None:
+            logging.warn("[%s][%s] Lambda error! \n\t%s" % (domain, task_name, raw))
+            errors.append("Lambda error: %s" % raw)
         else: # type(response) is list:
             # logging.debug(response)
-            rows = response
+
+            # Store other Lambda-specific info per-task.
+            lambda_fields = {**lambda_fields, **response['lambda']}
+
+            # TODO: ping AWS CloudWatch Logs API to get used memory
+            # and billed duration for this task
+
+            rows = response['data']
 
     except botocore.vendored.requests.exceptions.ReadTimeout:
         errors.append("Connection timeout while talking to Lambda.")
@@ -266,12 +278,16 @@ def perform_lambda_scan(params):
     # Wrap this separately to capture previously caught errors,
     # but need to re-wrap it to catch arbitrary exceptions.
     try:
-        write_rows(rows, domain, errors, scanner, handles[scanner]['writer'])
+        # Append Lambda-specific info to each row.
+        field_order = ['request_id', 'log_stream_name']
+        lambda_row = [lambda_fields.get(x) for x in field_order]
+
+        write_rows(rows, domain, errors, scanner, handles[scanner]['writer'], extra_fields=lambda_row)
     except:
         logging.warn(utils.format_last_exception())
 
 
-def write_rows(rows, domain, errors, scanner, csv_writer):
+def write_rows(rows, domain, errors, scanner, csv_writer, extra_fields=[]):
     standard_prefix = [
         domain,
         utils.base_domain_for(domain),
@@ -284,7 +300,7 @@ def write_rows(rows, domain, errors, scanner, csv_writer):
         rows = [empty_row]
 
     for row in rows:
-        csv_writer.writerow(standard_prefix + row)
+        csv_writer.writerow(standard_prefix + row + extra_fields)
 
 # Yield domain names from a single string, or a CSV of them.
 def domains_from(arg):
