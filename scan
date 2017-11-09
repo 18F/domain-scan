@@ -2,6 +2,7 @@
 
 import multiprocessing
 import os
+import uuid
 import sys
 import glob
 import datetime
@@ -11,6 +12,7 @@ import importlib
 import shutil
 import csv
 import json
+import base64
 import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
@@ -26,6 +28,8 @@ utils.mkdir_p(utils.results_dir())
 
 # Default amount of local workers (threads) per-scanner.
 default_workers = 10
+
+lambda_client = None
 
 # some metadata about the scan itself
 start_time = utils.utc_timestamp()
@@ -102,8 +106,6 @@ def run(options=None):
 # Produces a CSV for each scan, with each domain and results.
 ###
 def scan_domains(scanners, domains):
-    global lambda_client
-
     # Clear out existing result CSVs, to avoid inconsistent data.
     for result in glob.glob("%s/*.csv" % utils.results_dir()):
         os.remove(result)
@@ -130,6 +132,11 @@ def scan_domains(scanners, domains):
     else:
         scan_method = perform_local_scan
 
+    extras = {}
+
+    # Generate a random UUID for the entire scan.
+    extras['uuid'] = str(uuid.uuid4())
+    logging.warn("[%s] Scan UUID." % extras['uuid'])
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.
@@ -146,10 +153,10 @@ def scan_domains(scanners, domains):
         # specific worker defaults can be accounted for in the pool.
         # Requires AWS credentials to have been established elsewhere.
         config = botocore.config.Config(max_pool_connections=workers)
-        lambda_client = boto3.client('lambda', config=config)
+        extras['lambda_client'] = boto3.client('lambda', config=config)
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            tasks = ((scanner, domain, handles, options) for domain in domains_from(domains))
+            tasks = ((scanner, domain, handles, extras, options) for domain in domains_from(domains))
             executor.map(scan_method, tasks)
 
     # Close up all the files, --sort if requested (expensive).
@@ -172,7 +179,7 @@ def scan_domains(scanners, domains):
 ###
 # Local scan (default).
 def perform_local_scan(params):
-    scanner, domain, handles, options = params
+    scanner, domain, handles, extras, options = params
 
     errors = []
 
@@ -192,41 +199,47 @@ def perform_local_scan(params):
 ###
 # Lambda-based scan. (Experimental!)
 def perform_lambda_scan(params):
-    scanner, domain, handles, options = params
-
-    # For now, do synchronous Lambda requests, essentially just
-    # farming out the hard work to Lambda. This increases max workers
-    # somewhat, since waiting on responses is much, much cheaper than
-    # performing active scanning.
-    task_prefix = "task_" # default, maybe make optional later
-    task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
-
-    # JSON payload that arrives as the 'event' object in Lambda.
-    payload = {'domain': domain, 'options': options}
-    prepared_payload = bytes(utils.json_for(payload), encoding='utf-8')
+    scanner, domain, handles, extras, options = params
 
     errors = []
+    rows = None
 
-    # Assumes Lambda task has already been created and set.
-    logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
-    # logging.debug("\tInvoking Lambda function %s with payload:\n%s" % (task_name, payload))
-
+    # Most of the function in the try block because it's otherwise
+    # not easy to do error handling on a worker thread.
     try:
+        # For now, do synchronous Lambda requests, essentially just
+        # farming out the hard work to Lambda. This increases max workers
+        # somewhat, since waiting on responses is much, much cheaper than
+        # performing active scanning.
+        task_prefix = "task_" # default, maybe make optional later
+        task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
+
+        # JSON payload that arrives as the 'event' object in Lambda.
+        payload = {'domain': domain, 'options': options}
+        bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
+
+        # Send up scan UUID to make log filtering easier.
+        context = {
+            'custom': {'scan_uuid': extras['uuid']}
+        }
+        bytes_context = bytes(utils.json_for(context), encoding='utf-8')
+        encoded_context = str(base64.b64encode(bytes_context), encoding='utf-8')
+
+        # Lambda client initialized during scan initialization, per-scanner.
+        lambda_client = extras['lambda_client']
+
+        # Assumes Lambda task has already been created and set.
+        logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
+        # logging.debug("\tInvoking Lambda function %s with payload:\n%s" % (task_name, payload))
+
         api_response = lambda_client.invoke(
             FunctionName=task_name,
             InvocationType='RequestResponse',
             LogType='None',
-            Payload=prepared_payload
+            ClientContext=encoded_context,
+            Payload=bytes_payload
         )
 
-    except botocore.vendored.requests.exceptions.ReadTimeout:
-        errors.append("Connection timeout while talking to Lambda.")
-    except:
-        exception = utils.format_last_exception()
-        errors.append("Unknown exception: %s" % exception)
-        logging.warn(exception)
-
-    if api_response:
         raw = str(api_response['Payload'].read(), encoding='utf-8')
         response = json.loads(raw)
 
@@ -243,7 +256,19 @@ def perform_lambda_scan(params):
             # logging.debug(response)
             rows = response
 
-    write_rows(rows, domain, errors, scanner, handles[scanner]['writer'])
+    except botocore.vendored.requests.exceptions.ReadTimeout:
+        errors.append("Connection timeout while talking to Lambda.")
+    except:
+        exception = utils.format_last_exception()
+        errors.append("Unknown exception: %s" % exception)
+        logging.warn(exception)
+
+    # Wrap this separately to capture previously caught errors,
+    # but need to re-wrap it to catch arbitrary exceptions.
+    try:
+        write_rows(rows, domain, errors, scanner, handles[scanner]['writer'])
+    except:
+        logging.warn(utils.format_last_exception())
 
 
 def write_rows(rows, domain, errors, scanner, csv_writer):

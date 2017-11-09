@@ -38,8 +38,6 @@ network_timeout = 5
 # Normal entry point.
 
 def scan(domain, options):
-    logging.debug("[%s][sslyze]" % domain)
-
     # Optional: skip domains which don't support HTTPS in pshtt scan.
     if utils.domain_doesnt_support_https(domain):
         logging.debug("\tSkipping, HTTPS not supported.")

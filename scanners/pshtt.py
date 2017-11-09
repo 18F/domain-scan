@@ -55,8 +55,6 @@ def scan(domain, options):
             return None
 
     else:
-        logging.debug("\t %s %s" % (command, domain))
-
         raw = utils.scan([
             command,
             domain,
