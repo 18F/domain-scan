@@ -1,4 +1,5 @@
 import os
+import logging
 
 import sslyze
 from sslyze.synchronous_scanner import SynchronousScanner
@@ -23,7 +24,7 @@ timeout = 45
 network_timeout = 5
 
 def handler(event, context):
-    print(event)
+    logging.warn(event)
 
     options = event.get("options", {})
 
@@ -34,7 +35,7 @@ def handler(event, context):
     data = run_sslyze(domain, options)
 
     if data is None:
-        print("\tNo valid target for scanning, couldn't connect.")
+        logging.warn("\tNo valid target for scanning, couldn't connect.")
 
     row = [
         domain,
@@ -256,22 +257,22 @@ def init_sslyze(hostname, options, sync=False):
     try:
         server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
     except sslyze.server_connectivity.ServerConnectivityError as error:
-        print("\tServer connectivity not established during initialization.")
+        logging.warn("\tServer connectivity not established during initialization.")
         return None, None
     except Exception as err:
         notify(err)
-        print("\tUnknown exception when initializing server connectivity info.")
+        logging.warn("\tUnknown exception when initializing server connectivity info.")
         return None, None
 
     try:
-        # print("\tTesting connectivity with timeout of %is." % network_timeout)
+        # logging.warn("\tTesting connectivity with timeout of %is." % network_timeout)
         server_info.test_connectivity_to_server(network_timeout=network_timeout)
     except sslyze.server_connectivity.ServerConnectivityError as err:
-        print("\tServer connectivity not established during test.")
+        logging.warn("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
         notify(err)
-        print("\tUnknown exception when performing server connectivity info.")
+        logging.warn("\tUnknown exception when performing server connectivity info.")
         return None, None
 
     if sync:
@@ -285,26 +286,26 @@ def init_sslyze(hostname, options, sync=False):
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
 def scan_serial(scanner, server_info, options):
-    print("\tRunning scans in serial.")
-    print("\t\tSSLv2 scan.")
+    logging.warn("\tRunning scans in serial.")
+    logging.warn("\t\tSSLv2 scan.")
     sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
-    print("\t\tSSLv3 scan.")
+    logging.warn("\t\tSSLv3 scan.")
     sslv3 = scanner.run_scan_command(server_info, Sslv30ScanCommand())
-    print("\t\tTLSv1.0 scan.")
+    logging.warn("\t\tTLSv1.0 scan.")
     tlsv1 = scanner.run_scan_command(server_info, Tlsv10ScanCommand())
-    print("\t\tTLSv1.1 scan.")
+    logging.warn("\t\tTLSv1.1 scan.")
     tlsv1_1 = scanner.run_scan_command(server_info, Tlsv11ScanCommand())
-    print("\t\tTLSv1.2 scan.")
+    logging.warn("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
 
     # Default to cert info on
     if options.get("sslyze-no-certs", False) is False:
-        print("\t\tCertificate information scan.")
+        logging.warn("\t\tCertificate information scan.")
         certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
     else:
         certs = None
 
-    print("\tDone scanning.")
+    logging.warn("\tDone scanning.")
 
     return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
 
@@ -312,14 +313,14 @@ def scan_serial(scanner, server_info, options):
 # Run each scan in parallel, using multi-processing.
 # Faster, but can generate many processes.
 def scan_parallel(scanner, server_info, options):
-    print("\tRunning scans in parallel.")
+    logging.warn("\tRunning scans in parallel.")
 
     def queue(command):
         try:
             return scanner.queue_scan_command(server_info, command)
         except Exception as err:
             notify(err)
-            print("Unknown exception queueing sslyze command.")
+            logging.warn("Unknown exception queueing sslyze command.")
             return None
 
     # Initialize commands and result containers
@@ -341,7 +342,7 @@ def scan_parallel(scanner, server_info, options):
     for result in scanner.get_results():
         try:
             if isinstance(result, PluginRaisedExceptionScanResult):
-                print(u'Scan command failed: {}'.format(result.as_text()))
+                logging.warn(u'Scan command failed: {}'.format(result.as_text()))
                 return None
 
             if type(result.scan_command) == Sslv20ScanCommand:
@@ -357,11 +358,11 @@ def scan_parallel(scanner, server_info, options):
             elif type(result.scan_command) == CertificateInfoScanCommand:
                 certs = result
             else:
-                print("\tCouldn't match scan result with command! %s" % result)
+                logging.warn("\tCouldn't match scan result with command! %s" % result)
                 was_error = True
 
         except Exception as err:
-            print("\t Exception inside async scanner result processing.")
+            logging.warn("\t Exception inside async scanner result processing.")
             was_error = True
             notify(err)
 
@@ -369,7 +370,7 @@ def scan_parallel(scanner, server_info, options):
     if was_error:
         return None
 
-    print("\tDone scanning.")
+    logging.warn("\tDone scanning.")
 
     return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
 
@@ -383,11 +384,11 @@ def notify(body):
         if isinstance(body, Exception):
             body = format_last_exception()
 
-        print(body)  # always print it
+        logging.warn(body)  # always logging.warn it
 
     except Exception:
-        print("Exception logging message to admin, halting as to avoid loop")
-        print(format_last_exception())
+        logging.warn("Exception logging message to admin, halting as to avoid loop")
+        logging.warn(format_last_exception())
 
 
 def format_last_exception():

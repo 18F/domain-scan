@@ -9,4 +9,4 @@ echo "Creating function: $FUNCTION_NAME"
 
 aws lambda update-function-configuration \
    --function-name $FUNCTION_NAME  \
-   --timeout 60
+   --timeout 300

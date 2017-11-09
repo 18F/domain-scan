@@ -1,4 +1,5 @@
 import re
+import logging
 
 from pshtt import utils
 from pshtt import pshtt
@@ -13,7 +14,7 @@ timeout = 300
 pshtt_timeout = 30
 
 def handler(event, context):
-  print(event)
+  logging.warn(event)
 
   options = event.get("options", {})
 
@@ -27,7 +28,7 @@ def handler(event, context):
 
   # Should only be one.
   result = results[0]
-  print(result)
+  logging.warn(result)
 
   row = []
   for field in headers:
