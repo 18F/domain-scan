@@ -15,6 +15,7 @@ pshtt_timeout = 30
 
 def handler(event, context):
   logging.warn(event)
+  logging.warn(context)
 
   options = event.get("options", {})
 
@@ -41,8 +42,16 @@ def handler(event, context):
 
       row.append(value)
 
-  # Currently expects multiple rows.
-  return [row]
+  return {
+    'lambda': {
+      'log_stream_name': context.log_stream_name,
+      'log_group_name': context.log_group_name,
+      'request_id': context.aws_request_id,
+      'memory_limit': context.memory_limit_in_mb
+    }
+    'data': [row]
+  }
+
 
 headers = [
     "Canonical URL", "Live", "Redirect", "Redirect To",

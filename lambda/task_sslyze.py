@@ -25,6 +25,7 @@ network_timeout = 5
 
 def handler(event, context):
     logging.warn(event)
+    logging.warn(context)
 
     options = event.get("options", {})
 
@@ -59,8 +60,15 @@ def handler(event, context):
         data.get('errors')
     ]
 
-    # Currently expects multiple rows, be explicit.
-    return [row]
+    return {
+        'lambda': {
+          'log_stream_name': context.log_stream_name,
+          'log_group_name': context.log_group_name,
+          'request_id': context.aws_request_id,
+          'memory_limit': context.memory_limit_in_mb
+        }
+        'data': [row]
+    }
 
 
 # Get the relevant fields out of sslyze's JSON format.
