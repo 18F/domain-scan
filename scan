@@ -29,16 +29,13 @@ utils.mkdir_p(utils.results_dir())
 # Default amount of local workers (threads) per-scanner.
 default_workers = 10
 
-lambda_client = None
-
 # some metadata about the scan itself
 start_time = utils.utc_timestamp()
 start_command = str.join(" ", sys.argv)
 
-# Fields that always get prefixed before scan-specific data.
+# Fields that will or may get prefixed before scan-specific data.
 prefix_headers = ["Domain", "Base Domain", "Scan Errors"]
-
-lambda_headers = ["Lambda Request ID", "Lambda Log Stream Name"]
+lambda_headers = ["Lambda Request ID", "Lambda Log Stream Name", "Lambda Duration", "Lambda Memory Used"]
 
 ###
 # Entry point. `options` is a dict of CLI flags.
@@ -97,7 +94,7 @@ def run(options=None):
 
         scans.append(scanner)
 
-    scan_domains(scans, domains)
+    scan_domains(scans, domains, options)
 
 
 ###
@@ -106,10 +103,12 @@ def run(options=None):
 #
 # Produces a CSV for each scan, with each domain and results.
 ###
-def scan_domains(scanners, domains):
+def scan_domains(scanners, domains, options):
     # Clear out existing result CSVs, to avoid inconsistent data.
     for result in glob.glob("%s/*.csv" % utils.results_dir()):
         os.remove(result)
+
+    use_lambda = options.get("lambda", False)
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
@@ -121,7 +120,7 @@ def scan_domains(scanners, domains):
 
         # Write the header row, factoring in Lambda fields if needed.
         headers = prefix_headers + scanner.headers
-        if options.get("lambda", False):
+        if use_lambda:
             headers += lambda_headers
 
         scanner_writer.writerow(headers)
@@ -134,7 +133,7 @@ def scan_domains(scanners, domains):
         }
 
     # Experimental!
-    if options.get("lambda", False):
+    if use_lambda:
         scan_method = perform_lambda_scan
     else:
         scan_method = perform_local_scan
@@ -159,8 +158,13 @@ def scan_domains(scanners, domains):
         # Accept initiating a new client per-scanner, so that scanner-
         # specific worker defaults can be accounted for in the pool.
         # Requires AWS credentials to have been established elsewhere.
-        config = botocore.config.Config(max_pool_connections=workers)
-        extras['lambda_client'] = boto3.client('lambda', config=config)
+        #
+        # TODO: Maybe give up scanner-specific worker amounts, at
+        # least for Lambda?
+        if use_lambda:
+            config = botocore.config.Config(max_pool_connections=workers)
+            extras['lambda_client'] = boto3.client('lambda', config=config)
+            extras['logs_client'] = boto3.client('logs', config=config)
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, handles, extras, options) for domain in domains_from(domains))
@@ -235,6 +239,7 @@ def perform_lambda_scan(params):
 
         # Lambda client initialized during scan initialization, per-scanner.
         lambda_client = extras['lambda_client']
+        logs_client = extras['logs_client']
 
         # Assumes Lambda task has already been created and set.
         logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
@@ -263,8 +268,20 @@ def perform_lambda_scan(params):
             # Store other Lambda-specific info per-task.
             lambda_fields = {**lambda_fields, **response['lambda']}
 
-            # TODO: ping AWS CloudWatch Logs API to get used memory
-            # and billed duration for this task
+            # If available, grab the log entries we just generated.
+            events = logs_client.get_log_events(
+                logGroupName=lambda_fields['log_group_name'],
+                logStreamName=lambda_fields['log_stream_name']
+            )
+
+            if events and events.get('events'):
+                last_message = events['events'][-1].get('message', '')
+
+                if ("Max Memory Used" in last_message):
+                    pieces = last_message.strip().split("\t")
+                    values = [field.split(":")[1] for field in pieces]
+                    lambda_fields['duration'] = values[1]
+                    lambda_fields['memory_used'] = values[4]
 
             rows = response['data']
 
@@ -279,7 +296,7 @@ def perform_lambda_scan(params):
     # but need to re-wrap it to catch arbitrary exceptions.
     try:
         # Append Lambda-specific info to each row.
-        field_order = ['request_id', 'log_stream_name']
+        field_order = ['request_id', 'log_stream_name', 'duration', 'memory_used']
         lambda_row = [lambda_fields.get(x) for x in field_order]
 
         write_rows(rows, domain, errors, scanner, handles[scanner]['writer'], extra_fields=lambda_row)
