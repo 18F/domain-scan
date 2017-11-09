@@ -5,6 +5,7 @@ import os
 import uuid
 import sys
 import glob
+import time
 import datetime
 import logging
 import requests
@@ -248,7 +249,7 @@ def perform_lambda_scan(params):
         api_response = lambda_client.invoke(
             FunctionName=task_name,
             InvocationType='RequestResponse',
-            LogType='Tail',
+            LogType='None',
             ClientContext=encoded_context,
             Payload=bytes_payload
         )
@@ -268,20 +269,29 @@ def perform_lambda_scan(params):
             # Store other Lambda-specific info per-task.
             lambda_fields = {**lambda_fields, **response['lambda']}
 
-            # If available, grab the log entries we just generated.
-            events = logs_client.get_log_events(
-                logGroupName=lambda_fields['log_group_name'],
-                logStreamName=lambda_fields['log_stream_name']
-            )
+            # # Filter log events to final event, with request ID.
+            # filter_pattern = ("\"%s\" \"Max Memory Used\"" % lambda_fields['request_id'])
 
-            if events and events.get('events'):
-                last_message = events['events'][-1].get('message', '')
+            # # Hmm, this seems...not the best.
+            # logging.warn("\tWaiting for logs to show up...")
+            # time.sleep(15)
 
-                if ("Max Memory Used" in last_message):
-                    pieces = last_message.strip().split("\t")
-                    values = [field.split(":")[1] for field in pieces]
-                    lambda_fields['duration'] = values[1]
-                    lambda_fields['memory_used'] = values[4]
+            # # If requested and available, grab log entries we just generated.
+            # events = logs_client.filter_log_events(
+            #     logGroupName=lambda_fields['log_group_name'],
+            #     logStreamNames=[lambda_fields['log_stream_name']],
+            #     filterPattern=filter_pattern
+            # )
+
+            # if events and events.get('events'):
+            #     last_message = events['events'][-1].get('message', '')
+
+            #     pieces = last_message.strip().split("\t")
+            #     values = [field.split(":")[1] for field in pieces]
+            #     lambda_fields['duration'] = values[1]
+            #     lambda_fields['memory_used'] = values[4]
+            # else:
+            #     logging.warn("\tNo logs found for (group, stream, task): %s, %s, %s" % (lambda_fields['log_group_name'], lambda_fields['log_stream_name'], lambda_fields['request_id']))
 
             rows = response['data']
 

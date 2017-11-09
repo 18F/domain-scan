@@ -62,10 +62,9 @@ def handler(event, context):
 
     return {
         'lambda': {
-          'log_stream_name': context.log_stream_name,
           'log_group_name': context.log_group_name,
-          'request_id': context.aws_request_id,
-          'memory_limit': context.memory_limit_in_mb
+          'log_stream_name': context.log_stream_name,
+          'request_id': context.aws_request_id
         }
         'data': [row]
     }

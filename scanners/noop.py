@@ -14,7 +14,7 @@ workers = 2
 
 # No-op init function.
 def init(options):
-  logging.warn("Init function called with options: %s" % options)
+  logging.debug("Init function called with options: %s" % options)
   return True
 
 
