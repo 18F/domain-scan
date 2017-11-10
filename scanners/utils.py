@@ -215,10 +215,23 @@ def invalid(data=None):
     return json_for(data)
 
 
-# RFC 3339 timestamp for the current time when called
-def utc_timestamp():
-    return strict_rfc3339.now_to_rfc3339_utcoffset()
+# RFC 3339 timestamp for a given UTC time (or current time).
+# seconds can be a float, down to microseconds.
+# A given time needs to be passed in *as* UTC already.
+def utc_timestamp(seconds=None):
+    if not seconds: seconds = local_now()
+    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
 
+
+# Now, in UTC, in seconds (with decimal microseconds).
+def local_now():
+    return datetime.datetime.now().timestamp()
+
+
+# Cut off floating point errors, always output duration down to
+# microseconds.
+def just_microseconds(duration):
+    return "%.6f" % duration
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):

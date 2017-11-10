@@ -32,7 +32,7 @@ default_workers = 10
 global_max_workers = 1000
 
 # Some metadata about the scan itself.
-start_time = utils.utc_timestamp()
+start_time = utils.local_now()
 start_command = str.join(" ", sys.argv)
 
 # Generate a random UUID for the entire scan.
@@ -48,7 +48,7 @@ if options.get("lambda", False):
 prefix_headers = ["Domain", "Base Domain"]
 
 # Local scan info. Requested with --meta.
-local_headers = ["Scan Errors", "Local Start Time", "Local End Time"]
+local_headers = ["Scan Errors", "Local Start Time", "Local End Time", "Local Duration"]
 
 # Lambda-specific scan info. Requested with --meta.
 # 1) Known or retrieved upon task completion.
@@ -213,7 +213,7 @@ def scan_domains(scanners, domains, options):
 
         if meta and use_lambda:
             # Sleeping's not ideal, but no better idea right now.
-            logging.warn("\tWaiting %is for logs to show up..." % lambda_log_delay)
+            logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
             time.sleep(lambda_log_delay)
             add_lambda_details(handles[scanner]['filename'])
 
@@ -221,9 +221,12 @@ def scan_domains(scanners, domains, options):
     logging.warn("Results written to CSV.")
 
     # Save metadata.
+    end_time = utils.local_now()
+    duration = end_time - start_time
     metadata = {
-        'start_time': start_time,
-        'end_time': utils.utc_timestamp(),
+        'start_time': utils.utc_timestamp(start_time),
+        'end_time': utils.utc_timestamp(end_time),
+        'duration': utils.just_microseconds(duration),
         'command': start_command,
         'scan_uuid': scan_uuid
     }
@@ -242,9 +245,10 @@ def perform_local_scan(params):
         logging.warn("[%s][%s] Running locally..." % (domain, handles[scanner]['name']))
 
         # Capture local start and end times around scan.
-        meta['start_time'] = utils.utc_timestamp()
+        meta['start_time'] = utils.local_now()
         response = scanner.scan(domain, options)
-        meta['end_time'] = utils.utc_timestamp()
+        meta['end_time'] = utils.local_now()
+        meta['duration'] = meta['end_time'] - meta['start_time']
 
         rows = list(response)
     except:
@@ -295,7 +299,7 @@ def perform_lambda_scan(params):
         logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
 
         # Execute task, recording local start and end time.
-        meta['start_time'] = utils.utc_timestamp()
+        meta['start_time'] = utils.local_now()
         api_response = lambda_client.invoke(
             FunctionName=task_name,
             InvocationType='RequestResponse',
@@ -303,7 +307,8 @@ def perform_lambda_scan(params):
             ClientContext=encoded_context,
             Payload=bytes_payload
         )
-        meta['end_time'] = utils.utc_timestamp()
+        meta['end_time'] = utils.local_now()
+        meta['duration'] = meta['end_time'] - meta['start_time']
 
         raw = str(api_response['Payload'].read(), encoding='utf-8')
         response = json.loads(raw)
@@ -359,8 +364,9 @@ def write_rows(rows, headers, domain, scanner, csv_writer, meta=None):
     meta_fields = []
     if meta:
         meta_fields.append(" ".join(meta.get('errors', [])))
-        meta_fields.append(meta.get("start_time"))
-        meta_fields.append(meta.get("end_time"))
+        meta_fields.append(utils.utc_timestamp(meta["start_time"]))
+        meta_fields.append(utils.utc_timestamp(meta["end_time"]))
+        meta_fields.append(utils.just_microseconds(meta["duration"]))
 
         if meta.get("lambda") is not None:
             for field in ['request_id', 'log_group_name', 'log_stream_name']:
@@ -424,9 +430,10 @@ def add_lambda_details(input_filename):
         # Matches order of lambda_detail_headers
         row.append(details.get('memory_limit'))
         row.append(details.get('memory_used'))
-        row.append(details.get('start_time'))
-        row.append(details.get('end_time'))
-        row.append(details.get('duration'))
+        row.append(utils.utc_timestamp(details.get('start_time')))
+        row.append(utils.utc_timestamp(details.get('end_time')))
+        row.append(utils.just_microseconds(details.get('logged_duration')))
+        row.append(details.get('reported_duration'))
         row.append(details.get('errors'))
 
         rows.append(row)
@@ -476,15 +483,15 @@ def fetch_lambda_details(dict_row):
         first_event = events['events'][0]
         last_event = events['events'][-1]
 
-        # Get start time from opening event message
-        millis = first_event['ingestionTime']
-        lambda_fields['start_time'] = datetime.datetime.fromtimestamp(millis / 1000)
-        lambda_fields['end_time'] = datetime.datetime.fromtimestamp(millis / 1000)
+        # Get start/end milliseconds from opening event message
+        lambda_fields['start_time'] = first_event['ingestionTime'] / 1000
+        lambda_fields['end_time'] = last_event['ingestionTime'] / 1000
+        lambda_fields['logged_duration'] = lambda_fields['end_time'] - lambda_fields['start_time']
 
         # Get time and memory use from concluding event message
         pieces = last_event.get('message', '').strip().split("\t")
         values = [field.split(":")[1] for field in pieces]
-        lambda_fields['duration'] = values[1]
+        lambda_fields['reported_duration'] = values[1]
         lambda_fields['memory_limit'] = values[3]
         lambda_fields['memory_used'] = values[4]
     else:
