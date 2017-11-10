@@ -223,6 +223,11 @@ def utc_timestamp(seconds=None):
     return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
 
 
+# Convert a RFC 3339 timestamp back into a local number of seconds.
+def utc_timestamp_to_local_now(timestamp):
+    return strict_rfc3339.rfc3339_to_timestamp(timestamp)
+
+
 # Now, in UTC, in seconds (with decimal microseconds).
 def local_now():
     return datetime.datetime.now().timestamp()
@@ -231,7 +236,8 @@ def local_now():
 # Cut off floating point errors, always output duration down to
 # microseconds.
 def just_microseconds(duration):
-    return "%.6f" % duration
+    if duration is None: return ""
+    else: return "%.6f" % duration
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):

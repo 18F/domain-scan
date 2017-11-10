@@ -48,24 +48,25 @@ if options.get("lambda", False):
 prefix_headers = ["Domain", "Base Domain"]
 
 # Local scan info. Requested with --meta.
-local_headers = ["Scan Errors", "Local Start Time", "Local End Time", "Local Duration"]
+local_headers = ["Local Errors", "Local Start Time", "Local End Time", "Local Duration"]
 
 # Lambda-specific scan info. Requested with --meta.
 # 1) Known or retrieved upon task completion.
 lambda_headers = [
     "Lambda Request ID",
-    "Lambda Log Group Name", "Lambda Log Stream Name"
+    "Lambda Log Group Name", "Lambda Log Stream Name",
+    "Lambda Start Time", "Lambda End Time",
+    "Lambda Memory Limit", "Lambda Measured Duration"
 ]
 # 2) Retrieved by subsequent log requests, after task completion.
 lambda_detail_headers = [
-    "Lambda Memory Limit", "Lambda Memory Used",
-    "Lambda Start Time", "Lambda End Time",
-    "Lambda Duration", "Lambda Errors"
+    "Lambda Reported Duration", "Lambda Log Delay",
+    "Lambda Memory Used", "Lambda Fetching Errors"
 ]
 
 # A best-effort delay to sleep while waiting for CloudWatch Logs
 # about Lambda executions to show up after task completion.
-lambda_log_delay = 30
+lambda_log_delay = 20
 
 ###
 # Entry point. `options` is a dict of CLI flags.
@@ -369,8 +370,13 @@ def write_rows(rows, headers, domain, scanner, csv_writer, meta=None):
         meta_fields.append(utils.just_microseconds(meta["duration"]))
 
         if meta.get("lambda") is not None:
-            for field in ['request_id', 'log_group_name', 'log_stream_name']:
-                meta_fields.append(meta['lambda'].get(field))
+            meta_fields.append(meta['lambda'].get('request_id'))
+            meta_fields.append(meta['lambda'].get('log_group_name'))
+            meta_fields.append(meta['lambda'].get('log_stream_name'))
+            meta_fields.append(utils.utc_timestamp(meta['lambda'].get('start_time')))
+            meta_fields.append(utils.utc_timestamp(meta['lambda'].get('end_time')))
+            meta_fields.append(meta['lambda'].get('memory_limit'))
+            meta_fields.append(utils.just_microseconds(meta['lambda'].get('measured_duration')))
 
     # Write out prefix, scan data, and meta scan data.
     for row in rows:
@@ -428,12 +434,9 @@ def add_lambda_details(input_filename):
         details = fetch_lambda_details(dict_row)
 
         # Matches order of lambda_detail_headers
-        row.append(details.get('memory_limit'))
-        row.append(details.get('memory_used'))
-        row.append(utils.utc_timestamp(details.get('start_time')))
-        row.append(utils.utc_timestamp(details.get('end_time')))
-        row.append(utils.just_microseconds(details.get('logged_duration')))
         row.append(details.get('reported_duration'))
+        row.append(utils.just_microseconds(details.get('log_delay')))
+        row.append(details.get('memory_used'))
         row.append(details.get('errors'))
 
         rows.append(row)
@@ -459,6 +462,7 @@ def fetch_lambda_details(dict_row):
     request_id = dict_row['Lambda Request ID']
     log_group_name = dict_row['Lambda Log Group Name']
     log_stream_name = dict_row['Lambda Log Stream Name']
+    lambda_end_time = utils.utc_timestamp_to_local_now(dict_row['Lambda End Time'])
 
     # Filter log events to final event, with request ID.
     filter_pattern = ("\"%s\" \"Max Memory Used\"" % request_id)
@@ -483,16 +487,14 @@ def fetch_lambda_details(dict_row):
         first_event = events['events'][0]
         last_event = events['events'][-1]
 
-        # Get start/end milliseconds from opening event message
-        lambda_fields['start_time'] = first_event['ingestionTime'] / 1000
-        lambda_fields['end_time'] = last_event['ingestionTime'] / 1000
-        lambda_fields['logged_duration'] = lambda_fields['end_time'] - lambda_fields['start_time']
+        # Track when the last log entry for this task was ingested.
+        log_end_time = last_event['ingestionTime'] / 1000
+        lambda_fields['log_delay'] = log_end_time - lambda_end_time
 
         # Get time and memory use from concluding event message
         pieces = last_event.get('message', '').strip().split("\t")
         values = [field.split(":")[1] for field in pieces]
         lambda_fields['reported_duration'] = values[1]
-        lambda_fields['memory_limit'] = values[3]
         lambda_fields['memory_used'] = values[4]
     else:
         lambda_fields["errors"] = "No logs found for this task."
