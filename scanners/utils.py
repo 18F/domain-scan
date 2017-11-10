@@ -219,7 +219,8 @@ def invalid(data=None):
 # seconds can be a float, down to microseconds.
 # A given time needs to be passed in *as* UTC already.
 def utc_timestamp(seconds=None):
-    if not seconds: seconds = local_now()
+    if not seconds:
+        seconds = local_now()
     return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
 
 
@@ -236,8 +237,10 @@ def local_now():
 # Cut off floating point errors, always output duration down to
 # microseconds.
 def just_microseconds(duration):
-    if duration is None: return ""
-    else: return "%.6f" % duration
+    if duration is None:
+        return ""
+    return "%.6f" % duration
+
 
 # return base domain for a subdomain
 def base_domain_for(subdomain):

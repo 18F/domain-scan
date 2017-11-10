@@ -34,6 +34,7 @@ from scanners import utils
 # Not much patience here, and very willing to move on.
 network_timeout = 5
 
+
 ##
 # Normal entry point.
 
