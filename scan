@@ -181,6 +181,7 @@ def scan_domains(scanners, domains, options):
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.
+    durations = {}
     for scanner in scanners:
 
         if options.get("serial"):
@@ -207,21 +208,37 @@ def scan_domains(scanners, domains, options):
                 environment = {**environment, **init}
 
         # Kick off workers in parallel. Returns when all are done.
+        scan_start_time = utils.local_now()
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
             executor.map(scan_method, tasks)
+        scan_end_time = utils.local_now()
+        duration = scan_end_time - scan_start_time
 
-    # Close up all the files, --sort if requested (expensive).
+        # Store scan-specific time information.
+        durations[handles[scanner]['name']] = {
+            'start_time': utils.utc_timestamp(scan_start_time),
+            'end_time': utils.utc_timestamp(scan_end_time),
+            'duration': utils.just_microseconds(duration)
+        }
+
+    # Close up all the files, --sort if requested (memory-expensive).
+    # Also fetch Lambda info if requested (time-expensive).
+
+    get_lambda_details = meta and use_lambda and options.get("lambda-details", False)
+
+    # Sleeping's not ideal, but no better idea right now.
+    if get_lambda_details:
+        logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
+        time.sleep(lambda_log_delay)
+
     for scanner in scanners:
         handles[scanner]['file'].close()
 
         if options.get("sort"):
             utils.sort_csv(handles[scanner]['filename'])
 
-        if False and meta and use_lambda:
-            # Sleeping's not ideal, but no better idea right now.
-            logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
-            time.sleep(lambda_log_delay)
+        if get_lambda_details:
             add_lambda_details(handles[scanner]['filename'])
 
 
@@ -234,6 +251,7 @@ def scan_domains(scanners, domains, options):
         'start_time': utils.utc_timestamp(start_time),
         'end_time': utils.utc_timestamp(end_time),
         'duration': utils.just_microseconds(duration),
+        'scans': durations,
         'command': start_command,
         'scan_uuid': scan_uuid
     }
