@@ -177,7 +177,7 @@ def scan_domains(scanners, domains, options):
         scan_method = perform_local_scan
 
     # Store scan UUID.
-    logging.warn("[%s] Scan UUID." % scan_uuid)
+    logging.debug("[%s] Scan UUID." % scan_uuid)
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.
