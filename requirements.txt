@@ -11,8 +11,8 @@ pyyaml
 # Ubuntu 14.04 has an old version of six
 six>=1.6
 
-# To support pshtt scanner:
-pshtt
+# To support pshtt scanner (and to stay fresh):
+git+git://github.com/dhs-ncats/pshtt.git#egg=pshtt
 
 # To support sslyze scanner:
 sslyze
