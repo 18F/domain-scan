@@ -1,14 +1,12 @@
 import importlib
 import sys
-
-# TODO: import utils
 import logging
-import datetime
 
+from scanners import utils
 
 # Central handler for all Lambda events.
 def handler(event, context):
-    start_time = local_now()
+    start_time = utils.local_now()
 
     domain = event.get('domain')
     options = event.get('options')
@@ -23,13 +21,13 @@ def handler(event, context):
         exit(1) # ?
 
     # Log all sent events, for the record.
-    configure_logging(options)
+    utils.configure_logging(options)
     logging.warn(event)
 
     # Same method call as when run locally.
     rows = list(scanner.scan(domain, options))
 
-    end_time = local_now()
+    end_time = utils.local_now()
     duration = end_time - start_time
     return {
         'lambda': {
@@ -43,22 +41,3 @@ def handler(event, context):
         },
         'data': rows
     }
-
-
-# TODO: refer to from central utils when packaged
-def configure_logging(options=None):
-    options = {} if not options else options
-    if options.get('debug', False):
-        log_level = "debug"
-    else:
-        log_level = options.get("log", "warn")
-
-    if log_level not in ["debug", "info", "warn", "error"]:
-        print("Invalid log level (specify: debug, info, warn, error).")
-        sys.exit(1)
-
-    logging.basicConfig(format='%(message)s', level=log_level.upper())
-
-
-def local_now():
-    return datetime.datetime.now().timestamp()
