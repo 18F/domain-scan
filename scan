@@ -385,9 +385,9 @@ def write_rows(rows, headers, domain, scanner, csv_writer, meta=None):
     meta_fields = []
     if meta:
         meta_fields.append(" ".join(meta.get('errors', [])))
-        meta_fields.append(utils.utc_timestamp(meta["start_time"]))
-        meta_fields.append(utils.utc_timestamp(meta["end_time"]))
-        meta_fields.append(utils.just_microseconds(meta["duration"]))
+        meta_fields.append(utils.utc_timestamp(meta.get("start_time")))
+        meta_fields.append(utils.utc_timestamp(meta.get("end_time")))
+        meta_fields.append(utils.just_microseconds(meta.get("duration")))
 
         if meta.get("lambda") is not None:
             meta_fields.append(meta['lambda'].get('request_id'))
