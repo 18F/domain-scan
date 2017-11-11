@@ -170,6 +170,24 @@ def scan_domains(scanners, domains, options):
             'headers': headers
         }
 
+    # Initialize all scanner-specific environments.
+    # Useful for data that should be cached/passed to each instance,
+    # such as data from third-party network sources.
+    # Checked now, so that failure can immediately halt the whole scan.
+    for scanner in scanners:
+        environment = {}
+        if hasattr(scanner, "init"):
+            init = scanner.init(environment, options)
+
+            # If a scanner's init() function returns false, stop entirely.
+            if init is False:
+                logging.warn("[%s] Scanner init function returned false! Bailing." % handles[scanner]['name'])
+                exit(1)
+
+            if type(init) is dict:
+                environment = {**environment, **init}
+        handles[scanner]['environment'] = environment
+
     # Experimental!
     if use_lambda:
         scan_method = perform_lambda_scan
@@ -195,17 +213,9 @@ def scan_domains(scanners, domains, options):
         workers = min(workers, global_max_workers)
 
         # Scan environment, passed to all scanners (local or cloud).
-        environment = {}
+        environment = handles[scanner]['environment']
         environment['scan_method'] = {True: 'lambda', False: 'local'}[use_lambda]
         environment['scan_uuid'] = scan_uuid
-
-        # Scanner-specific initialized environment.
-        # Useful for data that should be cached/passed to each instance,
-        # such as data from third-party network sources.
-        if hasattr(scanner, "init"):
-            init = scanner.init(environment, options)
-            if type(init) is dict:
-                environment = {**environment, **init}
 
         # Kick off workers in parallel. Returns when all are done.
         scan_start_time = utils.local_now()
