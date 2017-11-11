@@ -247,11 +247,9 @@ def perform_local_scan(params):
 
         # Capture local start and end times around scan.
         meta['start_time'] = utils.local_now()
-        response = scanner.scan(domain, options)
+        rows = list(scanner.scan(domain, options))
         meta['end_time'] = utils.local_now()
         meta['duration'] = meta['end_time'] - meta['start_time']
-
-        rows = list(response)
     except:
         exception = utils.format_last_exception()
         meta['errors'].append("Unknown exception: %s" % exception)
@@ -286,7 +284,11 @@ def perform_lambda_scan(params):
         task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
 
         # JSON payload that arrives as the 'event' object in Lambda.
-        payload = {'domain': domain, 'options': options}
+        payload = {
+            'domain': domain,
+            'options': options,
+            'scanner': handles[scanner]['name']
+        }
         bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
 
         # Send up scan UUID to make log filtering easier.
