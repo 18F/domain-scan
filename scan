@@ -263,7 +263,8 @@ def perform_local_scan(params):
         meta['duration'] = meta['end_time'] - meta['start_time']
 
         # Convert to rows for CSV.
-        rows = scanner.to_rows(data)
+        if data:
+            rows = scanner.to_rows(data)
 
         # TODO: cache responses in a standard place/way.
     except:
@@ -343,7 +344,8 @@ def perform_lambda_scan(params):
             data = response['data']
 
             # Convert to rows for CSV.
-            rows = scanner.to_rows(data)
+            if data:
+                rows = scanner.to_rows(data)
 
             # TODO: cache responses in a standard place/way.
         else:
@@ -433,11 +435,6 @@ def add_lambda_details(input_filename):
     header = None
 
     rows = []
-
-    # TODO: parallelize this
-    # with ThreadPoolExecutor(max_workers=workers) as executor:
-    #     tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
-    #     executor.map(scan_method, tasks)
 
     for row in csv.reader(input_file):
         # keep header and add the Lambda detail headers
