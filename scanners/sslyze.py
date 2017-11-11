@@ -42,7 +42,7 @@ def init_domain(domain, environment, options):
     # Optional: skip domains which don't support HTTPS in pshtt scan.
     if utils.domain_doesnt_support_https(domain):
         logging.debug("\tSkipping, HTTPS not supported.")
-        return None
+        return False
 
     # Optional: if pshtt data says canonical endpoint uses www and this domain
     # doesn't have it, add it.
