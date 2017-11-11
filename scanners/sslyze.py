@@ -157,6 +157,18 @@ def run_sslyze(data, environment, options):
     else:
         sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, options)
 
+    # Only analyze protocols if all the scanners functioned.
+    # Very difficult to draw conclusions if some worked and some did not.
+    if sslv2 and sslv3 and tlsv1 and tlsv1_1 and tlsv1_2:
+        analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2)
+
+    if certs:
+        data['certs'] = analyze_certs(certs)
+
+    return data
+
+
+def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2):
     data['protocols'] = {
         'sslv2': supported_protocol(sslv2),
         'sslv3': supported_protocol(sslv3),
@@ -216,11 +228,6 @@ def run_sslyze(data, environment, options):
             weakest_dh = None
 
         data['config']['weakest_dh'] = weakest_dh
-
-    if certs:
-        data['certs'] = analyze_certs(certs)
-
-    return data
 
 
 def analyze_certs(certs):
