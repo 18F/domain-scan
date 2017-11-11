@@ -1,5 +1,4 @@
 /lambda/build
-*.zip
 /lambda/*.txt
 *.out
 
