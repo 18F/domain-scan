@@ -264,9 +264,6 @@ def domain_doesnt_support_https(domain):
     if (inspection.__class__ is dict) and inspection.get('invalid'):
         return False
 
-    # TODO: kill this
-    inspection = inspection[0]
-
     https = inspection.get("endpoints").get("https")
     httpswww = inspection.get("endpoints").get("httpswww")
 
@@ -285,13 +282,11 @@ def domain_uses_www(domain):
 
     # Make sure we have the data.
     inspection = data_for(domain, "pshtt")
+
     if not inspection:
         return False
     if (inspection.__class__ is dict) and inspection.get('invalid'):
         return False
-
-    # TODO: kill this
-    inspection = inspection[0]
 
     # We know the canonical URL, return True if it's www.
     url = inspection.get("Canonical URL")
@@ -309,8 +304,6 @@ def domain_not_live(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
-    # TODO: kill this
-    inspection = inspection[0]
 
     return (not inspection.get("Live"))
 
@@ -323,8 +316,6 @@ def domain_is_redirect(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
-    # TODO: kill this
-    inspection = inspection[0]
 
     return (inspection.get("Redirect") is True)
 
@@ -337,8 +328,6 @@ def domain_canonical(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
-    # TODO: kill this
-    inspection = inspection[0]
 
     return (inspection.get("Canonical URL"))
 
