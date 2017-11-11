@@ -3,9 +3,23 @@
 # On an Amazon Linux box, to initially set up.
 sudo yum install python36 python36-virtualenv
 sudo yum install sqlite-devel gcc libffi-devel openssl-devel
+sudo yum install git
 virtualenv-3.6 pshtt
 source pshtt/bin/activate
 pip install pshtt
+deactivate
+
+##
+# Full domain-scan environment.
+git clone https://github.com/18F/domain-scan.git
+virtualenv-3.6 scan-env
+source scan-env/bin/activate
+cd domain-scan
+pip install -r requirements.txt
+# can remove this once pushed to master
+pip install pshtt
+pip install boto3
+cd ..
 deactivate
 
 ###
@@ -18,11 +32,13 @@ mkdir -p build
 mkdir -p build/bin
 cd build
 
+VENV=scan-env
+
 # Copy all packages, including any hidden dotfiles.
-cp -rT /home/ec2-user/pshtt/lib/python3.6/site-packages/ .
-cp -rT /home/ec2-user/pshtt/lib64/python3.6/site-packages/ .
+cp -rT /home/ec2-user/$VENV/lib/python3.6/site-packages/ .
+cp -rT /home/ec2-user/$VENV/lib64/python3.6/site-packages/ .
 # Copy the pshtt binary
-cp /home/ec2-user/pshtt/bin/pshtt bin/
+cp /home/ec2-user/$VENV/bin/pshtt bin/
 
 # Lambda workaround for SQLite.
 wget https://github.com/Miserlou/lambda-packages/raw/master/lambda_packages/sqlite3/python3.6-sqlite3-3.6.0.tar.gz

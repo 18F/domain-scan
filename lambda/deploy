@@ -23,9 +23,13 @@ cp ../../scanners/utils.py scanners/.
 # Copy a (possibly remotely built) locally versioned virtualenv.
 
 if [ -f ../envs/$SCANNER_NAME.zip ]; then
-  echo "Incorporating built env for $SCANNER_NAME..."
+  echo "Incorporating custom-built env for $SCANNER_NAME..."
   cp ../envs/$SCANNER_NAME.zip .
   unzip -q $SCANNER_NAME.zip
+else
+  echo "Incorporating domain-scan env..."
+  cp ../envs/domain-scan.zip .
+  unzip -q domain-scan.zip
 fi
 
 echo "Building zip package for $FUNCTION_NAME..."
