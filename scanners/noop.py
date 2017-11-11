@@ -4,9 +4,7 @@ import logging
 # == noop ==
 #
 # Testing scan function. Does nothing time consuming or destructive,
-# but exercises all the main hooks of domain-scan.
-
-# No command.
+# but exercises many of the main hooks of domain-scan.
 
 # Default to 2 workers.
 workers = 2
@@ -22,10 +20,12 @@ def init(options):
 def scan(domain, options):
     logging.debug("\tScan function called with options: %s" % options)
 
+    # Perform the "task".
+    complete = True
     logging.warn("\tComplete!")
 
     # Returns one row at a time.
-    yield [True]
+    yield [complete]
 
 
 headers = ["No-op completed"]
