@@ -45,6 +45,7 @@ def scan(domain, environment, options):
         'variable': environment.get('variable')
     }
 
+
 # Required CSV row conversion function. Usually one row, can be more.
 #
 # Run locally.

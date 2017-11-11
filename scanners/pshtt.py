@@ -1,4 +1,3 @@
-from scanners import utils
 import logging
 
 import re
@@ -15,6 +14,7 @@ user_agent = "github.com/18f/domain-scan, pshtt.py"
 
 # Keep here to get some best-effort container reuse in Lambda.
 suffix_list = None
+
 
 # Download third party data once, at the top of the scan.
 def init(environment, options):
@@ -105,5 +105,6 @@ headers = [
     "Domain Enforces HTTPS", "Domain Uses Strong HSTS", "Unknown Error",
 ]
 
+
 def format_domain(domain):
-  return re.sub("^(https?://)?(www\.)?", "", domain)
+    return re.sub("^(https?://)?(www\.)?", "", domain)

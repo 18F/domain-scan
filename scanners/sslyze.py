@@ -15,14 +15,12 @@
 from scanners import utils
 import logging
 
-import os
 import sslyze
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
 
-import json
 import cryptography
 import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -54,6 +52,7 @@ def init_domain(domain, environment, options):
     return {
         'hostname': hostname
     }
+
 
 def scan(domain, environment, options):
     # Allow adjustment of hostname based on environment.
