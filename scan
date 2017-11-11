@@ -364,7 +364,7 @@ def perform_lambda_scan(params):
                 bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
 
                 # Assumes Lambda task has already been created and set.
-                logging.warn("\tExecuting function..." % (domain, task_name))
+                logging.warn("\tExecuting function...")
 
                 # Execute task, recording local start and end time.
                 meta['start_time'] = utils.local_now()
