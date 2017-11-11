@@ -13,29 +13,54 @@ pshtt_timeout = 20
 # default to a custom user agent, can be overridden
 user_agent = "github.com/18f/domain-scan, pshtt.py"
 
+# Keep here to get some best-effort container reuse in Lambda.
+suffix_list = None
 
 # Download third party data once, at the top of the scan.
 def init(environment, options):
     logging.warn("[pshtt] Downloading third party data...")
     return {
         'preload_list': pshtt.load_preload_list(),
-        'preload_pending': pshtt.load_preload_pending(),
-        'suffix_list': pshtt.load_suffix_list()
+        'preload_pending': pshtt.load_preload_pending()
     }
+
+
+# To save on bandwidth to Lambda, slice the preload and pending
+# lists down to an array of just the value, if it exists.
+# Override the list in place, which should only modify it per-scan.
+def init_domain(domain, environment, options):
+    if domain in environment.get("preload_list", []):
+        environment["preload_list"] = [domain]
+    else:
+        environment["preload_list"] = []
+
+    if domain in environment.get("preload_pending", []):
+        environment["preload_pending"] = [domain]
+    else:
+        environment["preload_pending"] = []
+
+    return environment
 
 
 # Run locally or in the cloud.
 # Gets third-party data passed into the environment.
 def scan(domain, environment, options):
+    global suffix_list
 
     domain = format_domain(domain)
+
+    # Always pull suffix list from network, but try to benefit
+    # from container re-use.
+    if suffix_list is None:
+        logging.warn("Downloading public suffix list.")
+        suffix_list = pshtt.load_suffix_list()
 
     # If these aren't loaded (e.g. a Lambda test function),
     # then this will pull the third parties from the network.
     pshtt.initialize_external_data(
-        environment.get('preload_list'),
-        environment.get('preload_pending'),
-        environment.get('suffix_list')
+        init_preload_list=environment.get('preload_list'),
+        init_preload_pending=environment.get('preload_pending'),
+        init_suffix_list=suffix_list
     )
 
     results = pshtt.inspect_domains(
@@ -86,32 +111,19 @@ def format_domain(domain):
 
 
 # cache_pshtt = utils.cache_path(domain, "pshtt", ext="json")
-    # if (force is False) and (os.path.exists(cache_pshtt)):
-    #     logging.debug("\tCached.")
-    #     raw = utils.read(cache_pshtt)
-    #     data = json.loads(raw)
-    #     if (data.__class__ is dict) and data.get('invalid'):
-    #         return None
+# if (force is False) and (os.path.exists(cache_pshtt)):
+#     logging.debug("\tCached.")
+#     raw = utils.read(cache_pshtt)
+#     data = json.loads(raw)
+#     if (data.__class__ is dict) and data.get('invalid'):
+#         return None
 
 
-    # if not results:
-    #     utils.write(utils.invalid({}), cache_pshtt)
-    #     logging.warn("\tBad news scanning, sorry!")
-    #     return None
+# if not results:
+#     utils.write(utils.invalid({}), cache_pshtt)
+#     logging.warn("\tBad news scanning, sorry!")
+#     return None
 
-    # data = json.loads(raw)
-    # utils.write(utils.json_for(data), utils.cache_path(domain, "pshtt"))
+# data = json.loads(raw)
+# utils.write(utils.json_for(data), utils.cache_path(domain, "pshtt"))
 
-
-#     if os.path.exists(third_parties_cache):
-#         logging.warn("Clearing cached third party pshtt data before scanning.")
-#         for path in glob.glob(os.path.join(third_parties_cache, "*")):
-#             os.remove(path)
-#         os.rmdir(third_parties_cache)
-
-
-# To save on bandwidth to Lambda, slice the preload and pending
-# lists down to an array of just the value, if it exists.
-# Override the list in place, which should only modify it per-scan.
-# def init_domain(domain, environment, options):
-#     environment['preload_list'] = [value for value in ]
