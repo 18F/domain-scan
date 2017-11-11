@@ -52,7 +52,7 @@ def scan(domain, environment, options):
     # Always pull suffix list from network, but try to benefit
     # from container re-use.
     if suffix_list is None:
-        logging.warn("Downloading public suffix list.")
+        logging.warn("\tDownloading public suffix list.")
         suffix_list = pshtt.load_suffix_list()
 
     # If these aren't loaded (e.g. a Lambda test function),
@@ -107,23 +107,3 @@ headers = [
 
 def format_domain(domain):
   return re.sub("^(https?://)?(www\.)?", "", domain)
-
-
-
-# cache_pshtt = utils.cache_path(domain, "pshtt", ext="json")
-# if (force is False) and (os.path.exists(cache_pshtt)):
-#     logging.debug("\tCached.")
-#     raw = utils.read(cache_pshtt)
-#     data = json.loads(raw)
-#     if (data.__class__ is dict) and data.get('invalid'):
-#         return None
-
-
-# if not results:
-#     utils.write(utils.invalid({}), cache_pshtt)
-#     logging.warn("\tBad news scanning, sorry!")
-#     return None
-
-# data = json.loads(raw)
-# utils.write(utils.json_for(data), utils.cache_path(domain, "pshtt"))
-
