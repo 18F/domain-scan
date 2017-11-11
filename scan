@@ -212,7 +212,7 @@ def scan_domains(scanners, domains, options):
         if options.get("sort"):
             utils.sort_csv(handles[scanner]['filename'])
 
-        if meta and use_lambda:
+        if False and meta and use_lambda:
             # Sleeping's not ideal, but no better idea right now.
             logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
             time.sleep(lambda_log_delay)
