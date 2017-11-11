@@ -86,9 +86,14 @@ def mkdir_p(path):
             raise
 
 
+# Format datetimes, sort keys, pretty-print.
 def json_for(object):
-    return json.dumps(object, sort_keys=True,
-                      indent=2, default=format_datetime)
+    return json.dumps(object, sort_keys=True, indent=2, default=format_datetime)
+
+
+# Mirror image of json_for.
+def from_json(string):
+    return json.loads(string)
 
 
 def format_datetime(obj):

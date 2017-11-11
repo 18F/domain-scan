@@ -30,7 +30,7 @@ def handler(event, context):
 
     end_time = utils.local_now()
     duration = end_time - start_time
-    return {
+    response = {
         'lambda': {
             'log_group_name': context.log_group_name,
             'log_stream_name': context.log_stream_name,
@@ -42,3 +42,9 @@ def handler(event, context):
         },
         'data': data
     }
+
+    # Serialize and re-parse the JSON, so that we run our own
+    # date transform functions in one place, using the same function
+    # that runs locally.
+    return utils.from_json(utils.json_for(response))
+
