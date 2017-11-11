@@ -21,6 +21,7 @@ from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionSc
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
 
+import idna
 import cryptography
 import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -63,7 +64,7 @@ def scan(domain, environment, options):
         'protocols': {},
         'config': {},
         'certs': {},
-        'errors': None
+        'errors': []
     }
 
     # Run the SSLyze scan on the given hostname.
@@ -73,7 +74,10 @@ def scan(domain, environment, options):
     if response is None:
         error = "No valid target for scanning, couldn't connect."
         logging.warn(error)
-        data['errors'] = error
+        data['errors'].append(error)
+
+    # Join all errors into a string before returning.
+    data['errors'] = ' '.join(data['errors'])
 
     return data
 
@@ -148,14 +152,14 @@ def run_sslyze(data, environment, options):
     server_info, scanner = init_sslyze(hostname, options, sync=sync)
 
     if server_info is None:
-        data['errors'] = "Connectivity not established."
+        data['errors'].append("Connectivity not established.")
         return data
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info, data, options)
     else:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, data, options)
 
     # Only analyze protocols if all the scanners functioned.
     # Very difficult to draw conclusions if some worked and some did not.
@@ -357,7 +361,8 @@ def init_sslyze(hostname, options, sync=False):
 
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
-def scan_serial(scanner, server_info, options):
+def scan_serial(scanner, server_info, data, options):
+
     logging.debug("\tRunning scans in serial.")
     logging.debug("\t\tSSLv2 scan.")
     sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
@@ -370,9 +375,17 @@ def scan_serial(scanner, server_info, options):
     logging.debug("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
 
+    certs = None
     if options.get("sslyze-certs", True) is True:
-        logging.debug("\t\tCertificate information scan.")
-        certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+
+        try:
+            logging.debug("\t\tCertificate information scan.")
+            certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+        # Let generic exceptions bubble up.
+        except idna.core.InvalidCodepoint:
+            logging.warn(utils.format_last_exception())
+            data['errors'].append("Invalid certificate/OCSP for this domain.")
+            certs = None
     else:
         certs = None
 
@@ -383,16 +396,22 @@ def scan_serial(scanner, server_info, options):
 
 # Run each scan in parallel, using multi-processing.
 # Faster, but can generate many processes.
-def scan_parallel(scanner, server_info, options):
+def scan_parallel(scanner, server_info, data, options):
     logging.debug("\tRunning scans in parallel.")
 
     def queue(command):
         try:
             return scanner.queue_scan_command(server_info, command)
+        except OSError as err:
+            text = ("OSError - likely too many processes and open files.")
+            data['errors'].append(text)
+            logging.warn("%s\n%s" % (text, utils.format_last_exception()))
+            return None, None, None, None, None, None
         except Exception as err:
-            utils.notify(err)
-            logging.warn("Unknown exception queueing sslyze command.")
-            return None
+            text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
+            data['errors'].append(text)
+            logging.warn(text)
+            return None, None, None, None, None, None
 
     # Initialize commands and result containers
     sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = None, None, None, None, None, None
@@ -412,7 +431,9 @@ def scan_parallel(scanner, server_info, options):
     for result in scanner.get_results():
         try:
             if isinstance(result, PluginRaisedExceptionScanResult):
-                logging.warn(u'Scan command failed: {}'.format(result.as_text()))
+                error = ("Scan command failed: %s" % result.as_text())
+                logging.warn(error)
+                data['errors'].append(error)
                 return None, None, None, None, None, None
 
             if type(result.scan_command) == Sslv20ScanCommand:
@@ -428,13 +449,16 @@ def scan_parallel(scanner, server_info, options):
             elif type(result.scan_command) == CertificateInfoScanCommand:
                 certs = result
             else:
-                logging.warn("\tCouldn't match scan result with command! %s" % result)
+                error = "Couldn't match scan result with command! %s" % result
+                logging.warn("\t%s" % error)
+                data['errors'].append(error)
                 was_error = True
 
         except Exception as err:
-            logging.warn("\t Exception inside async scanner result processing.")
             was_error = True
-            utils.notify(err)
+            text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
+            data['errors'].append(text)
+            logging.warn("\t%s" % text)
 
     # There was an error during async processing.
     if was_error:
