@@ -251,7 +251,7 @@ def scan_domains(scanners, domains, options):
         'start_time': utils.utc_timestamp(start_time),
         'end_time': utils.utc_timestamp(end_time),
         'duration': utils.just_microseconds(duration),
-        'scans': durations,
+        'durations': durations,
         'command': start_command,
         'scan_uuid': scan_uuid
     }
@@ -523,7 +523,7 @@ def add_lambda_details(input_filename):
         for i, cell in enumerate(row):
             dict_row[header[i]] = cell
 
-        logging.warn("[%s] Fetching Lambda details from logs..." % row[0])
+        logging.warn("[%s][%s] Fetching Lambda details from logs..." % (row[0], input_filename))
         details = fetch_lambda_details(dict_row)
 
         # Matches order of lambda_detail_headers
@@ -555,7 +555,10 @@ def fetch_lambda_details(dict_row):
     request_id = dict_row['Lambda Request ID']
     log_group_name = dict_row['Lambda Log Group Name']
     log_stream_name = dict_row['Lambda Log Stream Name']
-    lambda_end_time = utils.utc_timestamp_to_local_now(dict_row['Lambda End Time'])
+    if dict_row.get('Lambda End Time'):
+        lambda_end_time = utils.utc_timestamp_to_local_now(dict_row['Lambda End Time'])
+    else:
+        lambda_end_time = None
 
     # Filter log events to final event, with request ID.
     filter_pattern = ("\"%s\" \"Max Memory Used\"" % request_id)
@@ -581,8 +584,11 @@ def fetch_lambda_details(dict_row):
         last_event = events['events'][-1]
 
         # Track when the last log entry for this task was ingested.
-        log_end_time = last_event['ingestionTime'] / 1000
-        lambda_fields['log_delay'] = log_end_time - lambda_end_time
+        if lambda_end_time:
+            log_end_time = last_event['ingestionTime'] / 1000
+            lambda_fields['log_delay'] = log_end_time - lambda_end_time
+        else:
+            lambda_fields['log_delay'] = None
 
         # Get time and memory use from concluding event message
         pieces = last_event.get('message', '').strip().split("\t")
