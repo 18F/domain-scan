@@ -352,9 +352,9 @@ def init_sslyze(hostname, options, sync=False):
         return None, None
 
     if sync:
-        scanner = SynchronousScanner()
+        scanner = SynchronousScanner(network_timeout=network_timeout)
     else:
-        scanner = ConcurrentScanner()
+        scanner = ConcurrentScanner(network_timeout=network_timeout)
 
     return server_info, scanner
 
