@@ -32,19 +32,17 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 network_timeout = 5
 
 
-##
-# Normal entry point.
-
-# TODO: Examine local pshtt cache to decide whether to proceed,
-# and to find the canonical hostname.
+# If we have pshtt data, use it to skip some domains, and to adjust
+# scan hostnames to canonical URLs where we can.
 def init_domain(domain, environment, options):
-    # Optional: skip domains which don't support HTTPS in pshtt scan.
+    # If we have pshtt data, skip domains which pshtt saw as not
+    # supporting HTTPS at all.
     if utils.domain_doesnt_support_https(domain):
         logging.warn("\tSkipping, HTTPS not supported.")
         return False
 
-    # Optional: if pshtt data says canonical endpoint uses www and this domain
-    # doesn't have it, add it.
+    # If we have pshtt data and it says canonical endpoint uses www
+    # and the given domain is bare, add www.
     if utils.domain_uses_www(domain):
         hostname = "www.%s" % domain
     else:
@@ -55,6 +53,7 @@ def init_domain(domain, environment, options):
     }
 
 
+# Run sslyze on the given domain.
 def scan(domain, environment, options):
     # Allow adjustment of hostname based on environment.
     hostname = environment.get("hostname", domain)
