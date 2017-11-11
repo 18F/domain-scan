@@ -1,80 +1,60 @@
-import logging
 from scanners import utils
-import os
-import json
-import glob
+import logging
+
+import re
+from pshtt import pshtt
 
 ###
-# == pshtt ==
-#
-# Inspect a site's TLS configuration using DHS NCATS' pshtt tool.
-#
-###
+# Measure a site's HTTP behavior using DHS NCATS' pshtt tool.
 
-command = os.environ.get("PSHTT_PATH", "pshtt")
-
-# default to a long timeout
-timeout = 30
+# Network timeout for each internal pshtt HTTP request.
+pshtt_timeout = 20
 
 # default to a custom user agent, can be overridden
-user_agent = os.environ.get("PSHTT_USER_AGENT", "github.com/18f/domain-scan, pshtt.py")
-
-# save (and look for) preload file in cache/preload-list.json
-# same format as inspect.py uses
-third_parties_cache = utils.cache_single("pshtt/third_parties")
+user_agent = "github.com/18f/domain-scan, pshtt.py"
 
 
-# The preload and public suffix list caches are only important across
-# individual executions of pshtt. They are not intended to be cached across
-# individual executions of domain-scan itself.
-def init(options):
-
-    if os.path.exists(third_parties_cache):
-        logging.warn("Clearing cached third party pshtt data before scanning.")
-        for path in glob.glob(os.path.join(third_parties_cache, "*")):
-            os.remove(path)
-        os.rmdir(third_parties_cache)
-
-    return True
+# Download third party data once, at the top of the scan.
+def init(environment, options):
+    logging.warn("[pshtt] Downloading third party data...")
+    return {
+        'preload_list': pshtt.load_preload_list(),
+        'preload_pending': pshtt.load_preload_pending(),
+        'suffix_list': pshtt.load_suffix_list()
+    }
 
 
-def scan(domain, options):
-    logging.debug("[%s][pshtt]" % domain)
+# Run locally or in the cloud.
+# Gets third-party data passed into the environment.
+def scan(domain, environment, options):
 
-    # cache output from pshtt
-    cache_pshtt = utils.cache_path(domain, "pshtt", ext="json")
+    domain = format_domain(domain)
 
-    force = options.get("force", False)
-    data = None
+    # If these aren't loaded (e.g. a Lambda test function),
+    # then this will pull the third parties from the network.
+    pshtt.initialize_external_data(
+        environment.get('preload_list'),
+        environment.get('preload_pending'),
+        environment.get('suffix_list')
+    )
 
-    if (force is False) and (os.path.exists(cache_pshtt)):
-        logging.debug("\tCached.")
-        raw = utils.read(cache_pshtt)
-        data = json.loads(raw)
-        if (data.__class__ is dict) and data.get('invalid'):
-            return None
+    results = pshtt.inspect_domains(
+        [domain],
+        {
+            'timeout': pshtt_timeout,
+            'user_agent': user_agent
+        }
+    )
 
-    else:
-        raw = utils.scan([
-            command,
-            domain,
-            '--json',
-            '--user-agent', '\"%s\"' % user_agent,
-            '--timeout', str(timeout),
-            '--cache-third-parties', third_parties_cache
-        ])
+    # Actually triggers the work.
+    results = list(results)
 
-        if not raw:
-            utils.write(utils.invalid({}), cache_pshtt)
-            logging.warn("\tBad news scanning, sorry!")
-            return None
+    # pshtt returns array of results, but we always send in 1.
+    return results[0]
 
-        data = json.loads(raw)
-        utils.write(utils.json_for(data), utils.cache_path(domain, "pshtt"))
 
-    # pshtt scanner uses JSON arrays, even for single items
-    data = data[0]
-
+# Given a response from pshtt, convert it to a CSV row.
+def to_rows(data):
     row = []
     for field in headers:
         value = data[field]
@@ -86,7 +66,7 @@ def scan(domain, options):
 
         row.append(value)
 
-    yield row
+    return [row]
 
 
 headers = [
@@ -99,3 +79,39 @@ headers = [
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
     "Domain Enforces HTTPS", "Domain Uses Strong HSTS", "Unknown Error",
 ]
+
+def format_domain(domain):
+  return re.sub("^(https?://)?(www\.)?", "", domain)
+
+
+
+# cache_pshtt = utils.cache_path(domain, "pshtt", ext="json")
+    # if (force is False) and (os.path.exists(cache_pshtt)):
+    #     logging.debug("\tCached.")
+    #     raw = utils.read(cache_pshtt)
+    #     data = json.loads(raw)
+    #     if (data.__class__ is dict) and data.get('invalid'):
+    #         return None
+
+
+    # if not results:
+    #     utils.write(utils.invalid({}), cache_pshtt)
+    #     logging.warn("\tBad news scanning, sorry!")
+    #     return None
+
+    # data = json.loads(raw)
+    # utils.write(utils.json_for(data), utils.cache_path(domain, "pshtt"))
+
+
+#     if os.path.exists(third_parties_cache):
+#         logging.warn("Clearing cached third party pshtt data before scanning.")
+#         for path in glob.glob(os.path.join(third_parties_cache, "*")):
+#             os.remove(path)
+#         os.rmdir(third_parties_cache)
+
+
+# To save on bandwidth to Lambda, slice the preload and pending
+# lists down to an array of just the value, if it exists.
+# Override the list in place, which should only modify it per-scan.
+# def init_domain(domain, environment, options):
+#     environment['preload_list'] = [value for value in ]
