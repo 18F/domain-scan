@@ -4,21 +4,23 @@
 sudo yum install python36 python36-virtualenv
 sudo yum install sqlite-devel gcc libffi-devel openssl-devel
 sudo yum install git
-virtualenv-3.6 pshtt
-source pshtt/bin/activate
-pip install pshtt
-deactivate
-
-##
-# Full domain-scan environment.
 git clone https://github.com/18F/domain-scan.git
+git clone https://github.com/dhs-ncats/pshtt
+# May need to switch branches, depending.
+
+##################################
+# Repeatable from here.
+##################################
+rm -r scan-env
 virtualenv-3.6 scan-env
 source scan-env/bin/activate
+
+cd pshtt
+pip install .
+cd ..
+
 cd domain-scan
 pip install -r requirements.txt
-# can remove this once pushed to master
-pip install pshtt
-pip install boto3
 cd ..
 deactivate
 
