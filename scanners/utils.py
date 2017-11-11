@@ -215,12 +215,12 @@ def invalid(data=None):
     return json_for(data)
 
 
-# RFC 3339 timestamp for a given UTC time (or current time).
+# RFC 3339 timestamp for a given UTC time.
 # seconds can be a float, down to microseconds.
 # A given time needs to be passed in *as* UTC already.
-def utc_timestamp(seconds=None):
+def utc_timestamp(seconds):
     if not seconds:
-        seconds = local_now()
+        return None
     return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
 
 
@@ -238,7 +238,7 @@ def local_now():
 # microseconds.
 def just_microseconds(duration):
     if duration is None:
-        return ""
+        return None
     return "%.6f" % duration
 
 
