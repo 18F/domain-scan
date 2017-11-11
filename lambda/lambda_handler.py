@@ -11,6 +11,11 @@ def handler(event, context):
     domain = event.get('domain')
     options = event.get('options')
     name = event.get('scanner')
+    environment = event.get('environment')
+
+    # Log all sent events, for the record.
+    utils.configure_logging(options)
+    logging.warn(event)
 
     # Might be acceptable to let this crash the module, in Lambda.
     try:
@@ -20,12 +25,8 @@ def handler(event, context):
         logging.error("[%s] Scanner not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (name, exc_type, exc_value))
         exit(1) # ?
 
-    # Log all sent events, for the record.
-    utils.configure_logging(options)
-    logging.warn(event)
-
     # Same method call as when run locally.
-    rows = list(scanner.scan(domain, options))
+    data = scanner.scan(domain, environment, options)
 
     end_time = utils.local_now()
     duration = end_time - start_time
@@ -39,5 +40,5 @@ def handler(event, context):
             'end_time': end_time,
             'measured_duration': duration
         },
-        'data': rows
+        'data': data
     }

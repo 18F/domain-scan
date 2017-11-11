@@ -118,11 +118,6 @@ def run(options=None):
                           (name, scanner.command))
             exit(1)
 
-        # Scanners can have an optional init/validation hook.
-        if hasattr(scanner, "init") and scanner.init and (not scanner.init(options)):
-            logging.error("[%s] Scanner's init hook returned false." % name)
-            exit(1)
-
         scans.append(scanner)
 
     scan_domains(scans, domains, options)
@@ -181,11 +176,8 @@ def scan_domains(scanners, domains, options):
     else:
         scan_method = perform_local_scan
 
-    extras = {}
-
     # Store scan UUID.
     logging.warn("[%s] Scan UUID." % scan_uuid)
-    extras['scan_uuid'] = scan_uuid
 
     # Run each scanner (unique process pool) over each domain.
     # User can force --serial, and scanners can override default of 10.
@@ -201,8 +193,21 @@ def scan_domains(scanners, domains, options):
         # Enforce a local worker maximum as a safety valve.
         workers = min(workers, global_max_workers)
 
+        # Scan environment, passed to all scanners (local or cloud).
+        environment = {}
+        environment['scan_method'] = {True: 'lambda', False: 'local'}[use_lambda]
+        environment['scan_uuid'] = scan_uuid
+
+        # Scanner-specific initialized environment.
+        # Useful for data that should be cached/passed to each instance,
+        # such as data from third-party network sources.
+        if hasattr(scanner, "init"):
+            init = scanner.init(environment, options)
+            environment = {**environment, **init}
+
+        # Kick off workers in parallel. Returns when all are done.
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            tasks = ((scanner, domain, handles, extras, options) for domain in domains_from(domains))
+            tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
             executor.map(scan_method, tasks)
 
     # Close up all the files, --sort if requested (expensive).
@@ -237,19 +242,30 @@ def scan_domains(scanners, domains, options):
 ###
 # Local scan (default).
 def perform_local_scan(params):
-    scanner, domain, handles, extras, options = params
+    scanner, domain, handles, environment, options = params
 
     meta = {'errors': []}
+    rows = None
 
     try:
-        # This pulls this perticular scan's data all into memory.
         logging.warn("[%s][%s] Running locally..." % (domain, handles[scanner]['name']))
+
+        # Init function (always run locally).
+        scan_environment = {}
+        if hasattr(scanner, "init_domain"):
+            scan_environment = scanner.init_domain(domain, environment, options)
+        scan_environment = {**environment, **scan_environment}
 
         # Capture local start and end times around scan.
         meta['start_time'] = utils.local_now()
-        rows = list(scanner.scan(domain, options))
+        data = scanner.scan(domain, scan_environment, options)
         meta['end_time'] = utils.local_now()
         meta['duration'] = meta['end_time'] - meta['start_time']
+
+        # Convert to rows for CSV.
+        rows = scanner.to_rows(data)
+
+        # TODO: cache responses in a standard place/way.
     except:
         exception = utils.format_last_exception()
         meta['errors'].append("Unknown exception: %s" % exception)
@@ -268,7 +284,7 @@ def perform_local_scan(params):
 ###
 # Lambda-based scan. (Experimental!)
 def perform_lambda_scan(params):
-    scanner, domain, handles, extras, options = params
+    scanner, domain, handles, environment, options = params
 
     meta = {'errors': [], 'lambda': {}}
     rows = None
@@ -276,6 +292,12 @@ def perform_lambda_scan(params):
     # Most of the function in the try block because it's otherwise
     # not easy to do error handling on a worker thread.
     try:
+        # Init function (always run locally).
+        scan_environment = {}
+        if hasattr(scanner, "init_domain"):
+            scan_environment = scanner.init_domain(domain, environment, options)
+        scan_environment = {**environment, **scan_environment}
+
         # For now, do synchronous Lambda requests, essentially just
         # farming out the hard work to Lambda. This increases max workers
         # somewhat, since waiting on responses is much, much cheaper than
@@ -287,16 +309,10 @@ def perform_lambda_scan(params):
         payload = {
             'domain': domain,
             'options': options,
-            'scanner': handles[scanner]['name']
+            'scanner': handles[scanner]['name'],
+            'environment': scan_environment
         }
         bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
-
-        # Send up scan UUID to make log filtering easier.
-        context = {
-            'custom': {'scan_uuid': extras['scan_uuid']}
-        }
-        bytes_context = bytes(utils.json_for(context), encoding='utf-8')
-        encoded_context = str(base64.b64encode(bytes_context), encoding='utf-8')
 
         # Assumes Lambda task has already been created and set.
         logging.warn("[%s][%s] Running Lambda function..." % (domain, task_name))
@@ -307,30 +323,32 @@ def perform_lambda_scan(params):
             FunctionName=task_name,
             InvocationType='RequestResponse',
             LogType='None',
-            ClientContext=encoded_context,
             Payload=bytes_payload
         )
         meta['end_time'] = utils.local_now()
         meta['duration'] = meta['end_time'] - meta['start_time']
 
-        raw = str(api_response['Payload'].read(), encoding='utf-8')
-        response = json.loads(raw)
-
         # Store Lambda request ID for reference in Lambda logs.
         meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
 
-        if response.get("errorMessage") is not None:
-            logging.warn("[%s][%s] Lambda error! \n\t%s" % (domain, task_name, raw))
-            meta['errors'].append("Lambda error: %s" % raw)
-        else:
-            # logging.debug(response)
+        # Read payload from Lambda task.
+        raw = str(api_response['Payload'].read(), encoding='utf-8')
+        response = json.loads(raw)
 
-            # Store other Lambda-specific info per-task.
+        if response.get("errorMessage") is None:
+            # Payload has some per-task Lambda-specific info.
             meta['lambda'] = {**meta['lambda'], **response['lambda']}
 
-            # TODO: get more detailed JSON/dict data and run a scanner-specific
-            # conversion function to turn dict into a row
-            rows = response['data']
+            # Payload has the actual scan response data.
+            data = response['data']
+
+            # Convert to rows for CSV.
+            rows = scanner.to_rows(data)
+
+            # TODO: cache responses in a standard place/way.
+        else:
+            logging.warn("[%s][%s] Lambda error! \n\t%s" % (domain, task_name, raw))
+            meta['errors'].append("Lambda error: %s" % raw)
 
     except botocore.vendored.requests.exceptions.ReadTimeout:
         meta['errors'].append("Connection timeout while talking to Lambda.")
@@ -418,7 +436,7 @@ def add_lambda_details(input_filename):
 
     # TODO: parallelize this
     # with ThreadPoolExecutor(max_workers=workers) as executor:
-    #     tasks = ((scanner, domain, handles, extras, options) for domain in domains_from(domains))
+    #     tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
     #     executor.map(scan_method, tasks)
 
     for row in csv.reader(input_file):
