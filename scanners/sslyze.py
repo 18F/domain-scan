@@ -40,18 +40,19 @@ network_timeout = 5
 # and to find the canonical hostname.
 def init_domain(domain, environment, options):
     # Optional: skip domains which don't support HTTPS in pshtt scan.
-    # if utils.domain_doesnt_support_https(domain):
-    #     logging.debug("\tSkipping, HTTPS not supported.")
-    #     return None
+    if utils.domain_doesnt_support_https(domain):
+        logging.debug("\tSkipping, HTTPS not supported.")
+        return None
 
     # Optional: if pshtt data says canonical endpoint uses www and this domain
     # doesn't have it, add it.
-    # if utils.domain_uses_www(domain):
-    #     hostname = "www.%s" % domain
-    # else:
-    #     hostname = domain
+    if utils.domain_uses_www(domain):
+        hostname = "www.%s" % domain
+    else:
+        hostname = domain
+
     return {
-        'hostname': domain
+        'hostname': hostname
     }
 
 def scan(domain, environment, options):
