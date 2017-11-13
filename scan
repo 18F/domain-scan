@@ -40,9 +40,17 @@ scan_uuid = str(uuid.uuid4())
 
 # AWS credentials should be set externally (disk, env, IAMs, etc.).
 if options.get("lambda", False):
-    config = botocore.config.Config(max_pool_connections=global_max_workers)
-    lambda_client = boto3.client('lambda', config=config)
-    logs_client = boto3.client('logs', config=config)
+    invoke_config = botocore.config.Config(
+        max_pool_connections=global_max_workers,
+        connect_timeout=300, read_timeout=300
+    )
+    invoke_client = boto3.client('lambda', config=invoke_config)
+    # hack to disable automatic retries for Lambda invocations
+    # https://github.com/boto/boto3/issues/1104
+    invoke_client.meta.events._unique_id_handlers['retry-config-lambda']['handler']._checker.__dict__['_max_attempts'] = 0
+
+    logs_config = botocore.config.Config(max_pool_connections=global_max_workers)
+    logs_client = boto3.client('logs', config=logs_config)
 
 # Fields that will always get prefixed before scan-specific data.
 prefix_headers = ["Domain", "Base Domain"]
@@ -400,7 +408,7 @@ def perform_lambda_scan(params):
 
             # Execute task, recording local start and end time.
             meta['start_time'] = utils.local_now()
-            api_response = lambda_client.invoke(
+            api_response = invoke_client.invoke(
                 FunctionName=task_name,
                 InvocationType='RequestResponse',
                 LogType='None',
