@@ -53,7 +53,7 @@ def scan(domain, environment, options):
     # from container re-use.
     if suffix_list is None:
         logging.warn("\tDownloading public suffix list.")
-        suffix_list = pshtt.load_suffix_list()
+        suffix_list, content = pshtt.load_suffix_list()
 
     # If these aren't loaded (e.g. a Lambda test function),
     # then this will pull the third parties from the network.
