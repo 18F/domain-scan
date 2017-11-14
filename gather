@@ -15,7 +15,7 @@ utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
 
 # some metadata about the scan itself
-start_time = utils.utc_timestamp()
+start_time = utils.local_now()
 start_command = str.join(" ", sys.argv)
 
 
@@ -142,9 +142,10 @@ def run(options=None):
     logging.warn("Results written to CSV.")
 
     # Save metadata.
+    end_time = utils.local_now()
     metadata = {
-        'start_time': start_time,
-        'end_time': utils.utc_timestamp(),
+        'start_time': utils.utc_timestamp(start_time),
+        'end_time': utils.utc_timestamp(end_time),
         'command': start_command
     }
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
