@@ -184,6 +184,22 @@ def scan_domains(scanners, domains, options):
     # Checked now, so that failure can immediately halt the whole scan.
     for scanner in scanners:
         environment = {}
+
+        environment['scan_method'] = {True: 'lambda', False: 'local'}[use_lambda]
+        environment['scan_uuid'] = scan_uuid
+
+        # Select workers here, so that it can be passed to the
+        # init function.
+        if options.get("serial"):
+            workers = 1
+        elif hasattr(scanner, "workers"):
+            workers = scanner.workers
+        else:
+            workers = int(options.get("workers", default_workers))
+
+        # Enforce a local worker maximum as a safety valve.
+        environment['workers'] = min(workers, global_max_workers)
+
         if hasattr(scanner, "init"):
             init = scanner.init(environment, options)
 
@@ -210,20 +226,10 @@ def scan_domains(scanners, domains, options):
     durations = {}
     for scanner in scanners:
 
-        if options.get("serial"):
-            workers = 1
-        elif hasattr(scanner, "workers"):
-            workers = scanner.workers
-        else:
-            workers = int(options.get("workers", default_workers))
-
-        # Enforce a local worker maximum as a safety valve.
-        workers = min(workers, global_max_workers)
-
         # Scan environment, passed to all scanners (local or cloud).
         environment = handles[scanner]['environment']
-        environment['scan_method'] = {True: 'lambda', False: 'local'}[use_lambda]
-        environment['scan_uuid'] = scan_uuid
+
+        workers = environment['workers']
 
         # Kick off workers in parallel. Returns when all are done.
         scan_start_time = utils.local_now()
