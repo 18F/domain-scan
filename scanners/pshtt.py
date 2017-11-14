@@ -1,4 +1,5 @@
 import logging
+import codecs
 
 import re
 from pshtt import pshtt
@@ -15,13 +16,27 @@ user_agent = "github.com/18f/domain-scan, pshtt.py"
 # Keep here to get some best-effort container reuse in Lambda.
 suffix_list = None
 
+# In Lambda, we package a snapshot of the PSL with the environment.
+lambda_suffix_path = "./public-suffix-list.txt"
+
 
 # Download third party data once, at the top of the scan.
 def init(environment, options):
     logging.warn("[pshtt] Downloading third party data...")
+
+    # In local environments, download latest PSL, cache in-memory.
+    if environment['scan_method'] == "local":
+        instance, suffix_list = pshtt.load_suffix_list()
+
+    # In the cloud, we'll use a PSL snapshot instead of fresh data.
+    # Not worth the network transit on my end or the PSL's.
+    else:
+        suffix_list = None
+
     return {
         'preload_list': pshtt.load_preload_list(),
-        'preload_pending': pshtt.load_preload_pending()
+        'preload_pending': pshtt.load_preload_pending(),
+        'suffix_list': suffix_list
     }
 
 
@@ -45,18 +60,15 @@ def init_domain(domain, environment, options):
 # Run locally or in the cloud.
 # Gets third-party data passed into the environment.
 def scan(domain, environment, options):
-    global suffix_list
 
     domain = format_domain(domain)
 
-    # Always pull suffix list from network, but try to benefit
-    # from container re-use.
-    if suffix_list is None:
-        logging.warn("\tDownloading public suffix list.")
-        suffix_list, content = pshtt.load_suffix_list()
+    if environment["scan_method"] == "lambda":
+        suffix_list = codecs.open(lambda_suffix_path, encoding='utf-8')
+    else: # scan_method == "local"
+        suffix_list = environment["suffix_list"]
 
-    # If these aren't loaded (e.g. a Lambda test function),
-    # then this will pull the third parties from the network.
+    # This should cause no network calls, either locally or the cloud.
     pshtt.initialize_external_data(
         init_preload_list=environment.get('preload_list'),
         init_preload_pending=environment.get('preload_pending'),
@@ -108,3 +120,4 @@ headers = [
 
 def format_domain(domain):
     return re.sub("^(https?://)?(www\.)?", "", domain)
+
