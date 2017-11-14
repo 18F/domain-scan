@@ -36,6 +36,10 @@ cd build
 
 VENV=scan-env
 
+# Copy in a snapshot of the public suffix list in .txt form.
+# Need to find a more managed way to store this.
+cp /home/ec2-user/public-suffix-list.txt .
+
 # Copy all packages, including any hidden dotfiles.
 cp -rT /home/ec2-user/$VENV/lib/python3.6/site-packages/ .
 cp -rT /home/ec2-user/$VENV/lib64/python3.6/site-packages/ .
