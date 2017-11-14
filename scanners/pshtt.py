@@ -79,7 +79,8 @@ def scan(domain, environment, options):
         [domain],
         {
             'timeout': pshtt_timeout,
-            'user_agent': user_agent
+            'user_agent': user_agent,
+            'debug': options.get("debug", False)
         }
     )
 
