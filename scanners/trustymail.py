@@ -4,11 +4,7 @@ import os
 import json
 
 ###
-# == trustymail ==
-#
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
-#
-###
 
 command = os.environ.get("TRUSTYMAIL_PATH", "trustymail")
 
