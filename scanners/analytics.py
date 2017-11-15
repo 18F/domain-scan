@@ -56,4 +56,5 @@ def to_rows(data):
         [data['participating']]
     ]
 
+
 headers = ["Participates in Analytics"]

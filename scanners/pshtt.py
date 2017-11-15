@@ -65,7 +65,7 @@ def scan(domain, environment, options):
 
     if environment["scan_method"] == "lambda":
         suffix_list = codecs.open(lambda_suffix_path, encoding='utf-8')
-    else: # scan_method == "local"
+    else:  # scan_method == "local"
         suffix_list = environment["suffix_list"]
 
     # This should cause no network calls, either locally or the cloud.
@@ -121,4 +121,3 @@ headers = [
 
 def format_domain(domain):
     return re.sub("^(https?://)?(www\.)?", "", domain)
-
