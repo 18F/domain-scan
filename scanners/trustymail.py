@@ -49,7 +49,7 @@ def scan(domain, options):
         data = json.loads(raw)
         utils.write(utils.json_for(data), utils.cache_path(domain, "trustymail"))
 
-    # trustymail scanner follows pshtt in  using JSON arrays, even for single items
+    # trustymail scanner follows pshtt in using JSON arrays, even for single items
     data = data[0]
 
     row = []
@@ -62,9 +62,13 @@ def scan(domain, options):
 
 
 headers = [
-    "Live", "MX Record", "Mail Servers",
+    "Live",
+    "MX Record", "Mail Servers", "Mail Server Ports Tested",
+    "Domain Supports SMTP", "Domain Supports SMTP Results",
+    "Domain Supports STARTTLS", "Domain Supports STARTTLS Results",
     "SPF Record", "Valid SPF", "SPF Results",
     "DMARC Record", "Valid DMARC", "DMARC Results",
-    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain", "DMARC Policy",
+    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain",
+    "DMARC Results on Base Domain", "DMARC Policy",
     "Syntax Errors"
 ]
