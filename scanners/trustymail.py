@@ -39,6 +39,8 @@ def scan(domain, options):
             domain,
             '--json',
             '--timeout', str(timeout),
+            # Use Google DNS
+            '--dns-hostnames', '8.8.8.8,8.8.4.4'
         ])
 
         if not raw:
