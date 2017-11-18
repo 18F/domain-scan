@@ -400,16 +400,26 @@ def sort_csv(input_filename):
 
 
 # Given a user-input domain suffix, normalize it.
-def normalize_suffix(suffix):
-    if suffix is None:
+def normalize_suffixes(given):
+    if (given is None) or (type(given) is not str):
         return None
 
-    if not suffix.startswith("."):
-        suffix = (".%s" % suffix)
-    return suffix
+    suffixes = []
+    for suffix in given.split(","):
+        suffix = suffix.strip()
+
+        if not suffix.startswith("."):
+            suffix = (".%s" % suffix)
+        suffixes.append(suffix)
+
+    return suffixes
 
 
 # Given a domain suffix, provide a compiled regex.
 # Assumes suffixes always begin with a dot.
-def suffix_pattern(suffix):
-    return re.compile("\\%s$" % suffix)
+#
+# e.g. [".gov", ".gov.uk"] -> "(?:\\.gov|\\.gov.uk)$"
+def suffix_pattern(suffixes):
+    prefixed = [suffix.replace(".", "\\.") for suffix in suffixes]
+    center = str.join("|", prefixed)
+    return re.compile("(?:%s)$" % center)

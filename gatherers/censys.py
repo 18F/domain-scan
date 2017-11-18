@@ -45,12 +45,8 @@ import censys
 # TODO: Right now this only handle one download file. In theory, the
 # export API can return an array of multiple download files.
 
-# Hostnames beginning with a wildcard prefix will have the prefix stripped.
-wildcard_pattern = re.compile("^\*\.")
-redacted_pattern = re.compile("^(\?\.)+")
 
-
-def gather(suffix, options, extra={}):
+def gather(suffixes, options, extra={}):
     # Register a (free) Censys.io account to get a UID and API key.
     uid = options.get("censys_id", None)
     api_key = options.get("censys_key", None)
@@ -64,9 +60,9 @@ def gather(suffix, options, extra={}):
         exit(1)
 
     if options.get("export", False):
-        hostnames_map = export_mode(suffix, options, uid, api_key)
+        hostnames_map = export_mode(suffixes, options, uid, api_key)
     else:
-        hostnames_map = paginated_mode(suffix, options, uid, api_key)
+        hostnames_map = paginated_mode(suffixes, options, uid, api_key)
 
     # Iterator doesn't buy much efficiency, since we paginated already.
     # Necessary evil to de-dupe before returning hostnames, though.
@@ -74,16 +70,20 @@ def gather(suffix, options, extra={}):
         yield hostname
 
 
-def paginated_mode(suffix, options, uid, api_key):
+def paginated_mode(suffixes, options, uid, api_key):
     # Cache hostnames in a dict for de-duping.
     hostnames_map = {}
 
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
+    def suffix_query(suffix):
+        return "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
+
     if 'query' in options and options['query']:
         query = options['query']
     else:
-        query = "parsed.subject.common_name:\"%s\" or parsed.extensions.subject_alt_name.dns_names:\"%s\"" % (suffix, suffix)
+        query = str.join(" or ", [suffix_query(suffix) for suffix in suffixes])
+
     logging.debug("Censys query:\n%s\n" % query)
 
     # time to sleep between requests (defaults to 5s)
@@ -153,10 +153,10 @@ def paginated_mode(suffix, options, uid, api_key):
         for cert in certs:
             # Common name + SANs
             names = cert.get('parsed.subject.common_name', []) + cert.get('parsed.extensions.subject_alt_name.dns_names', [])
-            logging.debug(names)
+            # logging.debug(names)
 
             for name in names:
-                hostnames_map[sanitize_name(name)] = None
+                hostnames_map[name] = None
 
         current_page += 1
 
@@ -165,12 +165,13 @@ def paginated_mode(suffix, options, uid, api_key):
     return hostnames_map
 
 
-def export_mode(suffix, options, uid, api_key):
+def export_mode(suffixes, options, uid, api_key):
     # Cache hostnames in a dict for de-duping.
     hostnames_map = {}
 
     # Default timeout to 20 minutes.
-    timeout = int(options.get("timeout", (60 * 60 * 20)))
+    default_timeout = 60 * 60 * 20
+    timeout = int(options.get("timeout", default_timeout))
 
     # Wait 5 seconds between checking on the job.
     between_jobs = 5
@@ -181,9 +182,13 @@ def export_mode(suffix, options, uid, api_key):
         logging.warn("The Censys.io Export API rejected the provided Censys credentials. The credentials may be inaccurate, or you may need to request access from the Censys.io team.")
         exit(1)
 
+    def suffix_query(suffix):
+        return "parsed.subject.common_name LIKE \"%%%s\" OR parsed.extensions.subject_alt_name.dns_names LIKE \"%%%s\"" % (suffix, suffix)
+
     # Uses a FLATTEN command in order to work around a BigQuery
     # error around multiple "repeated" fields. *shrug*
-    query = "SELECT parsed.subject.common_name, parsed.extensions.subject_alt_name.dns_names from FLATTEN([certificates.certificates], parsed.extensions.subject_alt_name.dns_names) where parsed.subject.common_name LIKE \"%%%s\" OR parsed.extensions.subject_alt_name.dns_names LIKE \"%%%s\";" % (suffix, suffix)
+    body = str.join(" OR ", [suffix_query(suffix) for suffix in suffixes])
+    query = "SELECT parsed.subject.common_name, parsed.extensions.subject_alt_name.dns_names from FLATTEN([certificates.certificates], parsed.extensions.subject_alt_name.dns_names) where %s;" % (body)
     logging.debug("Censys query:\n%s\n" % query)
 
     download_file = utils.cache_path("export", "censys", ext="csv")
@@ -248,19 +253,9 @@ def export_mode(suffix, options, uid, api_key):
 
             for name in names:
                 if name:
-                    hostnames_map[sanitize_name(name)] = None
+                    hostnames_map[name] = None
 
     return hostnames_map
-
-
-# Given a hostname from Censys, remove * and ? marks.
-def sanitize_name(name):
-    # Strip off any wildcard prefix.
-    name = re.sub(wildcard_pattern, '', name).lower().strip()
-    # Strip off any redacted ? prefixes. (Ugh.)
-    name = re.sub(redacted_pattern, '', name).lower().strip()
-
-    return name
 
 
 # Hit the API once just to get the last available page number.

@@ -24,7 +24,8 @@ strip_www = re.compile("^www\.")
 
 # Applied to all domains.
 strip_protocol = re.compile("^https?://")
-strip_wildcard = re.compile("^\*.")
+strip_wildcard = re.compile("^(\*.)+")
+strip_redacted = re.compile("^(\?\.)+")
 
 
 def run(options=None):
@@ -34,17 +35,16 @@ def run(options=None):
         exit(1)
 
     # For now, require a --suffix.
-    suffix = utils.normalize_suffix(options.get("suffix"))
-    if suffix is None:
-        logging.error("--suffix is required.")
+    suffixes = utils.normalize_suffixes(options.get("suffix"))
+    if suffixes is None:
+        logging.error("--suffix with one or more pattern is required.")
         exit(1)
+    # Turn the suffix into a regex.
+    suffix_pattern = utils.suffix_pattern(suffixes)
 
     # Clear out existing result CSVs, to avoid inconsistent data.
     for result in glob.glob("%s/*.csv" % utils.results_dir()):
         os.remove(result)
-
-    # Turn the suffix into a regex.
-    suffix_pattern = utils.suffix_pattern(suffix)
 
     # Opt in to include parent (second-level) domains.
     include_parents = options.get("include-parents", False)
@@ -82,7 +82,7 @@ def run(options=None):
                 exit(1)
 
         # Iterate over each hostname.
-        for domain in gatherer.gather(suffix, options, extra):
+        for domain in gatherer.gather(suffixes, options, extra):
 
             # Always apply the suffix filter to returned names.
             if not suffix_pattern.search(domain):
@@ -91,8 +91,11 @@ def run(options=None):
             # Cut off protocols, if present.
             domain = strip_protocol.sub("", domain)
 
-            # Cut naive wildcard prefixes out.
+            # Cut naive wildcard prefixes out. (from certs)
             domain = strip_wildcard.sub("", domain)
+
+            # Cut off any redaction markers from names. (from certs)
+            domain = strip_redacted.sub("", domain)
 
             # Strip www. prefixes from hostnames, effectively
             # collapsing www.[host] and [host] into one record.

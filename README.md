@@ -137,7 +137,7 @@ docker-compose run scan <domain> --scan=<scanner>
 
 ## Gathering hostnames
 
-This tool also includes a facility for gathering domain names that end in a given suffix (e.g. `.gov`) from various sources.
+This tool also includes a facility for gathering domain names that end in one or more given suffixes (e.g. `.gov` or `.gov.uk`) from various sources.
 
 By default, only fetches third-level and higher domains (excluding second-level domains).
 
@@ -171,7 +171,7 @@ See [specific usage examples](#gathering-usage-examples) below.
 
 General options:
 
-* `--suffix`: **Required.** suffix to filter on (e.g. `.gov`)
+* `--suffix`: **Required.** One or more suffix to filter on, separated by commas as necessary. (e.g. `.gov` or `.gov,.gov.uk`)
 * `--parents`: A path or URL to a CSV whose first column is second-level domains. Any subdomain not contained within these second-level domains will be excluded.
 * `--include-parents`: Include second-level domains. (Defaults to false.)
 * `--ignore-www`: Ignore the `www.` prefixes of hostnames. If `www.staging.example.com` is found, it will be treated as `staging.example.com`.
