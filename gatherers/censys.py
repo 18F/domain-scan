@@ -60,20 +60,17 @@ def gather(suffixes, options, extra={}):
         exit(1)
 
     if options.get("export", False):
-        hostnames_map = export_mode(suffixes, options, uid, api_key)
+        gather_method = export_mode
     else:
-        hostnames_map = paginated_mode(suffixes, options, uid, api_key)
+        gather_method = paginated_mode
 
     # Iterator doesn't buy much efficiency, since we paginated already.
     # Necessary evil to de-dupe before returning hostnames, though.
-    for hostname in hostnames_map.keys():
+    for hostname in gather_method(suffixes, options, uid, api_key):
         yield hostname
 
 
 def paginated_mode(suffixes, options, uid, api_key):
-    # Cache hostnames in a dict for de-duping.
-    hostnames_map = {}
-
     certificate_api = certificates.CensysCertificates(uid, api_key)
 
     def suffix_query(suffix):
@@ -156,18 +153,14 @@ def paginated_mode(suffixes, options, uid, api_key):
             # logging.debug(names)
 
             for name in names:
-                hostnames_map[name] = None
+                yield name
 
         current_page += 1
 
     logging.debug("Done fetching from API.")
 
-    return hostnames_map
-
 
 def export_mode(suffixes, options, uid, api_key):
-    # Cache hostnames in a dict for de-duping.
-    hostnames_map = {}
 
     # Default timeout to 20 minutes.
     default_timeout = 60 * 60 * 20
@@ -253,9 +246,7 @@ def export_mode(suffixes, options, uid, api_key):
 
             for name in names:
                 if name:
-                    hostnames_map[name] = None
-
-    return hostnames_map
+                    yield name
 
 
 # Hit the API once just to get the last available page number.
