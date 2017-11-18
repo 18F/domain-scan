@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import glob
 import sys
 import re
 import csv
@@ -18,6 +19,13 @@ utils.mkdir_p(utils.results_dir())
 start_time = utils.local_now()
 start_command = str.join(" ", sys.argv)
 
+# Applied if --ignore-www is enabled.
+strip_www = re.compile("^www\.")
+
+# Applied to all domains.
+strip_protocol = re.compile("^https?://")
+strip_wildcard = re.compile("^\*.")
+
 
 def run(options=None):
 
@@ -30,6 +38,12 @@ def run(options=None):
     if suffix is None:
         logging.error("--suffix is required.")
         exit(1)
+
+    # Clear out existing result CSVs, to avoid inconsistent data.
+    for result in glob.glob("%s/*.csv" % utils.results_dir()):
+        os.remove(result)
+
+    # Turn the suffix into a regex.
     suffix_pattern = utils.suffix_pattern(suffix)
 
     # Opt in to include parent (second-level) domains.
@@ -38,16 +52,10 @@ def run(options=None):
     # Opt into stripping www. prefixes from hostnames, effectively
     # collapsing www.[host] and [host] into one record.
     ignore_www = options.get("ignore-www", False)
-    strip_www = re.compile("^www\.")
-
-    # Applied to all domains.
-    strip_protocol = re.compile("^https?://")
-    strip_wildcard = re.compile("^\*.")
 
     # --parents should be a CSV whose first column is parent domains
     # that will act as a whitelist for which subdomains to gather.
     parents = get_parent_domains(options)
-
 
     # Import the gatherer(s).
     sources = options["_"][0].split(",")
