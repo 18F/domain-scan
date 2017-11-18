@@ -88,6 +88,9 @@ def run(options=None):
             if not suffix_pattern.search(domain):
                 continue
 
+            # Strip off whitespace before pre-processing.
+            domain = domain.strip()
+
             # Cut off protocols, if present.
             domain = strip_protocol.sub("", domain)
 
@@ -101,6 +104,9 @@ def run(options=None):
             # collapsing www.[host] and [host] into one record.
             if ignore_www:
                 domain = strip_www.sub("", domain)
+
+            # Strip off whitespace after pre-processing.
+            domain = domain.strip()
 
             base = utils.base_domain_for(domain)
 
