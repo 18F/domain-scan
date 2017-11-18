@@ -212,12 +212,6 @@ def scan_domains(scanners, domains, options):
                 environment = {**environment, **init}
         handles[scanner]['environment'] = environment
 
-    # Experimental!
-    if use_lambda:
-        scan_method = perform_lambda_scan
-    else:
-        scan_method = perform_local_scan
-
     # Store scan UUID.
     logging.debug("[%s] Scan UUID." % scan_uuid)
 
@@ -235,7 +229,7 @@ def scan_domains(scanners, domains, options):
         scan_start_time = utils.local_now()
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
-            executor.map(scan_method, tasks)
+            executor.map(perform_scan, tasks)
         scan_end_time = utils.local_now()
         duration = scan_end_time - scan_start_time
 
@@ -281,21 +275,20 @@ def scan_domains(scanners, domains, options):
     }
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
 
-
 ###
-# Local scan (default).
-def perform_local_scan(params):
+# Core scan method. (Run once in each worker.)
+def perform_scan(params):
     scanner, domain, handles, environment, options = params
 
     meta = {'errors': []}
     rows = None
 
     try:
-        logging.warn("[%s][%s] Running locally..." % (domain, handles[scanner]['name']))
+        logging.warn("[%s][%s] Running scan..." % (domain, handles[scanner]['name']))
 
         data = None
 
-        # Init function (always run locally).
+        # Init function per-domain (always run locally).
         scan_environment = {}
         if hasattr(scanner, "init_domain"):
             scan_environment = scanner.init_domain(domain, environment, options)
@@ -316,14 +309,19 @@ def perform_local_scan(params):
             if (data.__class__ is dict) and data.get('invalid'):
                 data = None
 
-        # Capture local start and end times around scan.
+
         else:
-            logging.warn("\tExecuting scan...")
+            # Supported methods: local scans, and Lambda-based.
+            if environment['scan_method'] == "lambda":
+                scan_method = perform_lambda_scan
+            else:
+                scan_method = perform_local_scan
+
+            # Capture local start and end times around scan.
             meta['start_time'] = utils.local_now()
-            data = scanner.scan(domain, scan_environment, options)
+            data = scan_method(scanner, domain, handles, scan_environment, options, meta)
             meta['end_time'] = utils.local_now()
             meta['duration'] = meta['end_time'] - meta['start_time']
-
 
         if data:
             # Cache locally.
@@ -339,11 +337,11 @@ def perform_local_scan(params):
         exception = utils.format_last_exception()
         meta['errors'].append("Unknown exception: %s" % exception)
 
-
     try:
         # Always print errors.
         if len(meta['errors']) > 0:
-            logging.warn("\t%s" % meta['errors'][0])
+            for error in meta['errors']:
+                logging.warn("\t%s" % error)
 
         # If --meta wasn't requested, throw it all away.
         if not options.get("meta", False): meta = None
@@ -352,125 +350,79 @@ def perform_local_scan(params):
     except:
         logging.warn(utils.format_last_exception())
 
+###
+# Local scan (default).
+#
+# Run the scan using local CPU, within this worker.
+#
+# Let all errors bubble up to perform_scan.
+def perform_local_scan(scanner, domain, handles, environment, options, meta):
+    logging.warn("\tExecuting local scan...")
+    return scanner.scan(domain, environment, options)
 
 
 ###
-# Lambda-based scan. (Experimental!)
-def perform_lambda_scan(params):
-    scanner, domain, handles, environment, options = params
+# Lambda-based scan.
+#
+# Run the scan using a Lambda function. This worker will wait
+# for the Lambda task to complete synchronously.
+#
+# Catch some Lambda-specific exceptions around the invoke call,
+# but otherwise allow exceptions to bubble up to perform_scan.
+def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
+    logging.warn("\tExecuting Lambda scan...")
 
-    meta = {'errors': [], 'lambda': {}}
-    rows = None
+    data = None
+    meta['lambda'] = {}
 
-    # Most of the function in the try block because it's otherwise
-    # not easy to do error handling on a worker thread.
+    task_prefix = "task_" # default, maybe make optional later
+    task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
+
+    # JSON payload that arrives as the 'event' object in Lambda.
+    payload = {
+        'domain': domain,
+        'options': options,
+        'scanner': handles[scanner]['name'],
+        'environment': environment
+    }
+    bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
+
     try:
-        logging.warn("[%s][%s] Running on Lambda..." % (domain, handles[scanner]['name']))
+        # For now, do synchronous Lambda requests, essentially just
+        # farming out the hard work to Lambda. This increases max workers
+        # somewhat, since waiting on responses is much, much cheaper than
+        # performing active scanning.
 
-        data = None
-
-        # Init function (always run locally).
-        scan_environment = {}
-        if hasattr(scanner, "init_domain"):
-            scan_environment = scanner.init_domain(domain, environment, options)
-
-        # Rely on scanner to say why.
-        if scan_environment is False:
-            return
-
-        scan_environment = {**environment, **scan_environment}
-
-        # If --cache is on, read from this. Always write to it.
-        domain_cache = utils.cache_path(domain, handles[scanner]['name'], ext="json")
-
-        if (options.get("cache")) and (os.path.exists(domain_cache)):
-            logging.warn("\tUsing cached scan response.")
-            raw = utils.read(domain_cache)
-            data = json.loads(raw)
-            if (data.__class__ is dict) and data.get('invalid'):
-                data = None
-
-        # Capture local start and end times around scan.
-        else:
-
-            # For now, do synchronous Lambda requests, essentially just
-            # farming out the hard work to Lambda. This increases max workers
-            # somewhat, since waiting on responses is much, much cheaper than
-            # performing active scanning.
-            task_prefix = "task_" # default, maybe make optional later
-            task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
-
-            # JSON payload that arrives as the 'event' object in Lambda.
-            payload = {
-                'domain': domain,
-                'options': options,
-                'scanner': handles[scanner]['name'],
-                'environment': scan_environment
-            }
-            bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
-
-            # Assumes Lambda task has already been created and set.
-            logging.warn("\tExecuting function...")
-
-            # Execute task, recording local start and end time.
-            meta['start_time'] = utils.local_now()
-            api_response = invoke_client.invoke(
-                FunctionName=task_name,
-                InvocationType='RequestResponse',
-                LogType='None',
-                Payload=bytes_payload
-            )
-            meta['end_time'] = utils.local_now()
-            meta['duration'] = meta['end_time'] - meta['start_time']
-
-            # Store Lambda request ID for reference in Lambda logs.
-            meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
-
-            # Read payload from Lambda task.
-            raw = str(api_response['Payload'].read(), encoding='utf-8')
-            response = json.loads(raw)
-
-            if response.get("errorMessage") is None:
-                # Payload has some per-task Lambda-specific info.
-                meta['lambda'] = {**meta['lambda'], **response['lambda']}
-
-                # Payload has the actual scan response data.
-                data = response['data']
-
-            else:
-                meta['errors'].append("Lambda error: %s" % raw)
-
-        if data:
-            # Cache locally.
-            utils.write(utils.json_for(data), domain_cache)
-
-            # Convert to rows for CSV.
-            rows = scanner.to_rows(data)
-        else:
-            utils.write(utils.invalid(), domain_cache)
-            meta['errors'].append("Scan returned nothing.")
+        api_response = invoke_client.invoke(
+            FunctionName=task_name,
+            InvocationType='RequestResponse',
+            LogType='None',
+            Payload=bytes_payload
+        )
 
     except botocore.vendored.requests.exceptions.ReadTimeout:
         meta['errors'].append("Connection timeout while talking to Lambda.")
     except botocore.errorfactory.ServiceException:
         meta['errors'].append("Generic service exception when talking to Lambda.")
-    except:
-        meta['errors'].append(utils.format_last_exception())
 
-    # Wrap this separately to make use of previously caught errors,
-    # but need to re-wrap it to catch arbitrary exceptions.
-    try:
-        # Always print errors.
-        if len(meta['errors']) > 0:
-            logging.warn("\t%s" % meta['errors'][0])
+    # Store Lambda request ID for reference in Lambda logs.
+    meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
 
-        # If --meta wasn't requested, throw it all away.
-        if not options.get("meta", False): meta = None
+    # Read payload from Lambda task.
+    raw = str(api_response['Payload'].read(), encoding='utf-8')
+    response = json.loads(raw)
 
-        write_rows(rows, handles[scanner]['headers'], domain, scanner, handles[scanner]['writer'], meta=meta)
-    except:
-        logging.warn(utils.format_last_exception())
+    if response.get("errorMessage") is None:
+        # Payload has some per-task Lambda-specific info.
+        meta['lambda'] = {**meta['lambda'], **response['lambda']}
 
+        # Payload has the actual scan response data.
+        data = response['data']
+
+    else:
+        meta['errors'].append("Lambda error: %s" % raw)
+
+    return data
 
 def write_rows(rows, headers, domain, scanner, csv_writer, meta=None):
 
