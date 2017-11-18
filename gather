@@ -40,6 +40,10 @@ def run(options=None):
     ignore_www = options.get("ignore-www", False)
     strip_www = re.compile("^www\.")
 
+    # Applied to all domains.
+    strip_protocol = re.compile("^https?://")
+    strip_wildcard = re.compile("^\*.")
+
     # --parents should be a CSV whose first column is parent domains
     # that will act as a whitelist for which subdomains to gather.
     parents = get_parent_domains(options)
@@ -47,12 +51,6 @@ def run(options=None):
 
     # Import the gatherer(s).
     sources = options["_"][0].split(",")
-
-    # Open CSV writer.
-    if len(sources) > 1:
-        filename = "gathered"
-    else:
-        filename = sources[0] # backwards compatibility, mostly
 
     # De-duping hostnames. This will cause the system to hold all
     # hostnames in memory at once, but oh well.
@@ -81,6 +79,12 @@ def run(options=None):
             # Always apply the suffix filter to returned names.
             if not suffix_pattern.search(domain):
                 continue
+
+            # Cut off protocols, if present.
+            domain = strip_protocol.sub("", domain)
+
+            # Cut naive wildcard prefixes out.
+            domain = strip_wildcard.sub("", domain)
 
             # Strip www. prefixes from hostnames, effectively
             # collapsing www.[host] and [host] into one record.
@@ -116,7 +120,7 @@ def run(options=None):
     headers += sources
 
     # Open CSV file.
-    gathered_filename = "%s/%s.csv" % (utils.results_dir(), filename)
+    gathered_filename = "%s/%s.csv" % (utils.results_dir(), "gathered")
     gathered_file = open(gathered_filename, 'w', newline='')
     gathered_writer = csv.writer(gathered_file)
     gathered_writer.writerow(headers)
