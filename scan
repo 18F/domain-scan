@@ -452,6 +452,8 @@ def perform_lambda_scan(params):
 
     except botocore.vendored.requests.exceptions.ReadTimeout:
         meta['errors'].append("Connection timeout while talking to Lambda.")
+    except botocore.errorfactory.ServiceException:
+        meta['errors'].append("Generic service exception when talking to Lambda.")
     except:
         meta['errors'].append(utils.format_last_exception())
 
