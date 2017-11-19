@@ -38,6 +38,10 @@ cp ../../scanners/$SCANNER_NAME.py scanners/.
 cp ../../scanners/utils.py scanners/.
 
 # Copy a (possibly remotely built) locally versioned virtualenv.
+#
+# Copying a remotely build virtualenv to the local environment
+# is not captured in this script. Run the scp (or whatever)
+# command directly before running this script.
 
 if [ -f ../envs/$SCANNER_NAME.zip ]; then
   echo "Incorporating custom-built env for $SCANNER_NAME..."

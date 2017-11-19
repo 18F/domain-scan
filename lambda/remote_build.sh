@@ -1,16 +1,31 @@
 #!/bin/bash
 
-# On an Amazon Linux box, to initially set up.
+#########################################
+# One-time Amazon Linux setup.
+#########################################
+
+# System deps.
 sudo yum install python36 python36-virtualenv
 sudo yum install sqlite-devel gcc libffi-devel openssl-devel
 sudo yum install git
-git clone https://github.com/18F/domain-scan.git
-git clone https://github.com/dhs-ncats/pshtt
-# May need to switch branches, depending.
 
-##################################
+# domain-scan isn't in PyPi.
+git clone https://github.com/18F/domain-scan
+# pshtt is in PyPi, but often lags behind.
+git clone https://github.com/dhs-ncats/pshtt
+
+#########################################
+# If testing out a branch of domain-scan
+# or pshtt, add git instructions here.
+#########################################
+
+# cd pshtt
+# git checkout branch-name
+
+#########################################
 # Repeatable from here.
-##################################
+#########################################
+
 rm -r scan-env
 virtualenv-3.6 scan-env
 source scan-env/bin/activate
@@ -22,6 +37,7 @@ cd ..
 cd domain-scan
 pip install -r requirements.txt
 cd ..
+
 deactivate
 
 ###
