@@ -55,6 +55,12 @@ Run multiple scanners on each domain:
 ./scan whitehouse.gov --scan=pshtt,sslyze
 ```
 
+Append columns to each row with metadata about the scan itself, such as how long each individual scan took:
+
+```bash
+./scan example.com --scan=pshtt --meta
+```
+
 ##### Parallelization
 
 It's important to understand that **scans run in parallel by default**, and **data is streamed to disk immediately** after each scan is done.
