@@ -83,12 +83,12 @@ Once configured, scans be run in Lambda using the `--lambda` flag, like so:
 
 **Scanners:**
 
-* `pshtt` - HTTP/HTTPS/HSTS configuration with the Python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
-* `trustymail` - MX/SPF/STARTTLS/DMARC configuration with the Python-only [`trustymail`](https://github.com/dhs-ncats/trustymail) tool.
-* `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `third_parties` - What third party services are in use by a given website.
-* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
-* `noop` - Test scanner used for development and debugging, does nothing (no-op).
+* `pshtt` - HTTP/HTTPS/HSTS configuration, using [`pshtt`](https://github.com/dhs-ncats/pshtt).
+* `trustymail` - MX/SPF/STARTTLS/DMARC configuration, using [`trustymail`](https://github.com/dhs-ncats/trustymail).
+* `sslyze` - TLS/SSL configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
+* `third_parties` - What third party web services are in use, using [`phantomas`](https://www.npmjs.com/packages/phantomas), a headless web browser that executes JavaScript and traps outgoing requests.
+* `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
+* `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
 
 **General options:**
 
