@@ -71,7 +71,13 @@ The domain-scan tool can execute certain compatible scanners in Amazon Lambda, i
 
 This can allow the use of hundreds of parallel workers, and can speed up large scans by orders of magnitude. (Assuming that the domains you're scanning are disparate enough to avoid DDoS-ing any particular service!)
 
-See [`docs/lambda.md`](docs/lambda.md) for instructions on using scanners with Amazon Lambda.
+See [`docs/lambda.md`](docs/lambda.md) for instructions on configuring scanners for use with Amazon Lambda.
+
+Once configured, scans be run in Lambda using the `--lambda` flag, like so:
+
+```bash
+./scan example.com --scan=pshtt,sslyze --lambda
+```
 
 ##### Options
 
