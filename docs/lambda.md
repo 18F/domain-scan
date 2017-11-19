@@ -15,7 +15,7 @@ Lambda's default limit for simultaneous function executions is 1000 per AWS acco
 To prepare for using domain-scan with Lambda, you will need to:
 
 * Create an Amazon Web Services account, if you don't have one.
-* Install the `awscli` Python package.
+* Install the `awscli` Python package, which installs the `aws` command.
 * Configure `aws` to have permission to write to Lambda and to read from CloudWatch. This usually means AWS API credentials, but if you're running this inside of an AWS service like EC2, you can use IAM roles to automatically grant permissions.
 
 Then you'll need to create the functions in Lambda. This repository has tools to make that easy.
