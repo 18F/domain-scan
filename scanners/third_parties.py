@@ -5,8 +5,6 @@ import os
 import re
 
 ##
-# == third_parties ==
-#
 # Evaluate third party service usage with Phantomas.
 #
 # If data exists for a domain from `pshtt`, will:
@@ -33,17 +31,16 @@ import re
 ##
 
 command = os.environ.get("PHANTOMAS_PATH", "phantomas")
-init = None
 
-# Should be able to handle the full complement.
-workers = 10
-
+default_timeout = 60
 
 ######################################
 #
 # Bible of known third party services.
 #
 ######################################
+
+# TODO: move this to its own repo, download for use in this scanner.
 
 # TODO: Start using regexes.
 # TODO: After adding regexes, have this be ordered, some
@@ -103,23 +100,19 @@ known_services = {
 ######################################
 
 
-def scan(domain, options):
-    logging.debug("[%s][third_parties]" % domain)
-
-    # Default timeout is 15s, too little.
-    timeout = int(options.get("timeout", 60))
-
+def init_domain(domain, environment, options):
     # If we have data from pshtt, skip if it's not a live domain.
     if utils.domain_not_live(domain):
         logging.debug("\tSkipping, domain not reachable during inspection.")
-        return None
+        return False
 
     # If we have data from pshtt, skip if it's just a redirector.
     if utils.domain_is_redirect(domain):
         logging.debug("\tSkipping, domain seen as just an external redirector during inspection.")
-        return None
+        return False
 
     # phantomas needs a URL, not just a domain.
+    url = None
     if not (domain.startswith('http://') or domain.startswith('https://')):
 
         # If we have data from pshtt, use the canonical endpoint.
@@ -132,55 +125,59 @@ def scan(domain, options):
     else:
         url = domain
 
-    # calculated_domain = re.sub("https?:\/\/", "", url)
+    return {'url': url}
 
-    # We'll cache prettified JSON from the output.
-    cache = utils.cache_path(domain, "third_parties")
 
-    # If we've got it cached, use that.
-    if (options.get("force", False) is False) and (os.path.exists(cache)):
-        logging.debug("\tCached.")
-        raw = open(cache).read()
-        data = json.loads(raw)
-        if data.get('invalid'):
-            return None
+def scan(domain, environment, options):
+    timeout = int(options.get("timeout", default_timeout))
 
-    # If no cache, or we should run anyway, do the scan.
-    else:
-        logging.debug("\t %s %s --modules=domains --reporter=json --timeout=%i --ignore-ssl-errors" % (command, url, timeout))
-        raw = utils.scan([command, url, "--modules=domains", "--reporter=json", "--timeout=%i" % timeout, "--ignore-ssl-errors"], allowed_return_codes=[252])
-        if not raw:
-            utils.write(utils.invalid({}), cache)
-            return None
+    url = environment["url"]
 
-        # It had better be JSON, which we can cache in prettified form.
-        data = json.loads(raw)
-        utils.write(utils.json_for(data), cache)
+    raw = utils.scan(
+        [
+            command,
+            url,
+            "--modules=domains", "--reporter=json",
+            "--timeout=%i" % timeout,
+            "--ignore-ssl-errors"
+        ],
+        allowed_return_codes=[252]
+    )
 
-    services = services_for(data, domain, options)
+    if not raw:
+        logging.warn("\tError with the phantomas command, skipping.")
+        return None
 
-    # Convert to CSV row
+    # Phantomas returns JSON.
+    data = json.loads(raw)
+
+    return services_for(url, data, domain, options)
+
+
+# Gets the return value of scan(), convert to a CSV row.
+def to_rows(services):
+    # Add a column for every known service.
     known_names = list(known_services.keys())
     known_names.sort()
     known_matches = ['Yes' if host in services['known'] else 'No' for host in known_names]
 
-    yield [
+    return [[
+        services['url'],
         len(services['external']),
         len(services['internal']),
         services['external_requests'],
         services['internal_requests'],
         serialize(services['external']),
-        serialize(services['internal']),
-        # services['affiliated'],
-        # services['unknown']
-    ] + known_matches
+        serialize(services['internal'])
+    ] + known_matches]
 
 
 # Given a 'domains' array from phantomas output, create a data
 # object with data on detected external, internal, and
 # affiliated domains.
-def services_for(data, domain, options):
+def services_for(url, data, domain, options):
     services = {
+        'url': url,
         'external': [],
         'internal': [],
         'known': [],
@@ -258,14 +255,13 @@ def serialize(domains):
 
 
 base_fields = [
+    'Scanned URL',
     'Number of External Domains',
     'Number of Internal Domains',
     'Requests to External Domains',
     'Requests to Internal Domains',
     'All External Domains',
-    'All Internal Domains',
-    # 'Affiliated External Domains',
-    # 'Unknown External Domains',
+    'All Internal Domains'
 ]
 
 service_names = list(known_services.keys())
