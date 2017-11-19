@@ -1,7 +1,24 @@
 #!/bin/bash
 
+## Usage (from project root):
+#
+# ./lambda/deploy [scanner] [--create]
+#
+# The --create flag will create a new function. Otherwise,
+# the function is assumed to exist and will be updated in place.
+#
+# Examples:
+#   ./lambda/deploy noop --create
+#   ./lambda/deploy sslyze
+
 SCANNER_NAME=$1
 FUNCTION_NAME="task_$SCANNER_NAME"
+
+IS_CREATE=$2
+
+if [ -z "$1" ]; then
+  echo "ERROR: A scanner name is required."
+fi
 
 echo "Building $FUNCTION_NAME from $SCANNER_NAME..."
 
@@ -36,26 +53,36 @@ echo "Building zip package for $FUNCTION_NAME..."
 zip -rq9 $FUNCTION_NAME.zip .
 cd ..
 
-# Update the function's code with the latest zipped code.
-# echo "Creating Lambda function $FUNCTION_NAME..."
-# aws lambda create-function \
-#   --function-name $FUNCTION_NAME \
-#   --zip-file fileb://./build/$FUNCTION_NAME.zip \
-#   --role $AWS_LAMBDA_ROLE \
-#   --handler lambda_handler.handler \
-#   --runtime python3.6 \
-#   --timeout 30 \
-#   --memory-size 128
+# Create the function using the zipped code.
+if [ "$IS_CREATE" == "--create" ]; then
 
+  echo "Creating Lambda function $FUNCTION_NAME..."
+  aws lambda create-function \
+    --function-name $FUNCTION_NAME \
+    --zip-file fileb://./build/$FUNCTION_NAME.zip \
+    --role $AWS_LAMBDA_ROLE \
+    --handler lambda_handler.handler \
+    --runtime python3.6 \
+    --timeout 30 \
+    --memory-size 128
+
+# Or, update the function's code with the latest zipped code.
+else
+
+  echo "Updating Lambda code file for $FUNCTION_NAME..."
+  aws lambda update-function-code \
+    --function-name $FUNCTION_NAME \
+    --zip-file fileb://./build/$FUNCTION_NAME.zip
+
+fi
+
+# back up to project root
+cd ..
+
+
+# Kept here for reference, not used in the script:
+#
 # echo "Updating Lambda handler function for $FUNCTION_NAME..."
 # aws lambda update-function-configuration \
 #   --function-name $FUNCTION_NAME \
 #   --handler lambda_handler.handler
-
-echo "Updating Lambda code file for $FUNCTION_NAME..."
-aws lambda update-function-code \
-  --function-name $FUNCTION_NAME \
-  --zip-file fileb://./build/$FUNCTION_NAME.zip
-
-# back up to project root
-cd ..

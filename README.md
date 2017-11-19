@@ -3,42 +3,37 @@
 
 ## A domain scanner
 
-Scans domains for data on their HTTPS configuration and assorted other things.
+Scans domains for data on their HTTPS and email configuration, third party service usage, accessibility, and other things. [Adding new scanners](#developing-new-scanners) is relatively straightforward.
 
-**Much of this work is farmed out to other command line tools.**
+All scanners can be run locally using **native Python multi-threading**.
+
+Some scanners can be executed **inside Amazon Lambda** for much higher levels of parallelization.
+
+Most scanners work by using **specialized third party tools**, such as [`SSLyze`](https://github.com/nabla-c0d3/sslyze) or [`trustymail`](https://github.com/dhs-ncats/trustymail). Each scanner in this repo is meant to add the smallest wrapper possible around the responses returned from these tools.
 
 The point of this project is to **coordinate** and **parallelize** those tools and produce **consistent data output**.
 
-Can be used with any domain, or any CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/raw/gh-pages/dotgov-domains/current-full.csv).
+Can be used with any domain, or any CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/raw/master/dotgov-domains/current-full.csv).
 
 ### Requirements
 
-`domain-scan` requires **Python 3**. To install dependencies:
+`domain-scan` requires **Python 3.5 and up**. To install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Some individual scanners require externally installed dependencies:
+This will automatically allow the use of two scanners:
 
-* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from [DHS NCATS](https://github.com/dhs-ncats).
-* `trustymail` scanner: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from [DHS NCATS](https://github.com/dhs-ncats).
-* `tls` scanner: The `ssllabs-scan` command, available by compiling and installing from the Go-based [ssllabs-scan](https://github.com/ssllabs/ssllabs-scan) repo (stable branch).
-* `pageload` scanner: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package.
+* `pshtt` - A scanner that uses the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats).
+* `sslyze` - A scanner that uses the [`sslyze`](https://github.com/nabla-c0d3/sslyze) Python package maintained by Alban Diquet.
 
-##### Setting tool paths
+Other individual scanners will require additional externally installed dependencies:
 
-By default, `domain-scan` will expect the paths to any executables to be on the system PATH.
+* `trustymail`: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats). (Override path by setting the `TRUSTYMAIL_PATH` environment variable.)
+* `a11y`: The `pa11y` command, available from the [`pa11y`](https://www.npmjs.com/package/pa11y) Node package. (Override path by setting the `PA11Y_PATH` environment variable.)
+* `third_parties`: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package. (Override path by setting the `PHANTOMAS_PATH` environment variable.)
 
-If you need to point it to a local directory instead, you'll need to set environment variables to override this.
-
-You can set environment variables in a variety of ways -- this tool's developers use [`autoenv`](https://github.com/kennethreitz/autoenv) to manage environment variables with a `.env` file.
-
-However you set them:
-
-* Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
-
-* Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
 ### Usage
 
@@ -57,32 +52,49 @@ Scan a list of domains from a CSV. The CSV's header row will be ignored if the f
 Run multiple scanners on each domain:
 
 ```bash
-./scan whitehouse.gov --scan=pshtt,tls
+./scan whitehouse.gov --scan=pshtt,sslyze
+```
+
+Append columns to each row with metadata about the scan itself, such as how long each individual scan took:
+
+```bash
+./scan example.com --scan=pshtt --meta
 ```
 
 ##### Parallelization
 
-It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**.
+It's important to understand that **scans run in parallel by default**, and **data is streamed to disk immediately** after each scan is done.
 
-By default, each scanner will run up to 10 parallel tasks, which you can override with `--workers`.
+This makes domain-scan fast, as well as memory-efficient (the entire dataset doesn't need to be read into memory), but **the order of result data is unpredictable**.
 
-Some scanners may limit this. For example, the `tls` scanner, which hits the SSL Labs API, maxes out at 5 tasks at once (which cannot be overridden with `--workers`).
+By default, each scanner will spin up 10 parallel threads. You can override this value with `--workers`. To disable this and run sequentially through each domain (1 worker), use `--serial`.
 
-To disable this and run sequentially through each domain (1 worker), use `--serial`.
+If row order is important to you, either disable parallelization, or use the `--sort` parameter to sort the resulting CSVs once the scans have completed. (**Note:** Using `--sort` will cause the entire dataset to be read into memory.)
 
-Parallelization will also cause the resulting domains to be written in an unpredictable order. If the row order is important to you, disable parallelization, or use the `--sort` parameter to sort the resulting CSVs once the scans have completed. (**Note:** Using `--sort` will cause the entire dataset to be read into memory.)
+### Lambda
+
+The domain-scan tool can execute certain compatible scanners in Amazon Lambda, instead of locally.
+
+This can allow the use of hundreds of parallel workers, and can speed up large scans by orders of magnitude. (Assuming that the domains you're scanning are disparate enough to avoid DDoS-ing any particular service!)
+
+See [`docs/lambda.md`](docs/lambda.md) for instructions on configuring scanners for use with Amazon Lambda.
+
+Once configured, scans be run in Lambda using the `--lambda` flag, like so:
+
+```bash
+./scan example.com --scan=pshtt,sslyze --lambda
+```
 
 ##### Options
 
 **Scanners:**
 
-* `pshtt` - HTTP/HTTPS/HSTS configuration with the Python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
-* `trustymail` - MX/SPF/DMARC configuration with the Python-only [`trustymail`](https://github.com/dhs-ncats/trustymail) tool.
-* `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
-* `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `analytics` - Participation in an analytics program. (Optimized for USG.)
-* `pageload` - Page load and rendering metrics.
-* `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
+* `pshtt` - HTTP/HTTPS/HSTS configuration, using [`pshtt`](https://github.com/dhs-ncats/pshtt).
+* `trustymail` - MX/SPF/STARTTLS/DMARC configuration, using [`trustymail`](https://github.com/dhs-ncats/trustymail).
+* `sslyze` - TLS/SSL configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
+* `third_parties` - What third party web services are in use, using [`phantomas`](https://www.npmjs.com/packages/phantomas), a headless web browser that executes JavaScript and traps outgoing requests.
+* `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
+* `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
 
 **General options:**
 
@@ -92,12 +104,10 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `--debug` - Print out more stuff. Useful with `--serial`.
 * `--workers` - Limit parallel threads per-scanner to a number.
 * `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
-* `--force` - Ignore cached data and force scans to hit the network. For the `tls` scanner, this also tells SSL Labs to ignore its server-side cache.
+* `--cache` - Use previously cached scan data to avoid scans hitting the network where possible.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
-
-**Scanner-specific options**
-
-* `--analytics` - For the `analytics` scanner. Point this to either a file **or** a URL that contains a CSV of participating domains.
+* `--lambda` - Run certain scanners inside Amazon Lambda instead of locally. (See [the Lambda instructions](docs/lambda.md) for how to use this.)
+* `--meta` - Append some additional columns to each row with information about the scan itself. This includes start/end times and durations, as well as any encountered errors. When using `--lambda`, additional Lambda-specific information will be appended.
 
 ### Output
 
@@ -113,7 +123,7 @@ Example: `results/pshtt.csv`
 
 You can override the output directory by specifying `--output`.
 
-It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
+It's possible for scans to save multiple CSV rows per-domain. For example, the `a11y` scan will have a row with details for each detected accessibility error.
 
 * **Scan metadata** with the start time, end time, and scan command will be placed in the `results/` directory as `meta.json`.
 
@@ -222,7 +232,7 @@ To gather .gov hostnames from a hosted CSV, such as one from the [Digital Analyt
 Or to gather federal-only .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export), a remote CSV, and a local CSV:
 
 ```bash
-./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://raw.githubusercontent.com/GSA/data/gh-pages/dotgov-domains/current-federal.csv --export
+./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv --export
 ```
 
 ### a11y setup
@@ -245,7 +255,80 @@ In order to get the benefits of the `pshtt` scanner, all `a11y` scans must inclu
 
 Because of `domain-scan`'s caching, all the results of an `pshtt` scan will be saved in the `cache/pshtt` folder, and probably does not need to be re-run for every single `ally` scan.
 
----
+### Developing new scanners
+
+Scanners are registered by creating a single Python file in the `scanners/` directory, where the file is given the name of the scanner (plus the `.py` extension).
+
+Each scanner should define a few top-level functions and one variable that will be referenced at different points.
+
+For an example of how a scanner works, start with [`scanners/noop.py`](scanners/noop.py). The `noop` scanner is a test scanner that does nothing (no-op), but it implements and documents a scanner's basic Python contract.
+
+Scanners can implement 4 functions (2 required, 2 optional). In order of being called:
+
+* `init(environment, options)` (Optional)
+
+  The `init()` function will be run only once, before any scans are executed.
+
+  Returning a dict from this function will merge that dict into the `environment` dict passed to all subsequent function calls for every domain.
+
+  Returning `False` from this function indicates that the scanner is unprepared, and the _entire_ scan process (for all scanners) will abort.
+
+  Useful for expensive actions that shouldn't be repeated for each scan, such as downloading supplementary data from a third party service. [See the `pshtt` scanner](scanners/pshtt.py) for an example of downloading the Chrome preload list once, instead of for each scan.
+
+  The `init` function is **always run locally**.
+
+* `init_domain(domain, environment, options)` (Optional)
+
+  The `init_domain()` function will be run once per-domain, before the `scan()` function is executed.
+
+  Returning a dict from this function will merge that dict into the `environment` dict passed to the `scan()` function for that particular domain.
+
+  Returning `False` from this function indicates that the domain should not be scanned. The domain will be skipped and no rows will be added to the resulting CSV. The `scan` function will not be called for this domain, and cached scan data for this domain _will not_ be stored to disk.
+
+  Useful for per-domain preparatory work that needs to be performed locally, such as taking advantage of scan information cached on disk from a prior scan. [See the `sslyze` scanner](scanners/sslyze.py) for an example of using available `pshtt` data to avoid scanning a domain known not to support HTTPS.
+
+  The `init_domain` function is **always run locally**.
+
+* `scan(domain, environment, options)` **(Required)**
+
+  The `scan` function performs the core of the scanning work.
+
+  Returning a dict from this function indicates that the scan has completed successfully, and that the returned dict is the resulting information. This dict will be passed into the `to_rows` function described below, and used to generate one or more rows for the resulting CSV.
+
+  Returning `None` from this function indicates that the scan has completed unsuccessfully. The domain will be skipped, and no rows will be added to the resulting CSV.
+
+  In all cases, cached scan data for the domain _will_ be stored to disk. If a scan was unsuccessful, the cached data will indicate that the scan was unsuccessful. Future scans that rely on cached responses will skip domains for which the cached scan was unsuccessful, and will not execute the `scan` function for those domains.
+
+  The `scan` function is **run either locally or in Lambda**. (See [`docs/lambda.md`](docs/lambda.md) for how to execute functions in Lambda.)
+
+* `to_rows(data)` **(Required)**
+
+  The `to_rows` function converts the data returned by a scan into one or more rows, which will be appended to the resulting CSV.
+
+  The `data` argument passed to the function is the return value of the `scan` function described above.
+
+  The function _must_ return a list of lists, where each contained list is the same length as the `headers` variable described below.
+
+  For example, a `to_rows` function that always returns one row with two values might be as simple as `return [[ data['value1'], data['value2'] ]]`.
+
+  The `to_rows` function is **always run locally**.
+
+And each scanner must define one top-level variable:
+
+* `headers` **(Required)**
+
+  The `headers` variable is a list of strings to use as column headers in the resulting CSV. These headers must be in the same order as the values in the lists returned by the `to_rows` function.
+
+  The `headers` variable is **always referenced locally**.
+
+In all of the above functions that receive it, `environment` is a dict that will contain (at least) a `scan_method` key whose value is either `"local"` or `"lambda"`.
+
+The `environment` dict will also include any key/value pairs returned by previous function calls. This means that data returned from `init` will be contained in the `environment` dict sent to `init_domain`. Similarly, data returned from both `init` and `init_domain` for a particular domain will be contained in the `environment` dict sent to the `scan` method for that domain.
+
+In all of the above functions that receive it, `options` is a dict that contains a direct representation of the command-line flags given to the `./scan` executable.
+
+For example, if the `./scan` command is run with the flags `--scan=pshtt,sslyze --lambda`, they will translate to an `options` dict that contains (at least) `{"scan": "pshtt,sslyze", "lambda": True}`.
+
 
 ### Public domain
 
