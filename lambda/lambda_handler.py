@@ -28,6 +28,8 @@ def handler(event, context):
     # Same method call as when run locally.
     data = scanner.scan(domain, environment, options)
 
+    # We capture start and end times locally as well, but it's
+    # useful to know the start/end from Lambda's vantage point.
     end_time = utils.local_now()
     duration = end_time - start_time
     response = {

@@ -55,7 +55,7 @@ def init_domain(domain, environment, options):
 
 # Run sslyze on the given domain.
 def scan(domain, environment, options):
-    # Allow adjustment of hostname based on environment.
+    # Allow hostname to be adjusted by init_domain.
     hostname = environment.get("hostname", domain)
 
     data = {
