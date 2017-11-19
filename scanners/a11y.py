@@ -69,23 +69,36 @@ def init(environment, options):
         config = config_path
     return True
 
-
-# Shell out to a11y and run the scan.
-def scan(domain, environment, options):
-    domain_to_scan = get_domain_to_scan(domain)
-
+# If we have pshtt data, use it to skip some domains. If redirect
+# data says so, adjust scan URL for some domains.
+def init_domain(domain, environment, options):
+    # If we've got pshtt data, use it to cut down work.
     if (
-        (not domain_to_scan) or
         utils.domain_is_redirect(domain) or
         utils.domain_not_live(domain)
     ):
         logging.debug("\tSkipping a11y scan based on pshtt data.")
-        return None
+        return False
 
-    errors = run_a11y_scan(domain)
+    # Use redirect/blacklist data to adjust (or stop) scan URL.
+    url = get_url_to_scan(domain)
+
+    if not url:
+        logging.debug("\tSkipping a11y scan based on redirect/blacklist data.")
+        return False
+
+    # Send adjusted URL to scan function.
+    return {'url': url}
+
+
+# Shell out to a11y and run the scan.
+def scan(domain, environment, options):
+    url = environment.get("url", domain)
+
+    errors = run_a11y_scan(url)
 
     return {
-        'scanned_domain': domain_to_scan,
+        'url': url,
         'errors': errors
     }
 
@@ -95,7 +108,7 @@ def to_rows(data):
 
     for error in data['errors']:
         rows.append([
-            data['scanned_domain'],
+            data['url'],
             error['typeCode'],
             error['code'],
             error['message'],
@@ -138,23 +151,22 @@ def run_a11y_scan(domain):
     return results
 
 
-def get_from_pshtt_cache(domain):
-    pshtt_cache = utils.cache_path(domain, "pshtt")
-    pshtt_raw = open(pshtt_cache).read()
-    pshtt_data = json.loads(pshtt_raw)
-    if type(pshtt_data) == list:
-        pshtt_data = pshtt_data[0]
-    return pshtt_data
-
-
-def get_domain_to_scan(domain):
+def get_url_to_scan(domain):
     global redirects
 
-    domain_to_scan = None
-    if domain in redirects:
-        if not redirects[domain]['blacklist']:
-            domain_to_scan = redirects[domain]['redirect']
-    else:
-        domain_to_scan = domain
+    url_to_scan = None
 
-    return domain_to_scan
+    # Redirects can be blacklists or redirects.
+    if domain in redirects:
+        # blacklist will force a domain to be skipped
+        if redirects[domain]['blacklist']:
+            url_to_scan = None
+        # otherwise, scan will be redirected to new location
+        else:
+            url_to_scan = redirects[domain]['redirect']
+
+    # Otherwise, leave domain alone.
+    else:
+        url_to_scan = domain
+
+    return url_to_scan
