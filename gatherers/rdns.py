@@ -1,6 +1,6 @@
-from scanners import utils
 import json
 import logging
+
 
 # Reverse DNS
 #
@@ -32,5 +32,3 @@ def gather(suffix, options, extra={}):
             record = json.loads(line)
             # logging.debug("\t%s" % record["value"])
             yield record["value"]
-
-
