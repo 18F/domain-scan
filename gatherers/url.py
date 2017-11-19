@@ -12,7 +12,7 @@ import logging
 #
 
 
-def gather(suffix, options, extra={}):
+def gather(suffixes, options, extra={}):
     # Defaults to --url, but can be overridden.
     name = extra.get("name", "url")
     url = options.get(name)

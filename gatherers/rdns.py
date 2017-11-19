@@ -13,7 +13,7 @@ import logging
 # easiest to use this on a file that has been pre-filtered in
 # some way (such as by grepping for the intended suffix).
 
-def gather(suffix, options, extra={}):
+def gather(suffixes, options, extra={}):
     path = options.get("rdns")
 
     if path is None:
