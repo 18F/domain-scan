@@ -273,7 +273,7 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   Returning `False` from this function indicates that the scanner is unprepared, and the _entire_ scan process (for all scanners) will abort.
 
-  Useful for expensive actions that shouldn't be repeated for each scan, such as downloading supplementary data from a third party service. See the `pshtt` scanner for an example.
+  Useful for expensive actions that shouldn't be repeated for each scan, such as downloading supplementary data from a third party service. [See the `pshtt` scanner](scanners/pshtt.py) for an example of downloading the Chrome preload list once, instead of for each scan.
 
   The `init` function is **always run locally**.
 
@@ -285,7 +285,7 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   Returning `False` from this function indicates that the domain should not be scanned. The domain will be skipped and no rows will be added to the resulting CSV. Cached response data for the scan _will not_ be stored to disk.
 
-  Useful for per-domain preparatory work that needs to be performed locally, such as taking advantage of scan information cached on disk from a prior scan. See the `sslyze` scanner for an example of using available `pshtt` data to avoid scanning a domain known not to support HTTPS.
+  Useful for per-domain preparatory work that needs to be performed locally, such as taking advantage of scan information cached on disk from a prior scan. [See the `sslyze` scanner](scanners/sslyze.py) for an example of using available `pshtt` data to avoid scanning a domain known not to support HTTPS.
 
   The `init_domain` function is **always run locally**.
 
