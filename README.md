@@ -317,15 +317,17 @@ And each scanner must define one top-level variable:
 
 * `headers` **(Required)**
 
-  The `headers` variable is a list of column headers for use in the resulting CSV. These headers must be in the same order as the values in the lists returned by the `to_rows` function.
+  The `headers` variable is a list of strings to use as column headers in the resulting CSV. These headers must be in the same order as the values in the lists returned by the `to_rows` function.
 
   The `headers` variable is **always referenced locally**.
 
-In all of the above functions that receive it, `environment` is a dict that will contain a `scan_method` key whose value is either `"local"` or `"lambda"`. It will also include any entries returned by previous functions. (For example, data returned from `init` will be contained in the `environment` dict sent to `init_domain`.)
+In all of the above functions that receive it, `environment` is a dict that will contain (at least) a `scan_method` key whose value is either `"local"` or `"lambda"`.
+
+The `environment` dict will also include any key/value pairs returned by previous function calls. This means that data returned from `init` will be contained in the `environment` dict sent to `init_domain`. Similarly, data returned from both `init` and `init_domain` for a particular domain will be contained in the `environment` dict sent to the `scan` method for that domain.
 
 In all of the above functions that receive it, `options` is a dict that contains a direct representation of the command-line flags given to the `./scan` executable.
 
-For example, the flags `--scan=pshtt,sslyze --lambda` will translate to an `options` dict that contains `{"scan": "pshtt,sslyze", "lambda": True}`.
+For example, if the `./scan` command is run with the flags `--scan=pshtt,sslyze --lambda`, they will translate to an `options` dict that contains (at least) `{"scan": "pshtt,sslyze", "lambda": True}`.
 
 
 ### Public domain
