@@ -54,9 +54,16 @@ Once Lambda functions are created in your AWS account, and your machine has perm
 
 This will execute the core of each scan inside a Lambda function. Some scanners still may do some light per-domain prep work locally, or do heavy one-time initialization work locally (for example, downloading data from a third-party server once, so as to avoid hitting it from each Lambda worker), but the scanner's actual scanning will occur in Lambda.
 
+You may wish to take advantage of the increased ability to use many simultaneous workers, especially with large batches:
+
+```bash
+./scan path/to/many-domains.csv --scan=pshtt,sslyze --lambda --workers=900
+```
+
+
 ##### Lambda-compatible scanners
 
-Currently the only scanners tested for use in Lambda are:
+Currently, the only scanners tested for use in Lambda are:
 
 * `pshtt` - Third party data sources, such as the Chrome preload list, will be downloaded at the top of the scan and then trimmed per-domain to avoid excessive network transfer to Lambda and to third party servers.
 * `sslyze` - SSLyze will run in single-process mode inside Lambda, which lacks the `multiprocessing` features used by SSLyze's internal parallelization.
