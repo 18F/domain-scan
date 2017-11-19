@@ -283,7 +283,7 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   Returning a dict from this function will merge that dict into the `environment` dict passed to the `scan()` function for that particular domain.
 
-  Returning `False` from this function indicates that the domain should not be scanned. The domain will be skipped and no rows will be added to the resulting CSV. Cached response data for the scan _will not_ be stored to disk.
+  Returning `False` from this function indicates that the domain should not be scanned. The domain will be skipped and no rows will be added to the resulting CSV. The `scan` function will not be called for this domain, and cached scan data for this domain _will not_ be stored to disk.
 
   Useful for per-domain preparatory work that needs to be performed locally, such as taking advantage of scan information cached on disk from a prior scan. [See the `sslyze` scanner](scanners/sslyze.py) for an example of using available `pshtt` data to avoid scanning a domain known not to support HTTPS.
 
@@ -297,7 +297,7 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   Returning `None` from this function indicates that the scan has completed unsuccessfully. The domain will be skipped, and no rows will be added to the resulting CSV.
 
-  In all cases, cached data for the scan _will_ be stored to disk. If a scan was unsuccessful, the cached data will indicate that the scan was unsuccessful. Future scans that rely on cached responses will skip domains for which the cached scan was unsuccessful, and will not execute the `scan` function for those domains.
+  In all cases, cached scan data for the domain _will_ be stored to disk. If a scan was unsuccessful, the cached data will indicate that the scan was unsuccessful. Future scans that rely on cached responses will skip domains for which the cached scan was unsuccessful, and will not execute the `scan` function for those domains.
 
   The `scan` function is **run either locally or in the cloud (Lambda)**.
 
