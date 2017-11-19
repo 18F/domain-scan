@@ -17,7 +17,7 @@ Can be used with any domain, or any CSV where domains are the first column, such
 
 ### Requirements
 
-`domain-scan` requires **Python 3**. To install dependencies:
+`domain-scan` requires **Python 3.5 and up**. To install dependencies:
 
 ```bash
 pip install -r requirements.txt
