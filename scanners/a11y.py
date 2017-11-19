@@ -69,6 +69,7 @@ def init(environment, options):
         config = config_path
     return True
 
+
 # If we have pshtt data, use it to skip some domains. If redirect
 # data says so, adjust scan URL for some domains.
 def init_domain(domain, environment, options):
@@ -117,6 +118,7 @@ def to_rows(data):
         ])
 
     return rows
+
 
 headers = [
     "redirectedTo",
