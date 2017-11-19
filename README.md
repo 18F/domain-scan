@@ -261,7 +261,7 @@ Scanners are registered by creating a single Python file in the `scanners/` dire
 
 Each scanner should define a few top-level functions and one variable that will be referenced at different points.
 
-For an example of how to add a scanner, start with [`scanners/noop.py`](scanners/noop.py). The `noop` scanner is a test scanner that does nothing (no-op), but it implements and documents a scanner's basic Python contract.
+For an example of how a scanner works, start with [`scanners/noop.py`](scanners/noop.py). The `noop` scanner is a test scanner that does nothing (no-op), but it implements and documents a scanner's basic Python contract.
 
 Scanners can implement 4 functions (2 required, 2 optional). In order of being called:
 
@@ -299,7 +299,7 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   In all cases, cached scan data for the domain _will_ be stored to disk. If a scan was unsuccessful, the cached data will indicate that the scan was unsuccessful. Future scans that rely on cached responses will skip domains for which the cached scan was unsuccessful, and will not execute the `scan` function for those domains.
 
-  The `scan` function is **run either locally or in the cloud (Lambda)**.
+  The `scan` function is **run either locally or in Lambda**. (See [`docs/lambda.md`](docs/lambda.md) for how to execute functions in Lambda.)
 
 * `to_rows(data)` **(Required)**
 
