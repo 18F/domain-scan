@@ -60,7 +60,7 @@ You may wish to take advantage of the increased ability to use many simultaneous
 ./scan path/to/many-domains.csv --scan=pshtt,sslyze --lambda --workers=900
 ```
 
-The `--meta` flag generally appends additional columns to each resulting report row with scan-specific information, such as locally observed start/end times and durations, and locally observed errors. 
+The `--meta` flag generally appends additional columns to each resulting report row with scan-specific information, such as locally observed start/end times and durations, and locally observed errors.
 
 If you use the `--meta` flag along with `--lambda`, you will get additional columns with Lambda-specific information about each scan. This includes the start/end times and duration of each scan as observed by Lambda, the Lambda request ID, and the CloudWatch log group and log stream names each function execution used:
 
@@ -77,6 +77,24 @@ Currently, the only scanners tested for use in Lambda are:
 
 (**Note:** to use `--lambda`, all scanners you use should be Lambda-compatible and have functions created in your AWS account. You can't yet mix locally- and Lambda-executed scanners.)
 
+
+## Future work
+
+**Moving more into Lambda**
+
+The biggest (and toughest) area for improvement is the ability to manage the parallelization **entirely** within Lambda, potentially using Amazon queuing and notification services.
+
+Right now, each Lambda function is initiated **synchronously** (with an `InvocationType` of `RequestResponse`) by a Python worker thread, which waits for the function execution to complete. While local resource contention is greatly minimized when Lambda is used, having 900+ threads running locally and making disk operations still represents a lot of local activity. Local delays can be observed at the edge of the bell curve when running a sufficiently large set of scans.
+
+This presents a bottleneck for further improvements and parallelization, especially for accounts that increase their AWS Lambda simultaneous function execution limit to go to higher orders of magnitude than 1000. It's not realistic to have a million local threads doing rapid disk operations.
+
+So an area for exploration is having domain-scan initiate **asynchronous** Lambda function executions (with an `InvocationType` of `Async`). This could mean domain-scan kicks off an event in the cloud (in Lambda also, perhaps) that then initiates all these executions, registers for notifications of when executions finish, and generally manages a rotating pool of executions up to a defined simultaneous limit.
+
+It's not trivial work, but it does sound like _fun_ work, and would unlock higher levels of parallelization than the current domain-scan implementation allows.
+
+**Operating without touching the disk**
+
+Another area for improvement would be to decouple ourselves further from local (and high-contention) disk operations by allowing scan data to be posted directly to a network destination, such as Amazon S3.
 
 ## TODOs
 
