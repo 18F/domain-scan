@@ -60,6 +60,13 @@ You may wish to take advantage of the increased ability to use many simultaneous
 ./scan path/to/many-domains.csv --scan=pshtt,sslyze --lambda --workers=900
 ```
 
+The `--meta` flag generally appends additional columns to each resulting report row with scan-specific information, such as locally observed start/end times and durations, and locally observed errors. 
+
+If you use the `--meta` flag along with `--lambda`, you will get additional columns with Lambda-specific information about each scan. This includes the start/end times and duration of each scan as observed by Lambda, the Lambda request ID, and the CloudWatch log group and log stream names each function execution used:
+
+```bash
+./scan example.com --scan=pshtt,sslyze --lambda --meta
+```
 
 ##### Lambda-compatible scanners
 
