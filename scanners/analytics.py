@@ -1,20 +1,13 @@
-
 from scanners import utils
 import logging
 import os
 import requests
 
 ###
-# == analytics ==
-#
 # Check whether a domain is present in a CSV, set in --analytics.
-###
-
-command = None
-analytics_domains = None
 
 
-def init(options):
+def init(environment, options):
     global analytics_domains
 
     analytics_file = options.get("analytics")
@@ -47,21 +40,21 @@ def init(options):
 
     analytics_domains = utils.load_domains(analytics_path)
 
-    return True
+    return {'analytics_domains': analytics_domains}
 
 
-def scan(domain, options):
-    logging.debug("[%s][analytics]" % domain)
-    logging.debug("\tChecking file.")
-
-    data = {
+# The domains in --analytics will have been downloaded and
+# loaded in environment['analytics_domains'].
+def scan(domain, environment, options):
+    return {
         'participating': (domain in analytics_domains)
     }
 
-    cache = utils.cache_path(domain, "analytics")
-    utils.write(utils.json_for(data), cache)
 
-    yield [data['participating']]
+def to_rows(data):
+    return [
+        [data['participating']]
+    ]
 
 
 headers = ["Participates in Analytics"]

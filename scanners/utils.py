@@ -86,9 +86,14 @@ def mkdir_p(path):
             raise
 
 
+# Format datetimes, sort keys, pretty-print.
 def json_for(object):
-    return json.dumps(object, sort_keys=True,
-                      indent=2, default=format_datetime)
+    return json.dumps(object, sort_keys=True, indent=2, default=format_datetime)
+
+
+# Mirror image of json_for.
+def from_json(string):
+    return json.loads(string)
 
 
 def format_datetime(obj):
@@ -215,9 +220,31 @@ def invalid(data=None):
     return json_for(data)
 
 
-# RFC 3339 timestamp for the current time when called
-def utc_timestamp():
-    return strict_rfc3339.now_to_rfc3339_utcoffset()
+# RFC 3339 timestamp for a given UTC time.
+# seconds can be a float, down to microseconds.
+# A given time needs to be passed in *as* UTC already.
+def utc_timestamp(seconds):
+    if not seconds:
+        return None
+    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
+
+
+# Convert a RFC 3339 timestamp back into a local number of seconds.
+def utc_timestamp_to_local_now(timestamp):
+    return strict_rfc3339.rfc3339_to_timestamp(timestamp)
+
+
+# Now, in UTC, in seconds (with decimal microseconds).
+def local_now():
+    return datetime.datetime.now().timestamp()
+
+
+# Cut off floating point errors, always output duration down to
+# microseconds.
+def just_microseconds(duration):
+    if duration is None:
+        return None
+    return "%.6f" % duration
 
 
 # return base domain for a subdomain
@@ -237,9 +264,6 @@ def domain_doesnt_support_https(domain):
     if (inspection.__class__ is dict) and inspection.get('invalid'):
         return False
 
-    # TODO: kill this
-    inspection = inspection[0]
-
     https = inspection.get("endpoints").get("https")
     httpswww = inspection.get("endpoints").get("httpswww")
 
@@ -258,13 +282,11 @@ def domain_uses_www(domain):
 
     # Make sure we have the data.
     inspection = data_for(domain, "pshtt")
+
     if not inspection:
         return False
     if (inspection.__class__ is dict) and inspection.get('invalid'):
         return False
-
-    # TODO: kill this
-    inspection = inspection[0]
 
     # We know the canonical URL, return True if it's www.
     url = inspection.get("Canonical URL")
@@ -282,8 +304,6 @@ def domain_not_live(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
-    # TODO: kill this
-    inspection = inspection[0]
 
     return (not inspection.get("Live"))
 
@@ -296,8 +316,6 @@ def domain_is_redirect(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
-    # TODO: kill this
-    inspection = inspection[0]
 
     return (inspection.get("Redirect") is True)
 
@@ -310,8 +328,6 @@ def domain_canonical(domain):
     inspection = data_for(domain, "pshtt")
     if not inspection:
         return False
-    # TODO: kill this
-    inspection = inspection[0]
 
     return (inspection.get("Canonical URL"))
 

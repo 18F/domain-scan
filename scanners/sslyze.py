@@ -1,22 +1,4 @@
-import logging
-from scanners import utils
-import os
-
-import sslyze
-from sslyze.synchronous_scanner import SynchronousScanner
-from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
-from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
-from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
-
-import json
-import cryptography
-import cryptography.hazmat.backends.openssl
-from cryptography.hazmat.primitives.serialization import Encoding
-from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
-
 ###
-# == sslyze ==
-#
 # Inspect a site's TLS configuration using sslyze.
 #
 # If data exists for a domain from `pshtt`, will check results
@@ -25,70 +7,85 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 # Supported options:
 #
 # --sslyze-serial - If set, will use a synchronous (single-threaded
-#   in-process) scanner. Defaults to false.
+#   in-process) scanner. Defaults to true when local, false in cloud.
+# --sslyze-certs - If set, will use the CertificateInfoScanner and
+#   return certificate info. Defaults to true.
 ###
+
+from scanners import utils
+import logging
+
+import sslyze
+from sslyze.synchronous_scanner import SynchronousScanner
+from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
+from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
+from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+
+import idna
+import cryptography
+import cryptography.hazmat.backends.openssl
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.
 network_timeout = 5
 
 
-def scan(domain, options):
-    logging.debug("[%s][sslyze]" % domain)
-
-    # Optional: skip domains which don't support HTTPS in pshtt scan.
+# If we have pshtt data, use it to skip some domains, and to adjust
+# scan hostnames to canonical URLs where we can.
+def init_domain(domain, environment, options):
+    # If we have pshtt data, skip domains which pshtt saw as not
+    # supporting HTTPS at all.
     if utils.domain_doesnt_support_https(domain):
-        logging.debug("\tSkipping, HTTPS not supported.")
-        return None
+        logging.warn("\tSkipping, HTTPS not supported.")
+        return False
 
-    # Optional: if pshtt data says canonical endpoint uses www and this domain
-    # doesn't have it, add it.
+    # If we have pshtt data and it says canonical endpoint uses www
+    # and the given domain is bare, add www.
     if utils.domain_uses_www(domain):
-        scan_domain = "www.%s" % domain
+        hostname = "www.%s" % domain
     else:
-        scan_domain = domain
+        hostname = domain
 
-    # cache JSON from sslyze
-    cache_json = utils.cache_path(domain, "sslyze")
-    # because sslyze manages its own output (can't yet print to stdout),
-    # we have to mkdir_p the path ourselves
-    utils.mkdir_p(os.path.dirname(cache_json))
+    return {
+        'hostname': hostname
+    }
 
-    force = options.get("force", False)
 
-    if (force is False) and (os.path.exists(cache_json)):
-        logging.debug("\tCached.")
-        raw_json = utils.read(cache_json)
-        try:
-            data = json.loads(raw_json)
-            if (data.__class__ is dict) and data.get('invalid'):
-                return None
-        except json.decoder.JSONDecodeError as err:
-            logging.warn("Error decoding JSON.  Cache probably corrupted.")
-            return None
+# Run sslyze on the given domain.
+def scan(domain, environment, options):
+    # Allow hostname to be adjusted by init_domain.
+    hostname = environment.get("hostname", domain)
 
-    else:
-        # use scan_domain (possibly www-prefixed) to do actual scan
-        logging.debug("\tsslyze %s" % scan_domain)
+    data = {
+        'hostname': hostname,
+        'protocols': {},
+        'config': {},
+        'certs': {},
+        'errors': []
+    }
 
-        data = run_sslyze(scan_domain, options)
+    # Run the SSLyze scan on the given hostname.
+    response = run_sslyze(data, environment, options)
 
-        if data is None:
-            # TODO: save standard invalid JSON data...?
-            utils.write(utils.invalid({}), cache_json)
-            logging.warn("\tBad news scanning, sorry!")
-            return None
+    # Error condition.
+    if response is None:
+        error = "No valid target for scanning, couldn't connect."
+        logging.warn(error)
+        data['errors'].append(error)
 
-        # not so raw...
-        raw_json = utils.json_for(data)
-        utils.write(raw_json, cache_json)
+    # Join all errors into a string before returning.
+    data['errors'] = ' '.join(data['errors'])
 
-    if data is None:
-        logging.warn("\tNo valid target for scanning, couldn't connect.")
-        return None
+    return data
 
-    yield [
-        scan_domain,
+
+# Given a response dict, turn it into CSV rows.
+def to_rows(data):
+    row = [
+        data['hostname'],
+
         data['protocols'].get('sslv2'), data['protocols'].get('sslv3'),
         data['protocols'].get('tlsv1.0'), data['protocols'].get('tlsv1.1'),
         data['protocols'].get('tlsv1.2'),
@@ -107,6 +104,8 @@ def scan(domain, options):
 
         data.get('errors')
     ]
+
+    return [row]
 
 
 headers = [
@@ -134,33 +133,45 @@ headers = [
 # Certificate PEM data must be separately parsed using
 # the Python cryptography module.
 
-def run_sslyze(hostname, options):
-    # Parse the results into a dict, which will also be cached as JSON.
-    data = {
-        'protocols': {},
+def run_sslyze(data, environment, options):
+    hostname = data['hostname']
 
-        'config': {},
+    # SynchronousScanner has a memory leak over time, so local
+    # scanning defaults to using ConcurrentScanner.
+    #
+    # But Lambda can't use multiprocessing.Queue, so cloud scanning
+    # defaults to using SynchronousScanner.
+    scan_method = environment.get("scan_method", "local")
+    default_sync = {"local": False, "lambda": True}[scan_method]
 
-        'certs': {},
-
-        'errors': None
-    }
-
-    sync = options.get("sslyze-serial", False)
+    # Each sslyze worker can use a sync or parallel mode.
+    sync = options.get("sslyze-serial", default_sync)
 
     # Initialize either a synchronous or concurrent scanner.
     server_info, scanner = init_sslyze(hostname, options, sync=sync)
 
     if server_info is None:
-        data['errors'] = "Connectivity not established."
+        data['errors'].append("Connectivity not established.")
         return data
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info, data, options)
     else:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, data, options)
 
+    # Only analyze protocols if all the scanners functioned.
+    # Very difficult to draw conclusions if some worked and some did not.
+    if sslv2 and sslv3 and tlsv1 and tlsv1_1 and tlsv1_2:
+        analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2)
+
+    if certs:
+        data['certs'] = analyze_certs(certs)
+
+    return data
+
+
+def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2):
     data['protocols'] = {
         'sslv2': supported_protocol(sslv2),
         'sslv3': supported_protocol(sslv3),
@@ -220,11 +231,6 @@ def run_sslyze(hostname, options):
             weakest_dh = None
 
         data['config']['weakest_dh'] = weakest_dh
-
-    if certs:
-        data['certs'] = analyze_certs(certs)
-
-    return data
 
 
 def analyze_certs(certs):
@@ -345,16 +351,17 @@ def init_sslyze(hostname, options, sync=False):
         return None, None
 
     if sync:
-        scanner = SynchronousScanner()
+        scanner = SynchronousScanner(network_timeout=network_timeout)
     else:
-        scanner = ConcurrentScanner()
+        scanner = ConcurrentScanner(network_timeout=network_timeout)
 
     return server_info, scanner
 
 
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
-def scan_serial(scanner, server_info, options):
+def scan_serial(scanner, server_info, data, options):
+
     logging.debug("\tRunning scans in serial.")
     logging.debug("\t\tSSLv2 scan.")
     sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
@@ -367,10 +374,17 @@ def scan_serial(scanner, server_info, options):
     logging.debug("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
 
-    # Default to cert info on
-    if options.get("sslyze-no-certs", False) is False:
-        logging.debug("\t\tCertificate information scan.")
-        certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+    certs = None
+    if options.get("sslyze-certs", True) is True:
+
+        try:
+            logging.debug("\t\tCertificate information scan.")
+            certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+        # Let generic exceptions bubble up.
+        except idna.core.InvalidCodepoint:
+            logging.warn(utils.format_last_exception())
+            data['errors'].append("Invalid certificate/OCSP for this domain.")
+            certs = None
     else:
         certs = None
 
@@ -381,16 +395,22 @@ def scan_serial(scanner, server_info, options):
 
 # Run each scan in parallel, using multi-processing.
 # Faster, but can generate many processes.
-def scan_parallel(scanner, server_info, options):
+def scan_parallel(scanner, server_info, data, options):
     logging.debug("\tRunning scans in parallel.")
 
     def queue(command):
         try:
             return scanner.queue_scan_command(server_info, command)
+        except OSError as err:
+            text = ("OSError - likely too many processes and open files.")
+            data['errors'].append(text)
+            logging.warn("%s\n%s" % (text, utils.format_last_exception()))
+            return None, None, None, None, None, None
         except Exception as err:
-            utils.notify(err)
-            logging.warn("Unknown exception queueing sslyze command.")
-            return None
+            text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
+            data['errors'].append(text)
+            logging.warn(text)
+            return None, None, None, None, None, None
 
     # Initialize commands and result containers
     sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = None, None, None, None, None, None
@@ -402,8 +422,7 @@ def scan_parallel(scanner, server_info, options):
     queue(Tlsv11ScanCommand())
     queue(Tlsv12ScanCommand())
 
-    # Default to cert info on.
-    if options.get("sslyze-no-certs", False) is False:
+    if options.get("sslyze-certs", True) is True:
         queue(CertificateInfoScanCommand())
 
     # Reassign them back to predictable places after they're all done
@@ -411,8 +430,10 @@ def scan_parallel(scanner, server_info, options):
     for result in scanner.get_results():
         try:
             if isinstance(result, PluginRaisedExceptionScanResult):
-                logging.warn(u'Scan command failed: {}'.format(result.as_text()))
-                return None
+                error = ("Scan command failed: %s" % result.as_text())
+                logging.warn(error)
+                data['errors'].append(error)
+                return None, None, None, None, None, None
 
             if type(result.scan_command) == Sslv20ScanCommand:
                 sslv2 = result
@@ -427,17 +448,20 @@ def scan_parallel(scanner, server_info, options):
             elif type(result.scan_command) == CertificateInfoScanCommand:
                 certs = result
             else:
-                logging.warn("\tCouldn't match scan result with command! %s" % result)
+                error = "Couldn't match scan result with command! %s" % result
+                logging.warn("\t%s" % error)
+                data['errors'].append(error)
                 was_error = True
 
         except Exception as err:
-            logging.warn("\t Exception inside async scanner result processing.")
             was_error = True
-            utils.notify(err)
+            text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
+            data['errors'].append(text)
+            logging.warn("\t%s" % text)
 
     # There was an error during async processing.
     if was_error:
-        return None
+        return None, None, None, None, None, None
 
     logging.debug("\tDone scanning.")
 

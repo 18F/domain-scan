@@ -2,16 +2,23 @@
 
 import multiprocessing
 import os
+import uuid
 import sys
 import glob
-from scanners import utils
+import time
 import datetime
 import logging
 import requests
 import importlib
 import shutil
 import csv
+import json
+import base64
+import boto3
+import botocore
 from concurrent.futures import ThreadPoolExecutor
+
+from scanners import utils
 
 # basic setup - logs, output dirs
 options = utils.options()
@@ -20,14 +27,58 @@ utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
 
-# some metadata about the scan itself
-start_time = utils.utc_timestamp()
+# Default and maximum for local workers (threads) per-scanner.
+default_workers = 10
+global_max_workers = 1000
+
+# Some metadata about the scan itself.
+start_time = utils.local_now()
 start_command = str.join(" ", sys.argv)
+
+# Generate a random UUID for the entire scan.
+scan_uuid = str(uuid.uuid4())
+
+# AWS credentials should be set externally (disk, env, IAMs, etc.).
+if options.get("lambda", False):
+    invoke_config = botocore.config.Config(
+        max_pool_connections=global_max_workers,
+        connect_timeout=300, read_timeout=300
+    )
+    invoke_client = boto3.client('lambda', config=invoke_config)
+    # hack to disable automatic retries for Lambda invocations
+    # https://github.com/boto/boto3/issues/1104
+    invoke_client.meta.events._unique_id_handlers['retry-config-lambda']['handler']._checker.__dict__['_max_attempts'] = 0
+
+    logs_config = botocore.config.Config(max_pool_connections=global_max_workers)
+    logs_client = boto3.client('logs', config=logs_config)
+
+# Fields that will always get prefixed before scan-specific data.
+prefix_headers = ["Domain", "Base Domain"]
+
+# Local scan info. Requested with --meta.
+local_headers = ["Local Errors", "Local Start Time", "Local End Time", "Local Duration"]
+
+# Lambda-specific scan info. Requested with --meta.
+# 1) Known or retrieved upon task completion.
+lambda_headers = [
+    "Lambda Request ID",
+    "Lambda Log Group Name", "Lambda Log Stream Name",
+    "Lambda Start Time", "Lambda End Time",
+    "Lambda Memory Limit", "Lambda Measured Duration"
+]
+# 2) Retrieved by subsequent log requests, after task completion.
+lambda_detail_headers = [
+    "Lambda Reported Duration", "Lambda Log Delay",
+    "Lambda Memory Used", "Lambda Fetching Errors"
+]
+
+# A best-effort delay to sleep while waiting for CloudWatch Logs
+# about Lambda executions to show up after task completion.
+lambda_log_delay = 20
 
 ###
 # Entry point. `options` is a dict of CLI flags.
 ###
-
 
 def run(options=None):
 
@@ -75,14 +126,9 @@ def run(options=None):
                           (name, scanner.command))
             exit(1)
 
-        # Scanners can have an optional init/validation hook.
-        if hasattr(scanner, "init") and scanner.init and (not scanner.init(options)):
-            logging.error("[%s] Scanner's init hook returned false." % name)
-            exit(1)
-
         scans.append(scanner)
 
-    scan_domains(scans, domains)
+    scan_domains(scans, domains, options)
 
 
 ###
@@ -91,11 +137,17 @@ def run(options=None):
 #
 # Produces a CSV for each scan, with each domain and results.
 ###
-def scan_domains(scanners, domains):
-
+def scan_domains(scanners, domains, options):
     # Clear out existing result CSVs, to avoid inconsistent data.
     for result in glob.glob("%s/*.csv" % utils.results_dir()):
         os.remove(result)
+
+    # Trigger the Lambda pipeline.
+    use_lambda = options.get("lambda", False)
+
+    # Store local errors/timing info, and if using Lambda, trigger the
+    # Lambda post-processing pipeline to get Lambda timing/usage info.
+    meta = options.get("meta", False)
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
@@ -104,60 +156,307 @@ def scan_domains(scanners, domains):
         scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
-        scanner_writer.writerow(["Domain", "Base Domain"] + scanner.headers)
+
+        # Write the header row, factoring in Lambda detail if needed.
+        headers = prefix_headers + scanner.headers
+
+        # Local scan timing/errors.
+        if meta:
+            headers += local_headers
+
+        # Lambda scan timing/errors. (At this step, only partial fields.)
+        if meta and use_lambda:
+            headers += lambda_headers
+
+        scanner_writer.writerow(headers)
 
         handles[scanner] = {
+            'name': name,
             'file': scanner_file,
             'filename': scanner_filename,
-            'writer': scanner_writer
+            'writer': scanner_writer,
+            'headers': headers
         }
 
-    # The task wrapper that's parallelized using executor.map.
-    def process_scan(params):
-        scanner, domain, options = params
-
-        # A scanner can return multiple rows.
-        try:
-            rows = list(scanner.scan(domain, options))
-        except:
-            logging.warn(utils.format_last_exception())
-
-        if rows:
-            for row in rows:
-                if row:
-                    handles[scanner]['writer'].writerow([domain, utils.base_domain_for(domain)] + row)
-
-    # Run each scanner (unique process pool) over each domain.
-    # User can force --serial, and scanners can override default of 10.
+    # Initialize all scanner-specific environments.
+    # Useful for data that should be cached/passed to each instance,
+    # such as data from third-party network sources.
+    # Checked now, so that failure can immediately halt the whole scan.
     for scanner in scanners:
+        environment = {}
 
+        environment['scan_method'] = {True: 'lambda', False: 'local'}[use_lambda]
+        environment['scan_uuid'] = scan_uuid
+
+        # Select workers here, so that it can be passed to the
+        # init function.
         if options.get("serial"):
             workers = 1
         elif hasattr(scanner, "workers"):
             workers = scanner.workers
         else:
-            workers = int(options.get("workers", 10))
+            workers = int(options.get("workers", default_workers))
 
+        # Enforce a local worker maximum as a safety valve.
+        environment['workers'] = min(workers, global_max_workers)
+
+        if hasattr(scanner, "init"):
+            init = scanner.init(environment, options)
+
+            # If a scanner's init() function returns false, stop entirely.
+            if init is False:
+                logging.warn("[%s] Scanner init function returned false! Bailing." % handles[scanner]['name'])
+                exit(1)
+
+            if type(init) is dict:
+                environment = {**environment, **init}
+        handles[scanner]['environment'] = environment
+
+    # Store scan UUID.
+    logging.debug("[%s] Scan UUID." % scan_uuid)
+
+    # Run each scanner (unique process pool) over each domain.
+    # User can force --serial, and scanners can override default of 10.
+    durations = {}
+    for scanner in scanners:
+
+        # Scan environment, passed to all scanners (local or cloud).
+        environment = handles[scanner]['environment']
+
+        workers = environment['workers']
+
+        # Kick off workers in parallel. Returns when all are done.
+        scan_start_time = utils.local_now()
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            tasks = ((scanner, domain, options) for domain in domains_from(domains))
-            executor.map(process_scan, tasks)
+            tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
+            executor.map(perform_scan, tasks)
+        scan_end_time = utils.local_now()
+        duration = scan_end_time - scan_start_time
 
-    # Close up all the files, --sort if requested (expensive).
+        # Store scan-specific time information.
+        durations[handles[scanner]['name']] = {
+            'start_time': utils.utc_timestamp(scan_start_time),
+            'end_time': utils.utc_timestamp(scan_end_time),
+            'duration': utils.just_microseconds(duration)
+        }
+
+    # Close up all the files, --sort if requested (memory-expensive).
+    # Also fetch Lambda info if requested (time-expensive).
+
+    get_lambda_details = meta and use_lambda and options.get("lambda-details", False)
+
+    # Sleeping's not ideal, but no better idea right now.
+    if get_lambda_details:
+        logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
+        time.sleep(lambda_log_delay)
+
     for scanner in scanners:
         handles[scanner]['file'].close()
+
         if options.get("sort"):
             utils.sort_csv(handles[scanner]['filename'])
+
+        if get_lambda_details:
+            add_lambda_details(handles[scanner]['filename'])
+
 
     logging.warn("Results written to CSV.")
 
     # Save metadata.
+    end_time = utils.local_now()
+    duration = end_time - start_time
     metadata = {
-        'start_time': start_time,
-        'end_time': utils.utc_timestamp(),
-        'command': start_command
+        'start_time': utils.utc_timestamp(start_time),
+        'end_time': utils.utc_timestamp(end_time),
+        'duration': utils.just_microseconds(duration),
+        'durations': durations,
+        'command': start_command,
+        'scan_uuid': scan_uuid
     }
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
 
+###
+# Core scan method. (Run once in each worker.)
+def perform_scan(params):
+    scanner, domain, handles, environment, options = params
+
+    meta = {'errors': []}
+    rows = None
+
+    try:
+        logging.warn("[%s][%s] Running scan..." % (domain, handles[scanner]['name']))
+
+        data = None
+
+        # Init function per-domain (always run locally).
+        scan_environment = {}
+        if hasattr(scanner, "init_domain"):
+            scan_environment = scanner.init_domain(domain, environment, options)
+
+        # Rely on scanner to say why.
+        if scan_environment is False:
+            return
+
+        scan_environment = {**environment, **scan_environment}
+
+        # If --cache is on, read from this. Always write to it.
+        domain_cache = utils.cache_path(domain, handles[scanner]['name'], ext="json")
+
+        if (options.get("cache")) and (os.path.exists(domain_cache)):
+            logging.warn("\tUsing cached scan response.")
+            raw = utils.read(domain_cache)
+            data = json.loads(raw)
+            if (data.__class__ is dict) and data.get('invalid'):
+                data = None
+
+
+        else:
+            # Supported methods: local scans, and Lambda-based.
+            if environment['scan_method'] == "lambda":
+                scan_method = perform_lambda_scan
+            else:
+                scan_method = perform_local_scan
+
+            # Capture local start and end times around scan.
+            meta['start_time'] = utils.local_now()
+            data = scan_method(scanner, domain, handles, scan_environment, options, meta)
+            meta['end_time'] = utils.local_now()
+            meta['duration'] = meta['end_time'] - meta['start_time']
+
+        if data:
+            # Cache locally.
+            utils.write(utils.json_for(data), domain_cache)
+
+            # Convert to rows for CSV.
+            rows = scanner.to_rows(data)
+        else:
+            utils.write(utils.invalid(), domain_cache)
+            meta['errors'].append("Scan returned nothing.")
+
+    except:
+        exception = utils.format_last_exception()
+        meta['errors'].append("Unknown exception: %s" % exception)
+
+    try:
+        # Always print errors.
+        if len(meta['errors']) > 0:
+            for error in meta['errors']:
+                logging.warn("\t%s" % error)
+
+        # If --meta wasn't requested, throw it all away.
+        if not options.get("meta", False): meta = None
+
+        write_rows(rows, handles[scanner]['headers'], domain, scanner, handles[scanner]['writer'], meta=meta)
+    except:
+        logging.warn(utils.format_last_exception())
+
+###
+# Local scan (default).
+#
+# Run the scan using local CPU, within this worker.
+#
+# Let all errors bubble up to perform_scan.
+def perform_local_scan(scanner, domain, handles, environment, options, meta):
+    logging.warn("\tExecuting local scan...")
+    return scanner.scan(domain, environment, options)
+
+
+###
+# Lambda-based scan.
+#
+# Run the scan using a Lambda function. This worker will wait
+# for the Lambda task to complete synchronously.
+#
+# Catch some Lambda-specific exceptions around the invoke call,
+# but otherwise allow exceptions to bubble up to perform_scan.
+def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
+    logging.warn("\tExecuting Lambda scan...")
+
+    data = None
+    meta['lambda'] = {}
+
+    task_prefix = "task_" # default, maybe make optional later
+    task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
+
+    # JSON payload that arrives as the 'event' object in Lambda.
+    payload = {
+        'domain': domain,
+        'options': options,
+        'scanner': handles[scanner]['name'],
+        'environment': environment
+    }
+    bytes_payload = bytes(utils.json_for(payload), encoding='utf-8')
+
+    try:
+        # For now, do synchronous Lambda requests, essentially just
+        # farming out the hard work to Lambda. This increases max workers
+        # somewhat, since waiting on responses is much, much cheaper than
+        # performing active scanning.
+
+        api_response = invoke_client.invoke(
+            FunctionName=task_name,
+            InvocationType='RequestResponse',
+            LogType='None',
+            Payload=bytes_payload
+        )
+
+    except botocore.vendored.requests.exceptions.ReadTimeout:
+        meta['errors'].append("Connection timeout while talking to Lambda.")
+    except botocore.errorfactory.ServiceException:
+        meta['errors'].append("Generic service exception when talking to Lambda.")
+
+    # Store Lambda request ID for reference in Lambda logs.
+    meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
+
+    # Read payload from Lambda task.
+    raw = str(api_response['Payload'].read(), encoding='utf-8')
+    response = json.loads(raw)
+
+    if response.get("errorMessage") is None:
+        # Payload has some per-task Lambda-specific info.
+        meta['lambda'] = {**meta['lambda'], **response['lambda']}
+
+        # Payload has the actual scan response data.
+        data = response['data']
+
+    else:
+        meta['errors'].append("Lambda error: %s" % raw)
+
+    return data
+
+def write_rows(rows, headers, domain, scanner, csv_writer, meta=None):
+
+    # If we didn't get any info, we'll still output information about why the scan failed.
+    if rows is None:
+        empty_row = [None] * len(scanner.headers)
+        rows = [empty_row]
+
+    # Always output Domain and Base Domain.
+    standard_prefix = [
+        domain,
+        utils.base_domain_for(domain)
+    ]
+
+    # If requested, add local and Lambda scan data.
+    meta_fields = []
+    if meta:
+        meta_fields.append(" ".join(meta.get('errors', [])))
+        meta_fields.append(utils.utc_timestamp(meta.get("start_time")))
+        meta_fields.append(utils.utc_timestamp(meta.get("end_time")))
+        meta_fields.append(utils.just_microseconds(meta.get("duration")))
+
+        if meta.get("lambda") is not None:
+            meta_fields.append(meta['lambda'].get('request_id'))
+            meta_fields.append(meta['lambda'].get('log_group_name'))
+            meta_fields.append(meta['lambda'].get('log_stream_name'))
+            meta_fields.append(utils.utc_timestamp(meta['lambda'].get('start_time')))
+            meta_fields.append(utils.utc_timestamp(meta['lambda'].get('end_time')))
+            meta_fields.append(meta['lambda'].get('memory_limit'))
+            meta_fields.append(utils.just_microseconds(meta['lambda'].get('measured_duration')))
+
+    # Write out prefix, scan data, and meta scan data.
+    for row in rows:
+        csv_writer.writerow(standard_prefix + row + meta_fields)
 
 # Yield domain names from a single string, or a CSV of them.
 def domains_from(arg):
@@ -174,6 +473,111 @@ def domains_from(arg):
     else:
         yield arg
 
+# Given just a CSV with some Lambda detail headers at the end,
+# fill in the remaining fields from CloudWatch logs. Try to keep
+# this function relatively stateless (only relying on info in the
+# Lambda detail fields) to make parallelization/refactoring easier.
+def add_lambda_details(input_filename):
+    logging.warn("Fetching more Lambda details for %s..." % input_filename)
+
+    input_file = open(input_filename, encoding='utf-8', newline='')
+    tmp_filename = "%s.tmp" % input_filename
+    tmp_file = open(tmp_filename, 'w', newline='')
+    tmp_writer = csv.writer(tmp_file)
+
+
+    header = None
+
+    rows = []
+
+    for row in csv.reader(input_file):
+        # keep header and add the Lambda detail headers
+        if (row[0].lower().startswith("domain")):
+            header = row
+            continue
+
+        # Read the row into a dict, keyed by header name.
+        dict_row = {}
+        for i, cell in enumerate(row):
+            dict_row[header[i]] = cell
+
+        logging.warn("[%s][%s] Fetching Lambda details from logs..." % (row[0], input_filename))
+        details = fetch_lambda_details(dict_row)
+
+        # Matches order of lambda_detail_headers
+        row.append(details.get('reported_duration'))
+        row.append(utils.just_microseconds(details.get('log_delay')))
+        row.append(details.get('memory_used'))
+        row.append(details.get('errors'))
+
+        rows.append(row)
+
+    # Write out headers, adding new fields.
+    tmp_writer.writerow(header + lambda_detail_headers)
+    for row in rows:
+        tmp_writer.writerow(row)
+
+    # close the file handles
+    input_file.close()
+    tmp_file.close()
+
+    # replace the original
+    shutil.move(tmp_filename, input_filename)
+
+
+# Get every field in the Lambda details headers.
+def fetch_lambda_details(dict_row):
+
+    lambda_fields = {'errors': None}
+
+    request_id = dict_row['Lambda Request ID']
+    log_group_name = dict_row['Lambda Log Group Name']
+    log_stream_name = dict_row['Lambda Log Stream Name']
+    if dict_row.get('Lambda End Time'):
+        lambda_end_time = utils.utc_timestamp_to_local_now(dict_row['Lambda End Time'])
+    else:
+        lambda_end_time = None
+
+    # Filter log events to final event, with request ID.
+    filter_pattern = ("\"%s\" \"Max Memory Used\"" % request_id)
+
+    # If requested and available, grab log entries we just generated.
+    try:
+        events = logs_client.filter_log_events(
+            logGroupName=log_group_name,
+            logStreamNames=[log_stream_name],
+            filterPattern=filter_pattern
+        )
+    except botocore.exceptions.ClientError:
+        lambda_fields['errors'] = "Lambda declined, too many requests."
+        return lambda_fields
+    except:
+        exception = utils.format_last_exception()
+        lambda_fields['errors'] = ("Unknown exception: %s" % exception)
+        logging.warn(exception)
+        return lambda_fields
+
+    if events and events.get('events'):
+        first_event = events['events'][0]
+        last_event = events['events'][-1]
+
+        # Track when the last log entry for this task was ingested.
+        if lambda_end_time:
+            log_end_time = last_event['ingestionTime'] / 1000
+            lambda_fields['log_delay'] = log_end_time - lambda_end_time
+        else:
+            lambda_fields['log_delay'] = None
+
+        # Get time and memory use from concluding event message
+        pieces = last_event.get('message', '').strip().split("\t")
+        values = [field.split(":")[1] for field in pieces]
+        lambda_fields['reported_duration'] = values[1]
+        lambda_fields['memory_used'] = values[4]
+    else:
+        lambda_fields["errors"] = "No logs found for this task."
+        logging.warn("\tNo logs found for (group, stream, task): %s, %s, %s" % (log_group_name, log_stream_name, request_id))
+
+    return lambda_fields
 
 if __name__ == '__main__':
 

@@ -1,14 +1,25 @@
+# Used in local execution and dev.
 ipython
 requests
+
+# Used by all local and Lambda-based code.
 strict-rfc3339
+
+# To support a11y scanner:
 pyyaml
-
-# to support sslyze scanner
-sslyze
-cryptography
-
-# to support censys gatherer
-censys
 
 # Ubuntu 14.04 has an old version of six
 six>=1.6
+
+# To support pshtt scanner (and to stay fresh):
+git+git://github.com/dhs-ncats/pshtt.git#egg=pshtt
+
+# To support sslyze scanner:
+sslyze
+cryptography
+
+# To support censys gatherer:
+censys
+
+# For Lambda support (only used locally):
+boto3

@@ -4,63 +4,50 @@ import os
 import json
 
 ###
-# == trustymail ==
-#
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
-#
-###
 
+# TODO: move to trustymail's Python API
 command = os.environ.get("TRUSTYMAIL_PATH", "trustymail")
 
 # default to a long timeout
 timeout = 30
 
 
-def scan(domain, options):
-    logging.debug("[%s][trustymail]" % domain)
+def scan(domain, environment, options):
 
-    # cache output from pshtt
-    cache_trustymail = utils.cache_path(domain, "trustymail", ext="json")
+    full_command = [
+        command,
+        domain,
+        '--json',
+        '--timeout', str(timeout),
+        # Use Google DNS
+        '--dns-hostnames', '8.8.8.8,8.8.4.4'
+    ]
 
-    force = options.get("force", False)
+    if options.get("debug", False):
+        full_command.append("--debug")
 
-    if (force is False) and (os.path.exists(cache_trustymail)):
-        logging.debug("\tCached.")
-        raw = open(cache_trustymail).read()
-        data = json.loads(raw)
-        if (data.__class__ is dict) and data.get('invalid'):
-            return None
+    raw = utils.scan(full_command)
 
-    else:
-        logging.debug("\t %s %s" % (command, domain))
+    if not raw:
+        logging.warn("\ttrustymail command failed, skipping.")
+        return None
 
-        raw = utils.scan([
-            command,
-            domain,
-            '--json',
-            '--timeout', str(timeout),
-            # Use Google DNS
-            '--dns-hostnames', '8.8.8.8,8.8.4.4'
-        ])
+    data = json.loads(raw)
 
-        if not raw:
-            utils.write(utils.invalid({}), cache_trustymail)
-            logging.warn("\tBad news scanning, sorry!")
-            return None
-
-        data = json.loads(raw)
-        utils.write(utils.json_for(data), utils.cache_path(domain, "trustymail"))
-
-    # trustymail scanner follows pshtt in using JSON arrays, even for single items
+    # trustymail uses JSON arrays, even for single items.
     data = data[0]
 
+    return data
+
+
+def to_rows(data):
     row = []
     for field in headers:
         value = data[field]
-
         row.append(value)
 
-    yield row
+    return [row]
 
 
 headers = [

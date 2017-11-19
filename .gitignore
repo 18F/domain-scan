@@ -1,5 +1,8 @@
-/lambda
+/lambda/build
+/lambda/*.txt
 *.out
+*.txt
+
 /cache
 /data
 *.csv

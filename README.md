@@ -3,13 +3,17 @@
 
 ## A domain scanner
 
-Scans domains for data on their HTTPS configuration and assorted other things.
+Scans domains for data on their HTTPS and email configuration, third party service usage, accessibility, and other things. Adding new scanners is relatively straightforward.
 
-**Much of this work is farmed out to other command line tools.**
+All scanners can be run locally using **native Python multi-threading**.
+
+Some scanners can be executed **inside Amazon Lambda** for much higher levels of parallelization.
+
+Most scanners work by using **specialized third party tools**, such as [`SSLyze`](https://github.com/nabla-c0d3/sslyze) or [`trustymail`](https://github.com/dhs-ncats/trustymail). Each scanner in this repo is meant to add the smallest wrapper possible around the responses returned from these tools.
 
 The point of this project is to **coordinate** and **parallelize** those tools and produce **consistent data output**.
 
-Can be used with any domain, or any CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/raw/gh-pages/dotgov-domains/current-full.csv).
+Can be used with any domain, or any CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/raw/master/dotgov-domains/current-full.csv).
 
 ### Requirements
 
@@ -19,26 +23,17 @@ Can be used with any domain, or any CSV where domains are the first column, such
 pip install -r requirements.txt
 ```
 
-Some individual scanners require externally installed dependencies:
+This will automatically allow the use of two scanners:
 
-* `pshtt` scanner: The `pshtt` command, available from the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from [DHS NCATS](https://github.com/dhs-ncats).
-* `trustymail` scanner: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from [DHS NCATS](https://github.com/dhs-ncats).
-* `tls` scanner: The `ssllabs-scan` command, available by compiling and installing from the Go-based [ssllabs-scan](https://github.com/ssllabs/ssllabs-scan) repo (stable branch).
-* `pageload` scanner: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package.
+* `pshtt` - A scanner that uses the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats).
+* `sslyze` - A scanner that uses the [`sslyze`](https://github.com/nabla-c0d3/sslyze) Python package maintained by Alban Diquet.
 
-##### Setting tool paths
+Other individual scanners will require additional externally installed dependencies:
 
-By default, `domain-scan` will expect the paths to any executables to be on the system PATH.
+* `trustymail`: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats). (Override path by setting the `TRUSTYMAIL_PATH` environment variable.)
+* `a11y`: The `pa11y` command, available from the [`pa11y`](https://www.npmjs.com/package/pa11y) Node package. (Override path by setting the `PA11Y_PATH` environment variable.)
+* `third_parties`: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package. (Override path by setting the `PHANTOMAS_PATH` environment variable.)
 
-If you need to point it to a local directory instead, you'll need to set environment variables to override this.
-
-You can set environment variables in a variety of ways -- this tool's developers use [`autoenv`](https://github.com/kennethreitz/autoenv) to manage environment variables with a `.env` file.
-
-However you set them:
-
-* Override the path to the `ssllabs-scan` executable by setting the `SSLLABS_PATH` environment variable.
-
-* Override the path to the `phantomas` executable by setting the `PHANTOMAS_PATH` environment variable.
 
 ### Usage
 
@@ -57,32 +52,43 @@ Scan a list of domains from a CSV. The CSV's header row will be ignored if the f
 Run multiple scanners on each domain:
 
 ```bash
-./scan whitehouse.gov --scan=pshtt,tls
+./scan whitehouse.gov --scan=pshtt,sslyze
 ```
 
 ##### Parallelization
 
-It's important to understand that **scans run in parallel by default**, and so **the order of result data is unpredictable**.
+It's important to understand that **scans run in parallel by default**, and **data is streamed to disk immediately** after each scan is done.
 
-By default, each scanner will run up to 10 parallel tasks, which you can override with `--workers`.
+This makes domain-scan fast, as well as memory-efficient (the entire dataset doesn't need to be read into memory), but **the order of result data is unpredictable**.
 
-Some scanners may limit this. For example, the `tls` scanner, which hits the SSL Labs API, maxes out at 5 tasks at once (which cannot be overridden with `--workers`).
+By default, each scanner will spin up 10 parallel threads. You can override this value with `--workers`. To disable this and run sequentially through each domain (1 worker), use `--serial`.
 
-To disable this and run sequentially through each domain (1 worker), use `--serial`.
+If row order is important to you, either disable parallelization, or use the `--sort` parameter to sort the resulting CSVs once the scans have completed. (**Note:** Using `--sort` will cause the entire dataset to be read into memory.)
 
-Parallelization will also cause the resulting domains to be written in an unpredictable order. If the row order is important to you, disable parallelization, or use the `--sort` parameter to sort the resulting CSVs once the scans have completed. (**Note:** Using `--sort` will cause the entire dataset to be read into memory.)
+### Lambda
+
+The domain-scan tool can execute certain compatible scanners in Amazon Lambda, instead of locally.
+
+This can allow the use of hundreds of parallel workers, and can speed up large scans by orders of magnitude. (Assuming that the domains you're scanning are disparate enough to avoid DDoS-ing any particular service!)
+
+See [`docs/lambda.md`](docs/lambda.md) for instructions on configuring scanners for use with Amazon Lambda.
+
+Once configured, scans be run in Lambda using the `--lambda` flag, like so:
+
+```bash
+./scan example.com --scan=pshtt,sslyze --lambda
+```
 
 ##### Options
 
 **Scanners:**
 
 * `pshtt` - HTTP/HTTPS/HSTS configuration with the Python-only [`pshtt`](https://github.com/dhs-ncats/pshtt) tool.
-* `trustymail` - MX/SPF/DMARC configuration with the Python-only [`trustymail`](https://github.com/dhs-ncats/trustymail) tool.
-* `tls` - TLS configuration, using the [SSL Labs API](https://github.com/ssllabs/ssllabs-scan/blob/stable/ssllabs-api-docs.md).
+* `trustymail` - MX/SPF/STARTTLS/DMARC configuration with the Python-only [`trustymail`](https://github.com/dhs-ncats/trustymail) tool.
 * `sslyze` - TLS configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `analytics` - Participation in an analytics program. (Optimized for USG.)
-* `pageload` - Page load and rendering metrics.
+* `third_parties` - What third party services are in use by a given website.
 * `a11y` - Accessibility data with the [`pa11y` CLI tool](https://github.com/pa11y/pa11y)
+* `noop` - Test scanner used for development and debugging, does nothing (no-op).
 
 **General options:**
 
@@ -92,12 +98,10 @@ Parallelization will also cause the resulting domains to be written in an unpred
 * `--debug` - Print out more stuff. Useful with `--serial`.
 * `--workers` - Limit parallel threads per-scanner to a number.
 * `--output` - Where to output the `cache/` and `results/` directories. Defaults to `./`.
-* `--force` - Ignore cached data and force scans to hit the network. For the `tls` scanner, this also tells SSL Labs to ignore its server-side cache.
+* `--cache` - Use previously cached scan data to avoid scans hitting the network where possible.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
-
-**Scanner-specific options**
-
-* `--analytics` - For the `analytics` scanner. Point this to either a file **or** a URL that contains a CSV of participating domains.
+* `--lambda` - Run certain scanners inside Amazon Lambda instead of locally. (See [the Lambda instructions](docs/lambda.md) for how to use this.)
+* `--meta` - Append some additional columns to each row with information about the scan itself. This includes start/end times and durations, as well as any encountered errors. When using `--lambda`, additional Lambda-specific information will be appended.
 
 ### Output
 
@@ -113,7 +117,7 @@ Example: `results/pshtt.csv`
 
 You can override the output directory by specifying `--output`.
 
-It's possible for scans to save multiple CSV rows per-domain. For example, the `tls` scan may have a row with details for each detected TLS "endpoint".
+It's possible for scans to save multiple CSV rows per-domain. For example, the `a11y` scan will have a row with details for each detected accessibility error.
 
 * **Scan metadata** with the start time, end time, and scan command will be placed in the `results/` directory as `meta.json`.
 
@@ -222,7 +226,7 @@ To gather .gov hostnames from a hosted CSV, such as one from the [Digital Analyt
 Or to gather federal-only .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export), a remote CSV, and a local CSV:
 
 ```bash
-./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://raw.githubusercontent.com/GSA/data/gh-pages/dotgov-domains/current-federal.csv --export
+./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv --export
 ```
 
 ### a11y setup
