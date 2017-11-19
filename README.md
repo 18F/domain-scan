@@ -3,7 +3,7 @@
 
 ## A domain scanner
 
-Scans domains for data on their HTTPS and email configuration, third party service usage, accessibility, and other things. Adding new scanners is relatively straightforward.
+Scans domains for data on their HTTPS and email configuration, third party service usage, accessibility, and other things. [Adding new scanners](#developing-new-scanners) is relatively straightforward.
 
 All scanners can be run locally using **native Python multi-threading**.
 
