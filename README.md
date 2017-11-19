@@ -255,15 +255,15 @@ In order to get the benefits of the `pshtt` scanner, all `a11y` scans must inclu
 
 Because of `domain-scan`'s caching, all the results of an `pshtt` scan will be saved in the `cache/pshtt` folder, and probably does not need to be re-run for every single `ally` scan.
 
----
-
 ### Developing new scanners
+
+Scanners are registered by creating a single Python file in the `scanners/` directory, where the file is given the name of the scanner (plus the `.py` extension).
+
+Each scanner should define a few top-level functions and one variable that will be referenced at different points.
 
 For an example of how to add a scanner, start with [`scanners/noop.py`](scanners/noop.py). The `noop` scanner is a test scanner that does nothing (no-op), but it implements and documents a scanner's basic Python contract.
 
-Scanners can implement 4 functions (2 required, 2 optional) that will be called at different points.
-
-In order of being called:
+Scanners can implement 4 functions (2 required, 2 optional). In order of being called:
 
 * `init(environment, options)` (Optional)
 
