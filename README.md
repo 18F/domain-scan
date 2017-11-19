@@ -5,6 +5,10 @@
 
 Scans domains for data on their HTTPS and email configuration, third party service usage, accessibility, and other things. Adding new scanners is relatively straightforward.
 
+All scanners can be run locally using **native Python multi-threading**.
+
+Some scanners can be executed **inside Amazon Lambda** for much higher levels of parallelization.
+
 Most scanners work by using **specialized third party tools**, such as [`SSLyze`](https://github.com/nabla-c0d3/sslyze) or [`trustymail`](https://github.com/dhs-ncats/trustymail). Each scanner in this repo is meant to add the smallest wrapper possible around the responses returned from these tools.
 
 The point of this project is to **coordinate** and **parallelize** those tools and produce **consistent data output**.
