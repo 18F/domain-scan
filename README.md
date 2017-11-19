@@ -257,6 +257,77 @@ Because of `domain-scan`'s caching, all the results of an `pshtt` scan will be s
 
 ---
 
+### Developing new scanners
+
+For an example of how to add a scanner, start with [`scanners/noop.py`](scanners/noop.py). The `noop` scanner is a test scanner that does nothing (no-op), but it implements and documents a scanner's basic Python contract.
+
+Scanners can implement 4 functions (2 required, 2 optional) that will be called at different points.
+
+In order of being called:
+
+* `init(environment, options)` (Optional)
+
+  The `init()` function will be run only once, before any scans are executed.
+
+  Returning a dict from this function will merge that dict into the `environment` dict passed to all subsequent function calls for every domain.
+
+  Returning `False` from this function indicates that the scanner is unprepared, and the _entire_ scan process (for all scanners) will abort.
+
+  Useful for expensive actions that shouldn't be repeated for each scan, such as downloading supplementary data from a third party service. See the `pshtt` scanner for an example.
+
+  The `init` function is **always run locally**.
+
+* `init_domain(domain, environment, options)` (Optional)
+
+  The `init_domain()` function will be run once per-domain, before the `scan()` function is executed.
+
+  Returning a dict from this function will merge that dict into the `environment` dict passed to the `scan()` function for that particular domain.
+
+  Returning `False` from this function indicates that the domain should not be scanned. The domain will be skipped and no rows will be added to the resulting CSV. Cached response data for the scan _will not_ be stored to disk.
+
+  Useful for per-domain preparatory work that needs to be performed locally, such as taking advantage of scan information cached on disk from a prior scan. See the `sslyze` scanner for an example of using available `pshtt` data to avoid scanning a domain known not to support HTTPS.
+
+  The `init_domain` function is **always run locally**.
+
+* `scan(domain, environment, options)` **(Required)**
+
+  The `scan` function performs the core of the scanning work.
+
+  Returning a dict from this function indicates that the scan has completed successfully, and that the returned dict is the resulting information. This dict will be passed into the `to_rows` function described below, and used to generate one or more rows for the resulting CSV.
+
+  Returning `None` from this function indicates that the scan has completed unsuccessfully. The domain will be skipped, and no rows will be added to the resulting CSV.
+
+  In all cases, cached data for the scan _will_ be stored to disk. If a scan was unsuccessful, the cached data will indicate that the scan was unsuccessful. Future scans that rely on cached responses will skip domains for which the cached scan was unsuccessful, and will not execute the `scan` function for those domains.
+
+  The `scan` function is **run either locally or in the cloud (Lambda)**.
+
+* `to_rows(data)` **(Required)**
+
+  The `to_rows` function converts the data returned by a scan into one or more rows, which will be appended to the resulting CSV.
+
+  The `data` argument passed to the function is the return value of the `scan` function described above.
+
+  The function _must_ return a list of lists, where each contained list is the same length as the `headers` variable described below.
+
+  For example, a `to_rows` function that always returns one row with two values might be as simple as `return [[ data['value1'], data['value2'] ]]`.
+
+  The `to_rows` function is **always run locally**.
+
+And each scanner must define one top-level variable:
+
+* `headers` **(Required)**
+
+  The `headers` variable is a list of column headers for use in the resulting CSV. These headers must be in the same order as the values in the lists returned by the `to_rows` function.
+
+  The `headers` variable is **always referenced locally**.
+
+In all of the above functions that receive it, `environment` is a dict that will contain a `scan_method` key whose value is either `"local"` or `"lambda"`. It will also include any entries returned by previous functions. (For example, data returned from `init` will be contained in the `environment` dict sent to `init_domain`.)
+
+In all of the above functions that receive it, `options` is a dict that contains a direct representation of the command-line flags given to the `./scan` executable.
+
+For example, the flags `--scan=pshtt,sslyze --lambda` will translate to an `options` dict that contains `{"scan": "pshtt,sslyze", "lambda": True}`.
+
+
 ### Public domain
 
 This project is in the worldwide [public domain](LICENSE.md). As stated in [CONTRIBUTING](CONTRIBUTING.md):

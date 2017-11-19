@@ -36,14 +36,6 @@ From the project root, using `pshtt` as an example:
 ./lambda/deploy pshtt --create
 ```
 
-If you're making changes to a scanner, you'll need to update Lambda with the new function code after making the changes locally. You can update a function in place by running the deploy command _without_ the `--create` flag.
-
-From the project root, using `pshtt` as an example:
-
-```bash
-./lambda/deploy pshtt
-```
-
 ##### Using scanners in Lambda
 
 Once Lambda functions are created in your AWS account, and your machine has permissions to invoke Lambda functions, all you need to do is add the `--lambda` flag:
@@ -77,6 +69,17 @@ Currently, the only scanners tested for use in Lambda are:
 
 (**Note:** to use `--lambda`, all scanners you use should be Lambda-compatible and have functions created in your AWS account. You can't yet mix locally- and Lambda-executed scanners.)
 
+##### Developing on Lambda-based scanners
+
+If you're making changes to a scanner, you'll need to update Lambda with the new function code after making the changes locally. You can update a function in place by running the deploy command _without_ the `--create` flag.
+
+From the project root, using `pshtt` as an example:
+
+```bash
+./lambda/deploy pshtt
+```
+
+**Note:** If you make changes to a scanner (or create a new scanner) that require new third party dependencies, via `pip` or otherwise, using them will require recompiling `lambda/envs/domain-scan.zip` to add these dependencies. This is usually not difficult, but is not currently well-documented or well-automated.
 
 ## Future work
 
