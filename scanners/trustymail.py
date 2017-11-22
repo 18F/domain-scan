@@ -21,7 +21,7 @@ def scan(domain, environment, options):
         '--json',
         '--timeout', str(timeout),
         # Use Google DNS
-        '--dns-hostnames', '8.8.8.8,8.8.4.4'
+        '--dns', '8.8.8.8,8.8.4.4'
     ]
 
     if options.get("debug", False):
