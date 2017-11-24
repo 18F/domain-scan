@@ -67,7 +67,7 @@ if [ "$IS_CREATE" == "--create" ]; then
     --role $AWS_LAMBDA_ROLE \
     --handler lambda_handler.handler \
     --runtime python3.6 \
-    --timeout 30 \
+    --timeout 300 \
     --memory-size 128
 
 # Or, update the function's code with the latest zipped code.
