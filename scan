@@ -400,25 +400,26 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
             Payload=bytes_payload
         )
 
+        # Store Lambda request ID for reference in Lambda logs.
+        meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
+
+        # Read payload from Lambda task.
+        raw = str(api_response['Payload'].read(), encoding='utf-8')
+
+        response = json.loads(raw)
+
+        if response.get("errorMessage") is None:
+            # Payload has some per-task Lambda-specific info.
+            meta['lambda'] = {**meta['lambda'], **response['lambda']}
+
+            # Payload has the actual scan response data.
+            data = response['data']
+
+        else:
+            meta['errors'].append("Lambda error: %s" % raw)
+
     except botocore.vendored.requests.exceptions.ReadTimeout:
         meta['errors'].append("Connection timeout while talking to Lambda.")
-
-    # Store Lambda request ID for reference in Lambda logs.
-    meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
-
-    # Read payload from Lambda task.
-    raw = str(api_response['Payload'].read(), encoding='utf-8')
-    response = json.loads(raw)
-
-    if response.get("errorMessage") is None:
-        # Payload has some per-task Lambda-specific info.
-        meta['lambda'] = {**meta['lambda'], **response['lambda']}
-
-        # Payload has the actual scan response data.
-        data = response['data']
-
-    else:
-        meta['errors'].append("Lambda error: %s" % raw)
 
     return data
 
