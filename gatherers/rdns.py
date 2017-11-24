@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 
 # Reverse DNS
@@ -12,6 +13,11 @@ import logging
 # all domains into memory in order to dedupe them, it may be
 # easiest to use this on a file that has been pre-filtered in
 # some way (such as by grepping for the intended suffix).
+
+# Best-effort filter for hostnames which are just reflected IPs.
+# IP addresses often use dots or dashes.
+# Some also start with "u-" before the IP address.
+ip_filter = re.compile("^(u-)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
 
 def gather(suffixes, options, extra={}):
     path = options.get("rdns")
@@ -31,4 +37,7 @@ def gather(suffixes, options, extra={}):
         for line in lines:
             record = json.loads(line)
             # logging.debug("\t%s" % record["value"])
-            yield record["value"]
+
+            # Filter out IP-like reflected addresses.
+            if ip_filter.search(record["value"]) is None:
+                yield record["value"]
