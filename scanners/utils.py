@@ -247,7 +247,9 @@ def just_microseconds(duration):
     return "%.6f" % duration
 
 
-# return base domain for a subdomain
+# Return base domain for a subdomain
+# This *is not* PSL-aware, and will not be correct for domains
+# that use a public suffix (such as fs.fed.us).
 def base_domain_for(subdomain):
     return str.join(".", subdomain.split(".")[-2:])
 
