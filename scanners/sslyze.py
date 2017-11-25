@@ -7,7 +7,7 @@
 # Supported options:
 #
 # --sslyze-serial - If set, will use a synchronous (single-threaded
-#   in-process) scanner. Defaults to true when local, false in cloud.
+#   in-process) scanner. Defaults to true.
 # --sslyze-certs - If set, will use the CertificateInfoScanner and
 #   return certificate info. Defaults to true.
 ###
@@ -136,16 +136,19 @@ headers = [
 def run_sslyze(data, environment, options):
     hostname = data['hostname']
 
-    # SynchronousScanner has a memory leak over time, so local
-    # scanning defaults to using ConcurrentScanner.
-    #
-    # But Lambda can't use multiprocessing.Queue, so cloud scanning
-    # defaults to using SynchronousScanner.
-    scan_method = environment.get("scan_method", "local")
-    default_sync = {"local": False, "lambda": True}[scan_method]
-
     # Each sslyze worker can use a sync or parallel mode.
-    sync = options.get("sslyze-serial", default_sync)
+    #
+    # SynchronousScanner can show memory leaks when parsing certs,
+    # so local scanning defaults to using ConcurrentScanner.
+    #
+    # And Lambda can't use multiprocessing.Queue, so in the cloud,
+    # this default cannot be overridden.
+    scan_method = environment.get("scan_method", "local")
+
+    if scan_method == "lambda":
+        sync = True
+    else:
+        sync = options.get("sslyze-serial", True)
 
     # Initialize either a synchronous or concurrent scanner.
     server_info, scanner = init_sslyze(hostname, options, sync=sync)

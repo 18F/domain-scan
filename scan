@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import multiprocessing
 import os
 import uuid
 import sys
@@ -579,10 +578,4 @@ def fetch_lambda_details(dict_row):
     return lambda_fields
 
 if __name__ == '__main__':
-
-    # Makes it safer for multi-threaded executions of domain-scan
-    # to make use of the multiprocessing module without causing
-    # deadlocks.
-    multiprocessing.set_start_method('forkserver')
-
     run(options)
