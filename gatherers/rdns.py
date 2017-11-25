@@ -2,8 +2,6 @@ import json
 import logging
 import re
 
-from scanners import utils
-
 # Reverse DNS
 #
 # Given a path to a (local) "JSON Lines" formatted file,
@@ -24,6 +22,7 @@ ip_filter = re.compile("^(\w+[\-\.]?)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
 # (Note: this won't work for fed.us subdomains, but that's okay, this
 # is just a best-effort to cut down noise.)
 number_filter = re.compile("^[\d\-]+\.")
+
 
 def gather(suffixes, options, extra={}):
     path = options.get("rdns")
