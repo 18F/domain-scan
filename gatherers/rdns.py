@@ -2,6 +2,7 @@ import json
 import logging
 import re
 
+from scanners import utils
 
 # Reverse DNS
 #
@@ -17,7 +18,12 @@ import re
 # Best-effort filter for hostnames which are just reflected IPs.
 # IP addresses often use dots or dashes.
 # Some also start with "u-" before the IP address.
-ip_filter = re.compile("^(u-)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
+ip_filter = re.compile("^(\w+[\-\.]?)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
+
+# Best-effort filter for hostnames with just numbers on the base domain.
+# (Note: this won't work for fed.us subdomains, but that's okay, this
+# is just a best-effort to cut down noise.)
+number_filter = re.compile("^[\d\-]+\.")
 
 def gather(suffixes, options, extra={}):
     path = options.get("rdns")
@@ -39,5 +45,10 @@ def gather(suffixes, options, extra={}):
             # logging.debug("\t%s" % record["value"])
 
             # Filter out IP-like reflected addresses.
-            if ip_filter.search(record["value"]) is None:
+            is_ip = (ip_filter.search(record["value"]) is not None)
+
+            # Check if it's just something like '1234.what.ever.gov'
+            is_number = (number_filter.search(record["value"]) is not None)
+
+            if (not is_ip) and (not is_number):
                 yield record["value"]
