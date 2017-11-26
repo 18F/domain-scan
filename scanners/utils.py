@@ -12,10 +12,12 @@ import logging
 import datetime
 import strict_rfc3339
 import codecs
+from urllib.error import URLError
 
 import publicsuffix
 # global in-memory cache
 suffix_list = None
+
 
 # Wrapper to a run() method to catch exceptions.
 def run(run_method, additional=None):
@@ -272,7 +274,6 @@ def base_domain_for(subdomain):
 
 # Returns an instantiated PublicSuffixList object, and the
 # list of lines read from the file.
-from urllib.error import URLError
 def load_suffix_list():
 
     cached_psl = cache_single("public-suffix-list.txt")
