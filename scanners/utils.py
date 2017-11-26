@@ -11,7 +11,11 @@ import csv
 import logging
 import datetime
 import strict_rfc3339
+import codecs
 
+import publicsuffix
+# global in-memory cache
+suffix_list = None
 
 # Wrapper to a run() method to catch exceptions.
 def run(run_method, additional=None):
@@ -247,11 +251,54 @@ def just_microseconds(duration):
     return "%.6f" % duration
 
 
-# Return base domain for a subdomain
-# This *is not* PSL-aware, and will not be correct for domains
-# that use a public suffix (such as fs.fed.us).
+# Return base domain for a subdomain, factoring in the Public Suffix List.
 def base_domain_for(subdomain):
-    return str.join(".", subdomain.split(".")[-2:])
+    global suffix_list
+
+    """
+    For "x.y.domain.gov", return "domain.gov".
+
+    If suffix_list is None, the caches have not been initialized, so do that.
+    """
+    if suffix_list is None:
+        suffix_list, discard = load_suffix_list()
+
+    if suffix_list is None:
+        logging.warn("Error downloading the PSL.")
+        exit(1)
+
+    return suffix_list.get_public_suffix(subdomain)
+
+
+# Returns an instantiated PublicSuffixList object, and the
+# list of lines read from the file.
+from urllib.error import URLError
+def load_suffix_list():
+
+    cached_psl = cache_single("public-suffix-list.txt")
+
+    if os.path.exists(cached_psl):
+        logging.debug("Using cached Public Suffix List...")
+        psl_file = codecs.open(cached_psl, encoding='utf-8')
+        suffixes = publicsuffix.PublicSuffixList(psl_file)
+        content = psl_file.readlines()
+    else:
+        # File does not exist, download current list and cache it at given location.
+        logging.debug("Downloading the Public Suffix List...")
+        try:
+            cache_file = publicsuffix.fetch()
+        except URLError as err:
+            logging.warn("Unable to download the Public Suffix List...")
+            logging.debug("{}".format(err))
+            return None, None
+
+        content = cache_file.readlines()
+        suffixes = publicsuffix.PublicSuffixList(content)
+
+        # Cache for later.
+        write(''.join(content), cached_psl)
+
+    return suffixes, content
 
 
 # Check whether we have HTTP behavior data cached for a domain.
