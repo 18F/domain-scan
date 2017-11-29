@@ -79,7 +79,7 @@ This can allow the use of hundreds of parallel workers, and can speed up large s
 
 See [`docs/lambda.md`](docs/lambda.md) for instructions on configuring scanners for use with Amazon Lambda.
 
-Once configured, scans be run in Lambda using the `--lambda` flag, like so:
+Once configured, scans can be run in Lambda using the `--lambda` flag, like so:
 
 ```bash
 ./scan example.com --scan=pshtt,sslyze --lambda
@@ -147,7 +147,7 @@ docker-compose run scan <domain> --scan=<scanner>
 
 ## Gathering hostnames
 
-This tool also includes a facility for gathering domain names that end in one or more given suffixes (e.g. `.gov` or `.gov.uk`) from various sources.
+This tool also includes a facility for gathering domain names that end in one or more given suffixes (e.g. `.gov` or `yahoo.com` or `.gov.uk`) from various sources.
 
 By default, only fetches third-level and higher domains (excluding second-level domains).
 
@@ -181,7 +181,7 @@ See [specific usage examples](#gathering-usage-examples) below.
 
 General options:
 
-* `--suffix`: **Required.** One or more suffix to filter on, separated by commas as necessary. (e.g. `.gov` or `.gov,.gov.uk`)
+* `--suffix`: **Required.** One or more suffix to filter on, separated by commas as necessary. (e.g. `.gov` or `.yahoo.com` or `.gov,.gov.uk`)
 * `--parents`: A path or URL to a CSV whose first column is second-level domains. Any subdomain not contained within these second-level domains will be excluded.
 * `--include-parents`: Include second-level domains. (Defaults to false.)
 * `--ignore-www`: Ignore the `www.` prefixes of hostnames. If `www.staging.example.com` is found, it will be treated as `staging.example.com`.
