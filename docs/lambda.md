@@ -10,15 +10,9 @@ Lambda's default limit for simultaneous function executions is 1000 per AWS acco
 
 (In practice, you will likely want to give yourself some flex room to avoid flirting with hitting the limit. This tool's developer generally uses 900 workers.)
 
-##### Preparing scanners for use in Lambda
+#### Background
 
-To prepare for using domain-scan with Lambda, you will need to:
-
-* Create an Amazon Web Services account, if you don't have one.
-* Install the `awscli` Python package, which installs the `aws` command.
-* Configure `aws` to have permission to write to Lambda and to read from CloudWatch. This usually means AWS API credentials, but if you're running this inside of an AWS service like EC2, you can use IAM roles to automatically grant permissions.
-
-Then you'll need to create the functions in Lambda. This repository has tools to make that easy.
+Before you can execute a Lambda function, you'll need to create the functions in Lambda. This repository has tools to make that easy.
 
 Lambda functions need to be uploaded as a zip file containing all necessary dependencies. Native dependencies (including Python modules that use C) need to have been compiled on an architecture compatible with Amazon Linux. Occasionally, there are Lambda-specific issues that require tweaks to how dependencies are installed. It can be annoying!
 
@@ -26,17 +20,33 @@ However, **this dependency compilation work is already done for you** by default
 
 Once you have an AWS account, and permissions to use Lambda, you'll be able to run the commands below and execute scans in Lambda right away.
 
-##### Creating and updating Lambda functions
+#### Preparing scanners for use in Lambda
+
+To prepare for using domain-scan with Lambda, you will need to:
+
+* Create an Amazon Web Services account, if you don't have one.
+* Install the `awscli` Python package, which installs the `aws` command.
+* Configure `aws` to have permission to write to Lambda and to read from CloudWatch. This usually means AWS API credentials, but if you're running this inside of an AWS service like EC2, you can use IAM roles to automatically grant permissions.
+
+And finally:
+
+* Define an IAM role in your AWS account that gives the Lambda functions themselves necessary permissions to interact with basic AWS APIs (like CloudTrail for logging).
+
+The simplest role to create is one based on a `AWSLambdaFullAccess` policy, which will give your Lambda functions everything they need.
+
+#### Creating and updating Lambda functions
 
 Once the preparation steps above are done, you will need to run a command to create each scan function individually in Lambda.
 
-From the project root, using `pshtt` as an example:
+Make sure the ARN for your Lambda execution role is set as the `AWS_LAMBDA_ROLE` environment variable.
+
+Then, from the project root, using `pshtt` as an example:
 
 ```bash
 ./lambda/deploy pshtt --create
 ```
 
-##### Using scanners in Lambda
+#### Using scanners in Lambda
 
 Once Lambda functions are created in your AWS account, and your machine has permissions to invoke Lambda functions, all you need to do is add the `--lambda` flag:
 
@@ -60,7 +70,7 @@ If you use the `--meta` flag along with `--lambda`, you will get additional colu
 ./scan example.com --scan=pshtt,sslyze --lambda --meta
 ```
 
-##### Lambda-compatible scanners
+#### Lambda-compatible scanners
 
 Currently, the only scanners tested for use in Lambda are:
 
@@ -69,7 +79,7 @@ Currently, the only scanners tested for use in Lambda are:
 
 (**Note:** to use `--lambda`, all scanners you use should be Lambda-compatible and have functions created in your AWS account. You can't yet mix locally- and Lambda-executed scanners.)
 
-##### Developing on Lambda-based scanners
+#### Developing on Lambda-based scanners
 
 If you're making changes to a scanner, you'll need to update Lambda with the new function code after making the changes locally. You can update a function in place by running the deploy command _without_ the `--create` flag.
 

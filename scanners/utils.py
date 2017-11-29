@@ -11,6 +11,12 @@ import csv
 import logging
 import datetime
 import strict_rfc3339
+import codecs
+from urllib.error import URLError
+
+import publicsuffix
+# global in-memory cache
+suffix_list = None
 
 
 # Wrapper to a run() method to catch exceptions.
@@ -247,9 +253,53 @@ def just_microseconds(duration):
     return "%.6f" % duration
 
 
-# return base domain for a subdomain
+# Return base domain for a subdomain, factoring in the Public Suffix List.
 def base_domain_for(subdomain):
-    return str.join(".", subdomain.split(".")[-2:])
+    global suffix_list
+
+    """
+    For "x.y.domain.gov", return "domain.gov".
+
+    If suffix_list is None, the caches have not been initialized, so do that.
+    """
+    if suffix_list is None:
+        suffix_list, discard = load_suffix_list()
+
+    if suffix_list is None:
+        logging.warn("Error downloading the PSL.")
+        exit(1)
+
+    return suffix_list.get_public_suffix(subdomain)
+
+
+# Returns an instantiated PublicSuffixList object, and the
+# list of lines read from the file.
+def load_suffix_list():
+
+    cached_psl = cache_single("public-suffix-list.txt")
+
+    if os.path.exists(cached_psl):
+        logging.debug("Using cached Public Suffix List...")
+        psl_file = codecs.open(cached_psl, encoding='utf-8')
+        suffixes = publicsuffix.PublicSuffixList(psl_file)
+        content = psl_file.readlines()
+    else:
+        # File does not exist, download current list and cache it at given location.
+        logging.debug("Downloading the Public Suffix List...")
+        try:
+            cache_file = publicsuffix.fetch()
+        except URLError as err:
+            logging.warn("Unable to download the Public Suffix List...")
+            logging.debug("{}".format(err))
+            return None, None
+
+        content = cache_file.readlines()
+        suffixes = publicsuffix.PublicSuffixList(content)
+
+        # Cache for later.
+        write(''.join(content), cached_psl)
+
+    return suffixes, content
 
 
 # Check whether we have HTTP behavior data cached for a domain.

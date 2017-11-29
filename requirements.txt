@@ -2,6 +2,9 @@
 ipython
 requests
 
+# Use PSL to determine base domains.
+publicsuffix
+
 # Used by all local and Lambda-based code.
 strict-rfc3339
 
