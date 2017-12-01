@@ -17,6 +17,7 @@ user_agent = "github.com/18f/domain-scan, pshtt.py"
 suffix_list = None
 
 # In Lambda, we package a snapshot of the PSL with the environment.
+lambda_support = True
 lambda_suffix_path = "./public-suffix-list.txt"
 
 

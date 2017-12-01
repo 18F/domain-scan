@@ -22,6 +22,7 @@ from scanners import utils
 # basic setup - logs, output dirs
 options = utils.options()
 domain_suffix = options.get("suffix")
+lambda_mode = options.get("lambda", False)
 utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
@@ -38,7 +39,7 @@ start_command = str.join(" ", sys.argv)
 scan_uuid = str(uuid.uuid4())
 
 # AWS credentials should be set externally (disk, env, IAMs, etc.).
-if options.get("lambda", False):
+if lambda_mode:
     invoke_config = botocore.config.Config(
         max_pool_connections=global_max_workers,
         connect_timeout=300, read_timeout=300
@@ -141,9 +142,6 @@ def scan_domains(scanners, domains, options):
     for result in glob.glob("%s/*.csv" % utils.results_dir()):
         os.remove(result)
 
-    # Trigger the Lambda pipeline.
-    use_lambda = options.get("lambda", False)
-
     # Store local errors/timing info, and if using Lambda, trigger the
     # Lambda post-processing pipeline to get Lambda timing/usage info.
     meta = options.get("meta", False)
@@ -155,6 +153,10 @@ def scan_domains(scanners, domains, options):
         scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
+
+        use_lambda = lambda_mode and \
+            hasattr(scanner, "lambda_support") and \
+            scanner.lambda_support
 
         # Write the header row, factoring in Lambda detail if needed.
         headers = prefix_headers + scanner.headers
@@ -174,7 +176,8 @@ def scan_domains(scanners, domains, options):
             'file': scanner_file,
             'filename': scanner_filename,
             'writer': scanner_writer,
-            'headers': headers
+            'headers': headers,
+            'use_lambda': use_lambda,
         }
 
     # Initialize all scanner-specific environments.
@@ -182,10 +185,10 @@ def scan_domains(scanners, domains, options):
     # such as data from third-party network sources.
     # Checked now, so that failure can immediately halt the whole scan.
     for scanner in scanners:
-        environment = {}
-
-        environment['scan_method'] = {True: 'lambda', False: 'local'}[use_lambda]
-        environment['scan_uuid'] = scan_uuid
+        environment = {
+            'scan_method': 'lambda' if handles[scanner]['use_lambda'] else 'local',
+            'scan_uuid': scan_uuid,
+        }
 
         # Select workers here, so that it can be passed to the
         # init function.
@@ -242,7 +245,8 @@ def scan_domains(scanners, domains, options):
     # Close up all the files, --sort if requested (memory-expensive).
     # Also fetch Lambda info if requested (time-expensive).
 
-    get_lambda_details = meta and use_lambda and options.get("lambda-details", False)
+    lambda_used = any(handles[scanner]['use_lambda'] for scanner in scanners)
+    get_lambda_details = meta and lambda_used and options.get("lambda-details", False)
 
     # Sleeping's not ideal, but no better idea right now.
     if get_lambda_details:
