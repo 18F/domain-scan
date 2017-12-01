@@ -31,6 +31,9 @@ from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 # Not much patience here, and very willing to move on.
 network_timeout = 5
 
+# Advertise Lambda support
+lambda_support = True
+
 
 # If we have pshtt data, use it to skip some domains, and to adjust
 # scan hostnames to canonical URLs where we can.

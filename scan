@@ -22,6 +22,7 @@ from scanners import utils
 # basic setup - logs, output dirs
 options = utils.options()
 domain_suffix = options.get("suffix")
+lambda_mode = options.get("lambda", False)
 utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
@@ -36,11 +37,6 @@ start_command = str.join(" ", sys.argv)
 
 # Generate a random UUID for the entire scan.
 scan_uuid = str(uuid.uuid4())
-
-# Whitelist of scanners that can use lambda
-# (facilitates running a mix of lambda / non-lambda scanners together)
-lambda_supported = ["pshtt", "sslyze"]
-lambda_mode = options.get("lambda", False)
 
 # AWS credentials should be set externally (disk, env, IAMs, etc.).
 if lambda_mode:
@@ -154,10 +150,13 @@ def scan_domains(scanners, domains, options):
     handles = {}
     for scanner in scanners:
         name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
-        use_lambda = lambda_mode and name in lambda_supported
         scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
+
+        use_lambda = lambda_mode and \
+            hasattr(scanner, "lambda_support") and \
+            scanner.lambda_support
 
         # Write the header row, factoring in Lambda detail if needed.
         headers = prefix_headers + scanner.headers
