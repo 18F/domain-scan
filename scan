@@ -40,17 +40,25 @@ scan_uuid = str(uuid.uuid4())
 
 # AWS credentials should be set externally (disk, env, IAMs, etc.).
 if lambda_mode:
+    # support AWS named profiles
+    aws_profile = options.get("aws-profile", None)
+    if aws_profile:
+        lambda_session = boto3.session.Session(profile_name=aws_profile)
+    else:
+        lambda_session = boto3.session.Session()
+
     invoke_config = botocore.config.Config(
         max_pool_connections=global_max_workers,
         connect_timeout=300, read_timeout=300
     )
-    invoke_client = boto3.client('lambda', config=invoke_config)
+    invoke_client = lambda_session.client('lambda', config=invoke_config)
+
     # hack to disable automatic retries for Lambda invocations
     # https://github.com/boto/boto3/issues/1104
     invoke_client.meta.events._unique_id_handlers['retry-config-lambda']['handler']._checker.__dict__['_max_attempts'] = 0
 
     logs_config = botocore.config.Config(max_pool_connections=global_max_workers)
-    logs_client = boto3.client('logs', config=logs_config)
+    logs_client = lambda_session.client('logs', config=logs_config)
 
 # Fields that will always get prefixed before scan-specific data.
 prefix_headers = ["Domain", "Base Domain"]
