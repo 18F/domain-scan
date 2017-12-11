@@ -107,7 +107,7 @@ Once configured, scans can be run in Lambda using the `--lambda` flag, like so:
 * `--cache` - Use previously cached scan data to avoid scans hitting the network where possible.
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
 * `--lambda` - Run certain scanners inside Amazon Lambda instead of locally. (See [the Lambda instructions](docs/lambda.md) for how to use this.)
-* `--aws-profile` - When running Lambda-related commands, use a specified AWS named profile. Credentials/config for this named profile should already be configured separately in the execution environment.
+* `--lambda-profile` - When running Lambda-related commands, use a specified AWS named profile. Credentials/config for this named profile should already be configured separately in the execution environment.
 * `--meta` - Append some additional columns to each row with information about the scan itself. This includes start/end times and durations, as well as any encountered errors. When using `--lambda`, additional Lambda-specific information will be appended.
 
 ### Output

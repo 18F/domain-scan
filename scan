@@ -41,7 +41,7 @@ scan_uuid = str(uuid.uuid4())
 # AWS credentials should be set externally (disk, env, IAMs, etc.).
 if lambda_mode:
     # support AWS named profiles
-    aws_profile = options.get("aws-profile", None)
+    aws_profile = options.get("lambda-profile", None)
     if aws_profile:
         lambda_session = boto3.session.Session(profile_name=aws_profile)
     else:
