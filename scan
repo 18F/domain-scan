@@ -5,6 +5,7 @@ import uuid
 import sys
 import glob
 import time
+import copy
 import datetime
 import logging
 import requests
@@ -211,6 +212,7 @@ def scan_domains(scanners, domains, options):
         environment['workers'] = min(workers, global_max_workers)
 
         if hasattr(scanner, "init"):
+            # pass in 'environment' dict by reference, mutate in-place
             init = scanner.init(environment, options)
 
             # If a scanner's init() function returns false, stop entirely.
@@ -302,7 +304,9 @@ def perform_scan(params):
         # Init function per-domain (always run locally).
         scan_environment = {}
         if hasattr(scanner, "init_domain"):
-            scan_environment = scanner.init_domain(domain, environment, options)
+            # pass in copy of 'environment' dict, any changes should be per-domain
+            environment_copy = copy.deepcopy(environment)
+            scan_environment = scanner.init_domain(domain, environment_copy, options)
 
         # Rely on scanner to say why.
         if scan_environment is False:
