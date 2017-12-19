@@ -47,10 +47,12 @@ if [ -f ../envs/$SCANNER_NAME.zip ]; then
   echo "Incorporating custom-built env for $SCANNER_NAME..."
   cp ../envs/$SCANNER_NAME.zip .
   unzip -q $SCANNER_NAME.zip
+  rm $SCANNER_NAME.zip
 else
   echo "Incorporating domain-scan env..."
   cp ../envs/domain-scan.zip .
   unzip -q domain-scan.zip
+  rm domain-scan.zip
 fi
 
 echo "Building zip package for $FUNCTION_NAME..."
