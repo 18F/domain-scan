@@ -1,7 +1,5 @@
 import logging
-from scanners import utils
 import os
-import json
 
 from trustymail import trustymail
 
@@ -64,7 +62,7 @@ def scan(domain, environment, options):
     }
 
     data = trustymail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
-    
+
     if not data:
         logging.warn("\ttrustymail command failed, skipping.")
 
