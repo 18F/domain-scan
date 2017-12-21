@@ -3,6 +3,8 @@ from scanners import utils
 import os
 import json
 
+from trustymail import trustymail
+
 ###
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
 
@@ -17,29 +19,13 @@ lambda_support = True
 
 
 def scan(domain, environment, options):
+    # if options.get("debug", False):
+    #     full_command.append("--debug")
 
-    full_command = [
-        command,
-        domain,
-        '--json',
-        '--timeout', str(timeout),
-        # Use Google DNS
-        '--dns', '8.8.8.8,8.8.4.4'
-    ]
-
-    if options.get("debug", False):
-        full_command.append("--debug")
-
-    raw = utils.scan(full_command)
-
-    if not raw:
+    data = trustymail.scan(domain, timeout, 5, None, {25, 465, 587}, True, {'mx': True, 'starttls': True, 'spf': True, 'dmarc': True}, ['8.8.8.8', '8.8.4.4']).generate_results()
+    
+    if not data:
         logging.warn("\ttrustymail command failed, skipping.")
-        return None
-
-    data = json.loads(raw)
-
-    # trustymail uses JSON arrays, even for single items.
-    data = data[0]
 
     return data
 
