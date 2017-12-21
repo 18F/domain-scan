@@ -12,6 +12,9 @@ command = os.environ.get("TRUSTYMAIL_PATH", "trustymail")
 # default to a long timeout
 timeout = 30
 
+# Advertise lambda support
+lambda_support = True
+
 
 def scan(domain, environment, options):
 
