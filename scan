@@ -315,7 +315,8 @@ def perform_scan(params):
         scan_environment = {**environment, **scan_environment}
 
         # If --cache is on, read from this. Always write to it.
-        domain_cache = utils.cache_path(domain, handles[scanner]['name'], ext="json")
+        hostname, port, display_name = parse_domain(domain)
+        domain_cache = utils.cache_path(display_name, handles[scanner]['name'], ext="json")
 
         if (options.get("cache")) and (os.path.exists(domain_cache)):
             logging.warn("\tUsing cached scan response.")
@@ -445,10 +446,13 @@ def write_rows(rows, headers, domain, scanner, csv_writer, meta=None):
         empty_row = [None] * len(scanner.headers)
         rows = [empty_row]
 
-    # Always output Domain and Base Domain.
+    # Always output Domain and Base Domain.  Note that the domain may
+    # contain the port as well.
+    hostname, port, display_name = parse_domain(domain)
+
     standard_prefix = [
-        domain,
-        utils.base_domain_for(domain)
+        display_name,
+        utils.base_domain_for(hostname)
     ]
 
     # If requested, add local and Lambda scan data.
@@ -592,6 +596,39 @@ def fetch_lambda_details(dict_row):
         logging.warn("\tNo logs found for (group, stream, task): %s, %s, %s" % (log_group_name, log_stream_name, request_id))
 
     return lambda_fields
+
+def parse_domain(domain):
+    """Returns a tuple containing the hostname, port, and display name
+    for the domain.
+
+    The port is assumed to be 443 if it is not present.  The display
+    name is simply the hostname followed by a colon and the port,
+    unless the port is 443.  In that case the colon and port are
+    omitted.
+
+    Parameters
+    ----------
+    domain : str
+        The domain, which is the hostname followed by an optional
+        colon and port.
+
+    Returns
+    -------
+    tuple of str: The hostname, port, and display name for the domain.
+
+    """
+    hostname_and_port = domain.split(':')
+    hostname = hostname_and_port[0]
+    if len(hostname_and_port) > 1:
+        port = int(hostname_and_port[1])
+    else:
+        port = 443
+
+    display_name = hostname
+    if port != 443:
+        display_name = '{}:{}'.format(hostname, port)
+
+    return hostname, port, display_name
 
 if __name__ == '__main__':
     run(options)
