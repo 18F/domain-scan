@@ -5,14 +5,16 @@
 #########################################
 
 # System deps.
-sudo yum install python36 python36-virtualenv
-sudo yum install sqlite-devel gcc libffi-devel openssl-devel
-sudo yum install git
+sudo yum install python36 python36-virtualenv \
+     sqlite-devel gcc libffi-devel openssl-devel \
+     git wget zip
 
 # domain-scan isn't in PyPi.
 git clone https://github.com/18F/domain-scan
 # pshtt is in PyPi, but often lags behind.
 git clone https://github.com/dhs-ncats/pshtt
+# trustymail is in PyPi, but often lags behind.
+git clone https://github.com/dhs-ncats/trustymail
 
 #########################################
 # If testing out a branch of domain-scan
@@ -21,6 +23,7 @@ git clone https://github.com/dhs-ncats/pshtt
 
 # cd pshtt
 # git checkout branch-name
+# cd ..
 
 #########################################
 # Repeatable from here.
@@ -29,6 +32,10 @@ git clone https://github.com/dhs-ncats/pshtt
 rm -r scan-env
 virtualenv-3.6 scan-env
 source scan-env/bin/activate
+
+cd trustymail
+pip install .
+cd ..
 
 cd pshtt
 pip install .
@@ -54,7 +61,8 @@ VENV=scan-env
 
 # Copy in a snapshot of the public suffix list in .txt form.
 # Need to find a more managed way to store this.
-cp /home/ec2-user/public-suffix-list.txt .
+wget -O ./public-suffix-list.txt \
+     https://publicsuffix.org/list/public_suffix_list.dat
 
 # Copy all packages, including any hidden dotfiles.
 cp -rT /home/ec2-user/$VENV/lib/python3.6/site-packages/ .

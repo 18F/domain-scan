@@ -1,7 +1,7 @@
 import logging
-from scanners import utils
 import os
-import json
+
+from trustymail import trustymail
 
 ###
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
@@ -10,33 +10,64 @@ import json
 command = os.environ.get("TRUSTYMAIL_PATH", "trustymail")
 
 # default to a long timeout
-timeout = 30
+default_timeout = 30
+
+# This is the same default timeout used in trustymail/cli.py
+default_smtp_timeout = 5
+
+# These are the same default ports used in trustymail.cli.py
+default_smtp_ports = '25,465,587'
+
+# We want to enforce the use of Google DNS by default.  This gives
+# more consistent results.
+default_dns = '8.8.8.8,8.8.4.4'
+
+# Advertise lambda support
+lambda_support = True
 
 
 def scan(domain, environment, options):
+    # Save the old logging level
+    old_log_level = logging.getLogger().getEffectiveLevel()
+    log_level = logging.WARN
+    if options.get('debug', False):
+        log_level = logging.DEBUG
+    logging.basicConfig(format='%(asctime)-15s %(message)s', level=log_level)
 
-    full_command = [
-        command,
-        domain,
-        '--json',
-        '--timeout', str(timeout),
-        # Use Google DNS
-        '--dns', '8.8.8.8,8.8.4.4'
-    ]
+    timeout = int(options.get('timeout', default_timeout))
 
-    if options.get("debug", False):
-        full_command.append("--debug")
+    smtp_timeout = int(options.get('smtp-timeout', default_smtp_timeout))
 
-    raw = utils.scan(full_command)
+    smtp_localhost = options.get('smtp-localhost', None)
 
-    if not raw:
+    smtp_ports = {int(port) for port in options.get('smtp-ports', default_smtp_ports).split(',')}
+
+    dns_hostnames = options.get('dns', default_dns).split(',')
+
+    # --starttls implies --mx
+    if options.get('starttls', False):
+        options.set('mx', True)
+
+    # Whether or not to use an in-memory SMTP cache.  For runs against
+    # a single domain this will not make any difference, unless an MX
+    # record is duplicated.
+    smtp_cache = not options.get('no-smtp-cache', False)
+
+    # User might not want every scan performed.
+    scan_types = {
+        'mx': options.get('mx', False),
+        'starttls': options.get('starttls', False),
+        'spf': options.get('spf', False),
+        'dmarc': options.get('dmarc', False)
+    }
+
+    data = trustymail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
+
+    if not data:
         logging.warn("\ttrustymail command failed, skipping.")
-        return None
 
-    data = json.loads(raw)
-
-    # trustymail uses JSON arrays, even for single items.
-    data = data[0]
+    # Reset the logging level
+    logging.getLogger().setLevel(old_log_level)
 
     return data
 
