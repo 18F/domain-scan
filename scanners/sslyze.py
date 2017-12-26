@@ -1,9 +1,8 @@
 ###
 # Inspect a site's TLS configuration using sslyze.
 #
-# If data exists for a domain from `pshtt`, and we're scanning port 443, then
-# we will check results and only process domains with valid HTTPS, or broken
-# chains.
+# If data exists for a domain from `pshtt`, will check results
+# and only process domains with valid HTTPS, or broken chains.
 #
 # Supported options:
 #
@@ -21,7 +20,6 @@ from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
-from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
 import idna
 import cryptography
@@ -36,48 +34,35 @@ network_timeout = 5
 # Advertise Lambda support
 lambda_support = True
 
-# Default ports for SMTP
-default_smtp_ports = {25, 465, 587}
-
 
 # If we have pshtt data, use it to skip some domains, and to adjust
 # scan hostnames to canonical URLs where we can.
 def init_domain(domain, environment, options):
-    # Check to see if the domain is actually a hostname and port
-    hostname_and_port = domain.split(':')
-    hostname = hostname_and_port[0]
-    if len(hostname_and_port) > 1:
-        port = int(hostname_and_port[1])
+    # If we have pshtt data, skip domains which pshtt saw as not
+    # supporting HTTPS at all.
+    if utils.domain_doesnt_support_https(domain):
+        logging.warn("\tSkipping, HTTPS not supported.")
+        return False
+
+    # If we have pshtt data and it says canonical endpoint uses www
+    # and the given domain is bare, add www.
+    if utils.domain_uses_www(domain):
+        hostname = "www.%s" % domain
     else:
-        port = 443
-
-    if port == 443:
-        # If we have pshtt data, skip domains which pshtt saw as not
-        # supporting HTTPS at all.
-        if utils.domain_doesnt_support_https(hostname):
-            logging.warn("\tSkipping, HTTPS not supported.")
-            return False
-
-        # If we have pshtt data and it says canonical endpoint uses www
-        # and the given domain is bare, add www.
-        if utils.domain_uses_www(hostname):
-            hostname = "www.%s" % hostname
+        hostname = domain
 
     return {
-        'hostname': hostname,
-        'port': port
+        'hostname': hostname
     }
 
 
 # Run sslyze on the given domain.
 def scan(domain, environment, options):
     # Allow hostname to be adjusted by init_domain.
-    hostname = environment.get('hostname', domain.split(':')[0])
-    port = environment.get('port', 443)
+    hostname = environment.get("hostname", domain)
 
     data = {
         'hostname': hostname,
-        'port': port,
         'protocols': {},
         'config': {},
         'certs': {},
@@ -103,7 +88,6 @@ def scan(domain, environment, options):
 def to_rows(data):
     row = [
         data['hostname'],
-        data['port'],
 
         data['protocols'].get('sslv2'), data['protocols'].get('sslv3'),
         data['protocols'].get('tlsv1.0'), data['protocols'].get('tlsv1.1'),
@@ -129,7 +113,6 @@ def to_rows(data):
 
 headers = [
     "Scanned Hostname",
-    "Scanned Port",
     "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 
     "Any Forward Secrecy", "All Forward Secrecy",
@@ -154,6 +137,8 @@ headers = [
 # the Python cryptography module.
 
 def run_sslyze(data, environment, options):
+    hostname = data['hostname']
+
     # Each sslyze worker can use a sync or parallel mode.
     #
     # SynchronousScanner can show memory leaks when parsing certs,
@@ -169,7 +154,7 @@ def run_sslyze(data, environment, options):
         sync = options.get("sslyze-serial", True)
 
     # Initialize either a synchronous or concurrent scanner.
-    server_info, scanner = init_sslyze(data['hostname'], data['port'], options, sync=sync)
+    server_info, scanner = init_sslyze(hostname, options, sync=sync)
 
     if server_info is None:
         data['errors'].append("Connectivity not established.")
@@ -345,20 +330,13 @@ def supported_protocol(result):
 
 
 # SSlyze initialization boilerplate
-def init_sslyze(hostname, port, options, sync=False):
+def init_sslyze(hostname, options, sync=False):
     global network_timeout
 
     network_timeout = int(options.get("network_timeout", network_timeout))
 
-    # If we're using an SMTP port then use
-    # TlsWrappedProtocolEnum.STARTTLS_SMTP.  Otherwise use the default of
-    # TlsWrappedProtocolEnum.PLAIN_TLS.
-    tls_wrapped_protocol = TlsWrappedProtocolEnum.PLAIN_TLS
-    if port in default_smtp_ports:
-        tls_wrapped_protocol = TlsWrappedProtocolEnum.STARTTLS_SMTP
-
     try:
-        server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
+        server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
     except sslyze.server_connectivity.ServerConnectivityError as error:
         logging.warn("\tServer connectivity not established during initialization.")
         return None, None
