@@ -73,6 +73,9 @@ def init_domain(domain, environment, options):
             'starttls_smtp': True
         })
 
+    if not hosts_to_scan:
+        logging.warn('\tNo hosts to scan for {}'.format(domain))
+
     return {'hosts_to_scan': hosts_to_scan}
 
 

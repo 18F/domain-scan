@@ -349,7 +349,9 @@ def domain_mail_servers_that_support_starttls(domain):
     retVal = []
     data = data_for(domain, 'trustymail')
     if data:
-        retVal = data.get('Domain Supports STARTTLS Results').split(', ')
+        starttls_results = data.get('Domain Supports STARTTLS Results')
+        if starttls_results:
+            retVal = starttls_results.split(', ')
 
     return retVal
 
