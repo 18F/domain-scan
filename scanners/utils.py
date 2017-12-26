@@ -345,6 +345,7 @@ def domain_uses_www(domain):
         url.startswith("https://www")
     )
 
+
 def domain_mail_servers_that_support_starttls(domain):
     retVal = []
     data = data_for(domain, 'trustymail')
