@@ -1,6 +1,4 @@
 import os
-import time
-import datetime
 import json
 import csv
 import logging
@@ -63,12 +61,10 @@ def gather(suffixes, options, extra={}):
     # Plan to store in cache/censys/export.csv.
     download_path = utils.cache_path("export", "censys", ext="csv")
 
-
     # Reuse of cached data can be turned on with --cache.
     cache = options.get("cache", False)
     if (cache is True) and os.path.exists(download_path):
         logging.warn("Using cached download data.")
-
 
     # But by default, fetch new data from the BigQuery API,
     # and write it to the expected download location.
