@@ -2,6 +2,7 @@ import os
 import time
 import datetime
 import json
+import csv
 import logging
 from scanners import utils
 
@@ -11,21 +12,28 @@ import google.api_core.exceptions
 
 # Options:
 #
-# --timeout: Override the 5m job completion timeout (specify in seconds).
+# --timeout: Override the 10 minute job timeout (specify in seconds).
 # --cache: Use locally cached export data instead of hitting BigQuery.
 
 # Gathers hostnames from Censys.io via the Google BigQuery API.
 #
 # Before using this, you need to:
 #
-# * give Censys.io a Google Cloud account to grant access to.
-# * create a Project in Google Cloud, and associated API credentials.
-# * connect this Google Cloud account to Censys.io's BigQuery datasets.
+# * create a Project in Google Cloud, and an associated service account
+#   with access to create new jobs/queries and get their results.
+# * give Censys.io this Google Cloud service account to grant access to.
 #
-# For details, see:
+# For details on concepts, and how to test access in the web console:
 #
 # * https://support.censys.io/google-bigquery/bigquery-introduction
 # * https://support.censys.io/google-bigquery/adding-censys-datasets-to-bigquery
+#
+# Note that the web console access is based on access given to a Google account,
+# but BigQuery API access via this script depends on access given to
+# Google Cloud *service account* credentials.
+
+# Defaults to 10 minute timeout.
+default_timeout = 60 * 60 * 10
 
 
 def gather(suffixes, options, extra={}):
@@ -45,8 +53,7 @@ def gather(suffixes, options, extra={}):
         credentials=credentials
     )
 
-    # Default timeout to 5 minutes.
-    default_timeout = 60 * 60 * 5
+    # Allow override of default timeout (in seconds).
     timeout = int(options.get("timeout", default_timeout))
 
     # Construct the query.
@@ -54,16 +61,17 @@ def gather(suffixes, options, extra={}):
     logging.debug("Censys query:\n%s\n" % query)
 
     # Plan to store in cache/censys/export.csv.
-    download_file = utils.cache_path("export", "censys", ext="csv")
+    download_path = utils.cache_path("export", "censys", ext="csv")
 
 
     # Reuse of cached data can be turned on with --cache.
     cache = options.get("cache", False)
-    if (cache is True) and os.path.exists(download_file):
+    if (cache is True) and os.path.exists(download_path):
         logging.warn("Using cached download data.")
 
 
-    # But by default, fetch new data from the BigQuery API.
+    # But by default, fetch new data from the BigQuery API,
+    # and write it to the expected download location.
     else:
         logging.warn("Kicking off SQL query job.")
 
@@ -81,26 +89,28 @@ def gather(suffixes, options, extra={}):
             logging.warn(utils.format_last_exception())
             logging.warn("Error talking to BigQuery, aborting.")
 
-        print(rows[0])
-        exit(1)
-
         # At this point, the job is complete and we need to download
         # the resulting CSV URL in results_url.
         logging.warn("Caching results of SQL query.")
-        # TODO: cache in a CSV somewhere
 
-    # Read in cached CSV file and yield one at a time.
-    with open(download_file, newline='') as csvfile:
-        for row in csv.reader(csvfile):
-            if (not row[0]) or (row[0].lower().startswith("parsed_subject_common_name")):
-                continue
+        download_file = open(download_path, 'w', newline='')
+        download_writer = csv.writer(download_file)
+        download_writer.writerow(["Domain"])  # will be skipped on read
 
-            names = [row[0].lower(), row[1].lower()]
-            # logging.debug(names)
+        # Parse the rows and write them out as they were returned (dupes
+        # and all), to be de-duped by the central gathering script.
+        for row in rows:
+            domains = row['common_name'] + row['dns_names']
+            for domain in domains:
+                download_writer.writerow([domain])
 
-            for name in names:
-                if name:
-                    yield name
+        # End CSV writing.
+        download_file.close()
+
+    # Whether we downloaded it fresh or not, read from the cached data.
+    for domain in utils.load_domains(download_path):
+        if domain:
+            yield domain
 
 
 # Constructs the query to run in BigQuery, against Censys'
