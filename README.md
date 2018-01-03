@@ -188,32 +188,38 @@ General options:
 * `--ignore-www`: Ignore the `www.` prefixes of hostnames. If `www.staging.example.com` is found, it will be treated as `staging.example.com`.
 * `--debug`: display extra output
 
-### `censys`: the Censys.io API
+### `censys`: Data from Censys.io via Google BigQuery
 
-To configure, set two environment variables from [your Censys account page](https://censys.io/account):
+Gathers hostnames from Censys.io via the Google BigQuery API.
 
-* `CENSYS_UID`: Your Censys API ID.
-* `CENSYS_API_KEY`: Your Censys secret.
+Before using this, you need to:
+
+* Create a Project in Google Cloud, and an associated service account with access to create new jobs/queries and get their results.
+* Give Censys.io this Google Cloud service account to grant access to.
+
+For details on concepts, and how to test access in the web console:
+
+* https://support.censys.io/google-bigquery/bigquery-introduction
+* https://support.censys.io/google-bigquery/adding-censys-datasets-to-bigquery
+
+Note that the web console access is based on access given to a Google account, but BigQuery API access via this script depends on access given to Google Cloud **service account** credentials.
+
+To configure access, set **one** of two environment variables:
+
+* `BIGQUERY_CREDENTIALS`: JSON data that contains your Google BigQuery service account credentials.
+* `BIGQUERY_CREDENTIALS_PATH`: A path to a file with JSON data that contains your Google BigQuery service account credentials.
 
 Options:
 
-* `--start`: Page number to start on (defaults to `1`)
-* `--end`: Page number to end on (defaults to value of `--start`)
-* `--delay`: Sleep between pages, to meet API limits. Defaults to 5s. If you have researcher access, shorten to 2s.
-* `--query`: Specify the Censys.io search query to use (overwrites the default one based on `--suffix`)
-
-To use the SQL export (which "researcher" accounts can do):
-
-* `--export`: Turn on export mode.
-* `--timeout`: Override timeout for waiting on job completion (in seconds).
-* `--force`: Ignore cached export data.
+* --timeout: Override the 10 minute job timeout (specify in seconds).
+* --cache: Use locally cached export data instead of hitting BigQuery.
 
 **Example:**
 
-Find `.gov` certificates in the first 2 pages of Censys API results, waiting 5 seconds between pages:
+Find hostnames ending in either `.gov` or `.fed.us` from within Censys.io's certificate database
 
 ```bash
-./gather censys --suffix=.gov --start=1 --end=2 --delay=5
+./gather censys --suffix=.gov,.fed.us
 ```
 
 ### Gathering Usage Examples
