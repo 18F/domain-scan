@@ -104,7 +104,7 @@ def from_json(string):
 
 def format_datetime(obj):
     if isinstance(obj, datetime.date):
-        return obj.isoformat()
+        return obj.isoformat(' ')
     elif isinstance(obj, str):
         return obj
     else:
