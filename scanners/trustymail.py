@@ -89,6 +89,8 @@ headers = [
     "SPF Record", "Valid SPF", "SPF Results",
     "DMARC Record", "Valid DMARC", "DMARC Results",
     "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain",
-    "DMARC Results on Base Domain", "DMARC Policy",
+    "DMARC Results on Base Domain", "DMARC Policy", "DMARC Policy Percentage",
+    "DMARC Aggregate Report URIs", "DMARC Forensic Report URIs",
+    "DMARC Has Aggregate Report URI", "DMARC Has Forensic Report URI",
     "Syntax Errors", "Debug Info"
 ]
