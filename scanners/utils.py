@@ -346,6 +346,17 @@ def domain_uses_www(domain):
     )
 
 
+def domain_mail_servers_that_support_starttls(domain):
+    retVal = []
+    data = data_for(domain, 'trustymail')
+    if data:
+        starttls_results = data.get('Domain Supports STARTTLS Results')
+        if starttls_results:
+            retVal = starttls_results.split(', ')
+
+    return retVal
+
+
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it's not live.
 # Useful for skipping scans on non-live domains.

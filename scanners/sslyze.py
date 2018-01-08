@@ -20,6 +20,7 @@ from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
 import idna
 import cryptography
@@ -37,82 +38,121 @@ lambda_support = True
 
 # If we have pshtt data, use it to skip some domains, and to adjust
 # scan hostnames to canonical URLs where we can.
+#
+# If we have trustymail data, use it to identify any mail servers that
+# support STARTTLS so we can scan them.
 def init_domain(domain, environment, options):
+    hosts_to_scan = []
+
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
     if utils.domain_doesnt_support_https(domain):
-        logging.warn("\tSkipping, HTTPS not supported.")
-        return False
-
-    # If we have pshtt data and it says canonical endpoint uses www
-    # and the given domain is bare, add www.
-    if utils.domain_uses_www(domain):
-        hostname = "www.%s" % domain
+        logging.warn('\tHTTPS not supported for {}'.format(domain))
     else:
-        hostname = domain
+        # If we have pshtt data and it says canonical endpoint uses
+        # www and the given domain is bare, add www.
+        if utils.domain_uses_www(domain):
+            hostname = "www.%s" % domain
+        else:
+            hostname = domain
 
-    return {
-        'hostname': hostname
-    }
+        hosts_to_scan.append({
+            'hostname': hostname,
+            'port': 443,
+            'starttls_smtp': False
+        })
+
+    # If we have trustymail data, see if there are any mail servers
+    # that support STARTTLS that we should scan
+    mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain)
+    for mail_server in mail_servers_to_test:
+        hostname_and_port = mail_server.split(':')
+        hosts_to_scan.append({
+            'hostname': hostname_and_port[0],
+            'port': hostname_and_port[1],
+            'starttls_smtp': True
+        })
+
+    if not hosts_to_scan:
+        logging.warn('\tNo hosts to scan for {}'.format(domain))
+
+    return {'hosts_to_scan': hosts_to_scan}
 
 
 # Run sslyze on the given domain.
 def scan(domain, environment, options):
-    # Allow hostname to be adjusted by init_domain.
-    hostname = environment.get("hostname", domain)
-
-    data = {
-        'hostname': hostname,
-        'protocols': {},
-        'config': {},
-        'certs': {},
-        'errors': []
+    # Allow hostnames to be adjusted by init_domain
+    default_host = {
+        'hostname': domain,
+        'port': 443,
+        'starttls_smtp': False
     }
 
-    # Run the SSLyze scan on the given hostname.
-    response = run_sslyze(data, environment, options)
+    retVal = []
+    for host_to_scan in environment.get('hosts_to_scan', [default_host]):
 
-    # Error condition.
-    if response is None:
-        error = "No valid target for scanning, couldn't connect."
-        logging.warn(error)
-        data['errors'].append(error)
+        data = {
+            'hostname': host_to_scan.get('hostname'),
+            'port': host_to_scan.get('port'),
+            'starttls_smtp': host_to_scan.get('starttls_smtp'),
+            'protocols': {},
+            'config': {},
+            'certs': {},
+            'errors': []
+        }
 
-    # Join all errors into a string before returning.
-    data['errors'] = ' '.join(data['errors'])
+        # Run the SSLyze scan on the given hostname.
+        response = run_sslyze(data, environment, options)
 
-    return data
+        # Error condition.
+        if response is None:
+            error = "No valid target for scanning, couldn't connect."
+            logging.warn(error)
+            data['errors'].append(error)
+
+        # Join all errors into a string before returning.
+        data['errors'] = ' '.join(data['errors'])
+
+        retVal.append(data)
+
+    return retVal
 
 
 # Given a response dict, turn it into CSV rows.
 def to_rows(data):
-    row = [
-        data['hostname'],
+    retVal = []
+    for row in data:
+        retVal.append([
+            row['hostname'],
+            row['port'],
+            row['starttls_smtp'],
 
-        data['protocols'].get('sslv2'), data['protocols'].get('sslv3'),
-        data['protocols'].get('tlsv1.0'), data['protocols'].get('tlsv1.1'),
-        data['protocols'].get('tlsv1.2'),
+            row['protocols'].get('sslv2'), row['protocols'].get('sslv3'),
+            row['protocols'].get('tlsv1.0'), row['protocols'].get('tlsv1.1'),
+            row['protocols'].get('tlsv1.2'),
 
-        data['config'].get('any_dhe'), data['config'].get('all_dhe'),
-        data['config'].get('weakest_dh'),
-        data['config'].get('any_rc4'), data['config'].get('all_rc4'),
-        data['config'].get('any_3des'),
+            row['config'].get('any_dhe'), row['config'].get('all_dhe'),
+            row['config'].get('weakest_dh'),
+            row['config'].get('any_rc4'), row['config'].get('all_rc4'),
+            row['config'].get('any_3des'),
 
-        data['certs'].get('key_type'), data['certs'].get('key_length'),
-        data['certs'].get('leaf_signature'),
-        data['certs'].get('any_sha1_served'),
-        data['certs'].get('any_sha1_constructed'),
-        data['certs'].get('not_before'), data['certs'].get('not_after'),
-        data['certs'].get('served_issuer'), data['certs'].get('constructed_issuer'),
+            row['certs'].get('key_type'), row['certs'].get('key_length'),
+            row['certs'].get('leaf_signature'),
+            row['certs'].get('any_sha1_served'),
+            row['certs'].get('any_sha1_constructed'),
+            row['certs'].get('not_before'), row['certs'].get('not_after'),
+            row['certs'].get('served_issuer'), row['certs'].get('constructed_issuer'),
 
-        data.get('errors')
-    ]
+            row.get('errors')
+        ])
 
-    return [row]
+    return retVal
 
 
 headers = [
     "Scanned Hostname",
+    "Scanned Port",
+    "STARTTLS SMTP",
     "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
 
     "Any Forward Secrecy", "All Forward Secrecy",
@@ -137,8 +177,6 @@ headers = [
 # the Python cryptography module.
 
 def run_sslyze(data, environment, options):
-    hostname = data['hostname']
-
     # Each sslyze worker can use a sync or parallel mode.
     #
     # SynchronousScanner can show memory leaks when parsing certs,
@@ -154,7 +192,7 @@ def run_sslyze(data, environment, options):
         sync = options.get("sslyze-serial", True)
 
     # Initialize either a synchronous or concurrent scanner.
-    server_info, scanner = init_sslyze(hostname, options, sync=sync)
+    server_info, scanner = init_sslyze(data['hostname'], data['port'], data['starttls_smtp'], options, sync=sync)
 
     if server_info is None:
         data['errors'].append("Connectivity not established.")
@@ -330,13 +368,17 @@ def supported_protocol(result):
 
 
 # SSlyze initialization boilerplate
-def init_sslyze(hostname, options, sync=False):
+def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
     global network_timeout
 
     network_timeout = int(options.get("network_timeout", network_timeout))
 
+    tls_wrapped_protocol = TlsWrappedProtocolEnum.PLAIN_TLS
+    if starttls_smtp:
+        tls_wrapped_protocol = TlsWrappedProtocolEnum.STARTTLS_SMTP
+
     try:
-        server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=443)
+        server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
     except sslyze.server_connectivity.ServerConnectivityError as error:
         logging.warn("\tServer connectivity not established during initialization.")
         return None, None
