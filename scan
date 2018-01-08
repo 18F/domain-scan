@@ -373,7 +373,15 @@ def perform_scan(params):
 # Let all errors bubble up to perform_scan.
 def perform_local_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting local scan...")
-    return scanner.scan(domain, environment, options)
+    response = scanner.scan(domain, environment, options)
+
+    # Serialize and re-parse data as JSON, to normalize dates
+    # using explicit formatting regardless of local Python environment.
+    #
+    # This is also done for Lambda scans, but performed server-side
+    # by the Lambda handler so that it's done before Amazon's own
+    # JSON serialization is used for data transport to the client.
+    return utils.from_json(utils.json_for(response))
 
 
 ###

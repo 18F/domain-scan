@@ -46,7 +46,7 @@ def handler(event, context):
     }
 
     # Serialize and re-parse the JSON, so that we run our own
-    # date transform functions in one place, using the same function
-    # that runs locally.
+    # date transform functions in one place, before Amazon's built-in
+    # JSON serialization prepares the data for transport.
     return utils.from_json(utils.json_for(response))
 
