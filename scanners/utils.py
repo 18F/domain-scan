@@ -280,9 +280,9 @@ def load_suffix_list():
 
     if os.path.exists(cached_psl):
         logging.debug("Using cached Public Suffix List...")
-        psl_file = codecs.open(cached_psl, encoding='utf-8')
-        suffixes = publicsuffix.PublicSuffixList(psl_file)
-        content = psl_file.readlines()
+        with codecs.open(cached_psl, encoding='utf-8') as psl_file:
+            suffixes = publicsuffix.PublicSuffixList(psl_file)
+            content = psl_file.readlines()
     else:
         # File does not exist, download current list and cache it at given location.
         logging.debug("Downloading the Public Suffix List...")
