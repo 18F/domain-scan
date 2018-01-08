@@ -166,7 +166,7 @@ Or gather hostnames from multiple sources separated by commas:
 
 Right now there's one specific source (Censys.io), and then a general way of sourcing URLs or files by whatever name is convenient.
 
-**Censys.io** - The `censys` gatherer uses the [Censys.io API](https://censys.io/api), which has hostnames gathered from observed certificates. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs. Use `--export` to use the [Censys.io Export API](https://censys.io/api/v1/docs/export), which is faster and more complete but requires researcher credentials.
+**Censys.io** - The `censys` gatherer uses data from [Censys.io](https://censys.io), which has hostnames gathered from observed certificates, through the Google BigQuery API. Censys provides certificates observed from a nightly zmap scan of the IPv4 space, as well as certificates published to public Certificate Transparency logs.
 
 **Remote or local CSV** - By using any other name besides `censys`, this will define a gatherer based on an HTTP/HTTPS URL or local path to a CSV. Its only option is a flag named after itself. For example, using a gatherer name of `dap` will mean that domain-scan expects `--dap` to point to the URL or local file.
 
