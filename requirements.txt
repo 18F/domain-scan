@@ -22,7 +22,8 @@ sslyze
 cryptography
 
 # To support censys gatherer:
-censys
+google-cloud-bigquery
+google-auth-oauthlib
 
 # For Lambda support (only used locally):
 boto3
