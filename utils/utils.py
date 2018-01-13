@@ -166,6 +166,7 @@ def try_command(command):
                               stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
+        logging.warn(format_last_exception())
         logging.warn("No command found: %s" % (str(command)))
         return False
 
@@ -178,6 +179,7 @@ def scan(command, env=None, allowed_return_codes=[]):
         if exc.returncode in allowed_return_codes:
             return str(exc.stdout, encoding='UTF-8')
         else:
+            logging.warn(format_last_exception())
             logging.warn("Error running %s." % (str(command)))
             return None
 
