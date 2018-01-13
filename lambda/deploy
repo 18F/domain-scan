@@ -34,8 +34,9 @@ cd build
 # Copy the lambda handler, the scanner itself, and utils.
 cp ../lambda_handler.py .
 mkdir -p scanners
+mkdir -p utils
 cp ../../scanners/$SCANNER_NAME.py scanners/.
-cp ../../scanners/utils.py scanners/.
+cp ../../utils/*.py utils/.
 
 # Copy a (possibly remotely built) locally versioned virtualenv.
 #

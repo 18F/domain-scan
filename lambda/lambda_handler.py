@@ -2,7 +2,7 @@ import importlib
 import sys
 import logging
 
-from scanners import utils
+from utils import utils
 
 # Central handler for all Lambda events.
 def handler(event, context):

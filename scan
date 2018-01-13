@@ -18,7 +18,7 @@ import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
 
-from scanners import utils
+from utils import utils
 
 # basic setup - logs, output dirs
 options = utils.options()

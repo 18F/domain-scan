@@ -1,9 +1,8 @@
-from scanners import utils
 import logging
 import os
-import requests
 
-###
+from utils import utils
+
 # Check whether a domain is present in a CSV, set in --analytics.
 
 
@@ -22,8 +21,7 @@ def init(environment, options):
         analytics_path = os.path.join(utils.cache_dir(), "analytics.csv")
 
         try:
-            response = requests.get(analytics_file)
-            utils.write(response.text, analytics_path)
+            utils.download(analytics_file, analytics_path)
         except:
             no_csv = "--analytics URL not downloaded successfully."
             logging.error(no_csv)
