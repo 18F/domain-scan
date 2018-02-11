@@ -173,14 +173,19 @@ def try_command(command):
 
 def scan(command, env=None, allowed_return_codes=[]):
     try:
-        response = subprocess.check_output(command, shell=False, env=env)
+        response = subprocess.check_output(
+            command,
+            stderr=subprocess.STDOUT,
+            shell=False, env=env
+        )
         return str(response, encoding='UTF-8')
     except subprocess.CalledProcessError as exc:
         if exc.returncode in allowed_return_codes:
             return str(exc.stdout, encoding='UTF-8')
         else:
-            logging.warn(format_last_exception())
             logging.warn("Error running %s." % (str(command)))
+            logging.warn("Error running %s." % (str(exc.output)))
+            logging.warn(format_last_exception())
             return None
 
 # Turn shell on, when shell=False won't work.
