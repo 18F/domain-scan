@@ -4,6 +4,9 @@
 *.out
 *.txt
 
+/utils/headless/node_modules
+/utils/headless/*.png
+
 /cache
 /data
 *.csv
