@@ -30,11 +30,10 @@ from utils.known_services import known_services
 #
 # * [Known Service]: True / False
 
-
-command = os.environ.get("CHROME_PATH", "echo")
-
 default_timeout = 60
 
+# TODO: Move Lambda default to other place.
+command = os.environ.get("CHROMIUM_PATH", "./headless_shell")
 
 # Advertise Lambda support
 lambda_support = True
@@ -51,7 +50,7 @@ def init_domain(domain, environment, options):
         logging.debug("\tSkipping, domain seen as just an external redirector during inspection.")
         return False
 
-    # phantomas needs a URL, not just a domain.
+    # To scan, we need a URL, not just a domain.
     url = None
     if not (domain.startswith('http://') or domain.startswith('https://')):
 
@@ -76,16 +75,21 @@ def scan(domain, environment, options):
     raw = utils.scan(
         [
             command,
+            "--headless",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--single-process",
+            "--dump-dom",
             url
-        ],
-        allowed_return_codes=[252]
+        ]
     )
 
     if not raw:
-        logging.warn("\tError with the phantomas command, skipping.")
+        logging.warn("\tError with the chromium headless command, skipping.")
         return None
 
-    # TODO: this is just 'echo' for now
+    # TODO: real output
+    logging.warn(raw)
     data = raw
 
     return services_for(url, data, domain, options)
@@ -108,7 +112,7 @@ headers = [
 def services_for(url, data, domain, options):
     services = {
         'url': url,
-        'external': []
+        'external': list(known_services.keys())
     }
     return services
 
