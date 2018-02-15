@@ -4,6 +4,8 @@ import codecs
 import re
 from pshtt import pshtt
 
+from scanners import utils
+
 ###
 # Measure a site's HTTP behavior using DHS NCATS' pshtt tool.
 
@@ -41,19 +43,26 @@ def init(environment, options):
     }
 
 
-# To save on bandwidth to Lambda, slice the preload and pending
-# lists down to an array of just the value, if it exists.
-# Override the list in place, which should only modify it per-scan.
+# To save on bandwidth to Lambda, slice the preload and pending lists
+# down to an array of just the domain and its base domain, if they
+# exist.  Override the list in place, which should only modify it
+# per-scan.
 def init_domain(domain, environment, options):
+    base_domain = utils.base_domain_for(domain)
+    
+    preload_list = []
     if domain in environment.get("preload_list", []):
-        environment["preload_list"] = [domain]
-    else:
-        environment["preload_list"] = []
+        preload_list.append(domain)
+    if base_domain != domain and base_domain in environment.get("preload_list", []):
+        preload_list.append(base_domain)
+    environment["preload_list"] = preload_list
 
+    preload_pending = []
     if domain in environment.get("preload_pending", []):
-        environment["preload_pending"] = [domain]
-    else:
-        environment["preload_pending"] = []
+        preload_pending.append(domain)
+    if base_domain != domain and base_domain in environment.get("preload_pending", []):
+        preload_pending.append(base_domain)
+    environment["preload_pending"] = preload_pending
 
     return environment
 
