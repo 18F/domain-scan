@@ -49,7 +49,7 @@ def init(environment, options):
 # per-scan.
 def init_domain(domain, environment, options):
     base_domain = utils.base_domain_for(domain)
-    
+
     preload_list = []
     if domain in environment.get("preload_list", []):
         preload_list.append(domain)
