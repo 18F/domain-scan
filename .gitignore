@@ -4,9 +4,6 @@
 *.out
 *.txt
 
-/utils/headless/node_modules
-/utils/headless/*.png
-
 /cache
 /data
 *.csv
@@ -20,7 +17,7 @@ __pycache__
 /results
 .env
 *.swp
-/node_modules
+node_modules
 .python-version
 .ruby-version
 scripts/pulse-results/*.json
