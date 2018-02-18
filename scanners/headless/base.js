@@ -1,15 +1,25 @@
+#!/usr/bin/env node
+
 const puppeteer = require('puppeteer');
 
 const options = [
+
   // error when launch(); No usable sandbox! Update your kernel
   '--no-sandbox',
+
   // error when launch(); Failed to load libosmesa.so
-  // '--disable-gpu',
+  '--disable-gpu',
+
   // freeze when newPage()
-  // '--single-process'
+  '--single-process'
 ];
 
-exports.handler = ((event, context, callback) => {
+exports.execute = ((event, context, callback) => {
+
+  const domain = event['domain']
+  const url = event.options['url']
+
+  console.log("[" + domain + "] Opening URL: " + url);
 
   (async () => {
     const browser = await puppeteer.launch({
@@ -19,20 +29,14 @@ exports.handler = ((event, context, callback) => {
     });
 
     const page = await browser.newPage();
-    await page.goto('https://example.com');
+    await page.goto(url);
 
-    // Get the "viewport" of the page, as reported by the page.
-    const dimensions = await page.evaluate(() => {
-      return {
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight,
-        deviceScaleFactor: window.devicePixelRatio
-      };
-    });
+    //
+    const body = await page.content();
 
     await browser.close();
 
-    callback(null, dimensions);
+    callback(null, body);
   })();
 
 });

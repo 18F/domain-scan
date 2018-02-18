@@ -8,9 +8,10 @@ from utils.known_services import known_services
 
 # Evaluate third party service usage using Chrome headless.
 #
-# If data exists for a domain from `pshtt`, will:
-# * not run if the domain just redirects externally
-# * start with any detected (internal) redirect URL
+# If data exists for a domain from `pshtt`, it:
+# * will not run if the domain is used only to redirect externally
+# * otherwise, will run using the "canonical" URL.
+#
 #
 # Options:
 #
@@ -32,7 +33,7 @@ from utils.known_services import known_services
 
 default_timeout = 60
 
-# TODO: Move Lambda default to other place.
+# TODO: Move Lambda default (./headless_shell) to other place.
 command = os.environ.get("CHROMIUM_PATH", "./headless_shell")
 
 # Advertise Lambda support
@@ -74,12 +75,7 @@ def scan(domain, environment, options):
 
     raw = utils.scan(
         [
-            command,
-            "--headless",
-            "--disable-gpu",
-            "--no-sandbox",
-            "--single-process",
-            "--dump-dom",
+            "./scanners/headless/third_parties.js",
             url
         ]
     )
