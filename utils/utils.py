@@ -140,6 +140,11 @@ def results_dir():
     return os.path.join(report_dir(), "results")
 
 
+# Read in JSON file of known third party services.
+def known_services():
+    return from_json(read(os.path.join("./utils/known_services.json")))
+
+
 def notify(body):
     try:
         if isinstance(body, Exception):

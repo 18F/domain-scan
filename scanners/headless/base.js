@@ -17,10 +17,6 @@ const chromeOptions = [
 
 var scan = async function (domain, environment, options, scanner, callback) {
 
-  const url = environment['url']
-
-  // console.log("[" + domain + "] Opening URL: " + url);
-
   const browser = await puppeteer.launch({
     headless: true,
     // executablePath: config.executablePath,
@@ -28,16 +24,21 @@ var scan = async function (domain, environment, options, scanner, callback) {
   });
 
   const page = await browser.newPage();
-  await page.goto(url);
+  var data;
 
   // Do the scanner-specific heavy lifting.
-  const data = await scanner.scan(browser, page);
+  try {
+    data = await scanner.scan(domain, environment, options, browser, page);
+  } catch (exc) {
+    callback(exc)
+  }
 
   await browser.close();
 
   // put standard values into the return data
-  data.url = url;
   data.domain = domain;
+  data.environment = environment;
+  data.options = options;
 
   // TODO: error handling
   callback(null, data);
@@ -58,7 +59,10 @@ scan(
   params.domain, params.environment, params.options,
   scanner,
   function(err, data) {
-    if (err) process.exit(1);
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
     console.log(JSON.stringify(data))
   }
 );

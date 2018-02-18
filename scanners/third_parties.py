@@ -3,7 +3,6 @@ import json
 import os
 
 from utils import utils
-from utils.known_services import known_services
 
 # Evaluate third party service usage using Chrome headless.
 #
@@ -73,18 +72,18 @@ def init_domain(domain, environment, options):
 def to_rows(data):
 
     return [[
-        data['url']
+        data['environment']['url'],
+        len(data['external_urls']),
+        data['external_urls']
     ]]
 
 
 # known service names from a standard mapping
-service_names = list(known_services.keys())
+service_names = list(utils.known_services().keys())
 service_names.sort()
 
 headers = [
     'Scanned URL',
-    'Number of External Domains',
     'Number of External URLs',
-    'External Domains',
     'External URLs'
 ] + service_names
