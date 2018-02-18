@@ -85,11 +85,6 @@ def to_rows(data):
         str.join(" | ", data['unknown_services'])
     ]]
 
-
-# known service names from a standard mapping
-# service_names = list(utils.known_services().keys())
-# service_names.sort()
-
 headers = [
     'Scanned URL',
     'Number of External Domains',
