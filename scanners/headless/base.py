@@ -1,4 +1,6 @@
 import logging
+import json
+
 from utils import utils
 
 ###
@@ -22,7 +24,13 @@ def headless_scan(scanner_name, domain, environment, options):
     )
 
     if not raw:
-        logging.warn("\tError calling out to third_parties.js, skipping.")
+        logging.warn("\tError calling out to %s.js, skipping." % scanner_name)
         return None
 
-    return utils.from_json(raw)
+    try:
+        data = utils.from_json(raw)
+    except json.decoder.JSONDecodeError:
+        logging.warn("\tError inside %s.js, skipping. Error below:\n\n%s" % (scanner_name, raw))
+        return None
+
+    return data

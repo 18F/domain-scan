@@ -30,7 +30,8 @@ var scan = async function (domain, environment, options, scanner, callback) {
   try {
     data = await scanner.scan(domain, environment, options, browser, page);
   } catch (exc) {
-    callback(exc)
+    await browser.close();
+    return callback(exc)
   }
 
   await browser.close();
@@ -41,7 +42,7 @@ var scan = async function (domain, environment, options, scanner, callback) {
   data.options = options;
 
   // TODO: error handling
-  callback(null, data);
+  return callback(null, data);
 };
 
 /********************************************************

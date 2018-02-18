@@ -73,8 +73,10 @@ def to_rows(data):
 
     return [[
         data['environment']['url'],
+        len(data['external_domains']),
+        str.join(" | ", data['external_domains']),
         len(data['external_urls']),
-        data['external_urls']
+        str.join(" | ", data['external_urls']),
     ]]
 
 
@@ -84,6 +86,8 @@ service_names.sort()
 
 headers = [
     'Scanned URL',
+    'Number of External Domains',
+    'External Domains',
     'Number of External URLs',
-    'External URLs'
+    'External URLs',
 ] + service_names
