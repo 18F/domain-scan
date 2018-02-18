@@ -36,11 +36,6 @@ var scan = async function (domain, environment, options, scanner, callback) {
 
   await browser.close();
 
-  // put standard values into the return data
-  data.domain = domain;
-  data.environment = environment;
-  data.options = options;
-
   // TODO: error handling
   return callback(null, data);
 };

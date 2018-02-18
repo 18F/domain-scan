@@ -65,6 +65,9 @@ def init_domain(domain, environment, options):
     else:
         url = domain
 
+    # Standardize by ending with a /.
+    url = url + "/"
+
     return {'url': url}
 
 
@@ -72,22 +75,28 @@ def init_domain(domain, environment, options):
 def to_rows(data):
 
     return [[
-        data['environment']['url'],
+        data['url'],
         len(data['external_domains']),
         str.join(" | ", data['external_domains']),
-        len(data['external_urls']),
         str.join(" | ", data['external_urls']),
+        str.join(" | ", data['nearby_domains']),
+        str.join(" | ", data['nearby_urls']),
+        str.join(" | ", data['known_services']),
+        str.join(" | ", data['unknown_services'])
     ]]
 
 
 # known service names from a standard mapping
-service_names = list(utils.known_services().keys())
-service_names.sort()
+# service_names = list(utils.known_services().keys())
+# service_names.sort()
 
 headers = [
     'Scanned URL',
     'Number of External Domains',
     'External Domains',
-    'Number of External URLs',
     'External URLs',
-] + service_names
+    'Nearby Domains',
+    'Nearby URLs',
+    'Known Services',
+    'Unknown Services'
+]

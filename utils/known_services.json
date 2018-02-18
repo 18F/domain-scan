@@ -1,6 +1,6 @@
 {
     "Google Analytics": [
-        "www.google-analytics.com"
+        "google-analytics.com"
     ],
 
     "Google Fonts": [
@@ -11,6 +11,29 @@
     "Google Custom Search Engine": [
         "cse.google.com"
     ],
+
+    "Google Maps": [
+        "maps.googleapis.com"
+    ],
+
+    "Google (Miscellaneous)": [
+        "csi.gstatic.com"
+    ],
+
+    "Google Tag Manager": [
+        "googletagmanager.com"
+    ],
+
+    "YouTube": [
+        "youtube.com",
+        "www.youtube.com",
+        "s.ytimg.com"
+    ],
+
+    "Chartbeat": [
+        "static.chartbeat.com"
+    ],
+
     "DoubleClick": [
         "stats.g.doubleclick.net"
     ],
@@ -28,14 +51,11 @@
     "GitHub": [
         "raw.githubusercontent.com"
     ],
-    "Google CDN": [
-        "ajax.googleapis.com"
-    ],
-    "Bootstrap CDN": [
-        "bootstrapcdn.com"
+
+    "GovDelivery": [
+        "content.govdelivery.com"
     ],
 
-    "GovDelivery": ["content.govdelivery.com"],
     "Facebook": [
         "facebook.net",
         "facebook.com",
@@ -65,5 +85,26 @@
     ],
     "Amazon S3": [
         "s3.amazonaws.com"
+    ],
+
+    "Google CDN": [
+        "ajax.googleapis.com"
+    ],
+
+    "Bootstrap CDN": [
+        "bootstrapcdn.com"
+    ],
+
+    "SiteImprove": [
+        "siteimproveanalytics.com",
+        "us4.siteimprove.com"
+    ],
+
+    "Qualtrics": [
+        "qualtrics.com"
+    ],
+
+    "CFI Group": [
+        "cfigroup.com"
     ]
 }
