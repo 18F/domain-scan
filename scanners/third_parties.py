@@ -14,11 +14,12 @@ from utils.known_services import known_services
 #
 # Options:
 #
+# TODO:
 # * --timeout: Override default timeout of 60s.
+#
+# TODO:
 # * --affiliated: A suffix (e.g. ".gov", "twimg.com") known to
 #       be affiliated with the scanned domains.
-#
-# Looks for known, affiliated, and unknown services.
 
 # Categories/Fields:
 #
@@ -30,13 +31,16 @@ from utils.known_services import known_services
 #
 # * [Known Service]: True / False
 
-# Advertise Lambda support
-lambda_support = True
+# TODO: advertise Lambda support
+# lambda_support = True
 
-# Advertise use of headless Chrome
-headless = True
+# Signal that this is a JS-based scan using headless Chrome.
+# The scan method will be defined in third_parties.js instead.
+scan_headless = True
 
 
+# Use pshtt data if we have it, to either skip redirect/inactive
+# domains, or to start with the canonical URL right away.
 def init_domain(domain, environment, options):
     # If we have data from pshtt, skip if it's not a live domain.
     if utils.domain_not_live(domain):

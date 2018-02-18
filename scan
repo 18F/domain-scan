@@ -376,7 +376,7 @@ def perform_local_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting local scan...")
 
     # Special Python->JS shim for local use of headless Chrome.
-    if hasattr(scanner, "headless") and (scanner.headless is True):
+    if hasattr(scanner, "scan_headless") and (scanner.scan_headless is True):
         response = headless_scan(handles[scanner]['name'], domain, environment, options)
 
     # Otherwise, just call out and expect the scan to run in Python.
