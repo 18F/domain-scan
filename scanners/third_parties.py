@@ -73,7 +73,8 @@ def scan(domain, environment, options):
     # for scanners where its `headless` attribute is True?
     raw = utils.scan(
         [
-            "./scanners/headless/third_parties.js",
+            "./scanners/headless/base.js",
+            "third_parties",
             utils.json_for({
                 'domain': domain,
                 'environment': environment,
@@ -81,9 +82,6 @@ def scan(domain, environment, options):
             })
         ]
     )
-
-    logging.warn(raw)
-    return None
 
     if not raw:
         logging.warn("\tError calling out to third_parties.js, skipping.")
@@ -95,20 +93,10 @@ def scan(domain, environment, options):
 # Gets the return value of scan(), convert to a CSV row.
 def to_rows(data):
 
-    # services_for(url, data, domain, options)
-
     return [[
-        services['url'], len(services['external'])
+        data['url']
     ]]
 
-
-# Given a response from the script we gave to Chrome headless,
-def services_for(url, data, domain, options):
-    services = {
-        'url': url,
-        'external': list(known_services.keys())
-    }
-    return services
 
 # known service names from a standard mapping
 service_names = list(known_services.keys())
