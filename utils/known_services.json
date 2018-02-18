@@ -1,12 +1,4 @@
-import re
-
-######################################
-#
-# Bible of known third party services.
-#
-######################################
-
-known_services = {
+{
     'Google Analytics': ['www.google-analytics.com'],
     'Google Fonts': [
         'fonts.googleapis.com',
@@ -22,35 +14,35 @@ known_services = {
     'GitHub': ['raw.githubusercontent.com'],
     'Google CDN': ['ajax.googleapis.com'],
     'Bootstrap CDN': [
-        re.compile('bootstrapcdn\.com$'),
+        'bootstrapcdn.com',
     ],
 
     'GovDelivery': ['content.govdelivery.com'],
     'Facebook': [
-        re.compile('facebook\.net$'),
-        re.compile('facebook\.com$'),
-        re.compile('fbcdn\.net$'),
+        'facebook.net',
+        'facebook.com',
+        'fbcdn.net',
     ],
     'Twitter': [
-        re.compile('twitter\.com$'),
+        'twitter.com',
     ],
     'MixPanel': [
-        re.compile('mixpanel\.com$'),
-        re.compile('mxpnl\.com$'),
+        'mixpanel.com',
+        'mxpnl.com',
     ],
 
     'Brightcove': [
-        re.compile('brightcove\.com$'),
+        'brightcove.com',
     ],
     'AddThis': [
-        re.compile('addthis\.com$'),
-        re.compile('addthisedge\.com$'),
+        'addthis.com',
+        'addthisedge.com',
     ],
     'LinkedIn': [
-        re.compile('linkedin\.com$'),
+        'linkedin.com',
     ],
     'Pinterest': [
-        re.compile('pinterest\.com$'),
+        'pinterest.com',
     ],
-    'Amazon S3': ['s3.amazonaws.com'],
+    'Amazon S3': ['s3.amazonaws.com']
 }
