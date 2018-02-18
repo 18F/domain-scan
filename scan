@@ -18,6 +18,7 @@ import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
 
+from scanners.headless.base import headless_scan
 from utils import utils
 
 # basic setup - logs, output dirs
@@ -373,7 +374,14 @@ def perform_scan(params):
 # Let all errors bubble up to perform_scan.
 def perform_local_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting local scan...")
-    response = scanner.scan(domain, environment, options)
+
+    # Special Python->JS shim for local use of headless Chrome.
+    if hasattr(scanner, "headless") and (scanner.headless is True):
+        response = headless_scan(handles[scanner]['name'], domain, environment, options)
+
+    # Otherwise, just call out and expect the scan to run in Python.
+    else:
+        response = scanner.scan(domain, environment, options)
 
     # Serialize and re-parse data as JSON, to normalize dates
     # using explicit formatting regardless of local Python environment.

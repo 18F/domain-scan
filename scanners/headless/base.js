@@ -48,7 +48,7 @@ var scan = async function (domain, environment, options, scanner, callback) {
 *********************************************************/
 
 // the first argument passed in is the name of the scanner
-const scanner = require("./" + process.argv[2]);
+const scanner = require("../" + process.argv[2]);
 
 // the second argument passed is JSON-serialized data
 const params = JSON.parse(process.argv[3]);

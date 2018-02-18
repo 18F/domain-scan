@@ -1,7 +1,6 @@
 import logging
 import json
 import os
-import re
 
 from utils import utils
 from utils.known_services import known_services
@@ -64,30 +63,6 @@ def init_domain(domain, environment, options):
         url = domain
 
     return {'url': url}
-
-
-# Pass-through to the local JS handler.
-def scan(domain, environment, options):
-
-    # TODO: move this into the central scan orchestrator
-    # for scanners where its `headless` attribute is True?
-    raw = utils.scan(
-        [
-            "./scanners/headless/base.js",
-            "third_parties",
-            utils.json_for({
-                'domain': domain,
-                'environment': environment,
-                'options': options
-            })
-        ]
-    )
-
-    if not raw:
-        logging.warn("\tError calling out to third_parties.js, skipping.")
-        return None
-
-    return utils.from_json(raw)
 
 
 # Gets the return value of scan(), convert to a CSV row.
