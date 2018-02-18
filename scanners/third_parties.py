@@ -31,13 +31,11 @@ from utils.known_services import known_services
 #
 # * [Known Service]: True / False
 
-default_timeout = 60
-
-# TODO: Move Lambda default (./headless_shell) to other place.
-command = os.environ.get("CHROMIUM_PATH", "./headless_shell")
-
 # Advertise Lambda support
 lambda_support = True
+
+# Advertise use of headless Chrome
+headless = True
 
 
 def init_domain(domain, environment, options):
@@ -68,40 +66,40 @@ def init_domain(domain, environment, options):
     return {'url': url}
 
 
+# Pass-through to the local JS handler.
 def scan(domain, environment, options):
-    timeout = int(options.get("timeout", default_timeout))
 
-    url = environment["url"]
-
+    # TODO: move this into the central scan orchestrator
+    # for scanners where its `headless` attribute is True?
     raw = utils.scan(
         [
             "./scanners/headless/third_parties.js",
-            url
+            utils.json_for({
+                'domain': domain,
+                'environment': environment,
+                'options': options
+            })
         ]
     )
 
+    logging.warn(raw)
+    return None
+
     if not raw:
-        logging.warn("\tError with the chromium headless command, skipping.")
+        logging.warn("\tError calling out to third_parties.js, skipping.")
         return None
 
-    # TODO: real output
-    logging.warn(raw)
-    data = raw
-
-    return services_for(url, data, domain, options)
+    return utils.from_json(raw)
 
 
 # Gets the return value of scan(), convert to a CSV row.
-def to_rows(services):
+def to_rows(data):
+
+    # services_for(url, data, domain, options)
+
     return [[
         services['url'], len(services['external'])
     ]]
-
-
-headers = [
-    'Scanned URL',
-    'Number of External Domains'
-]
 
 
 # Given a response from the script we gave to Chrome headless,
@@ -112,3 +110,14 @@ def services_for(url, data, domain, options):
     }
     return services
 
+# known service names from a standard mapping
+service_names = list(known_services.keys())
+service_names.sort()
+
+headers = [
+    'Scanned URL',
+    'Number of External Domains',
+    'Number of External URLs',
+    'External Domains',
+    'External URLs'
+] + service_names

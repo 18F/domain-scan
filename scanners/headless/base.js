@@ -2,11 +2,13 @@
 
 const puppeteer = require('puppeteer');
 
-const options = [
+const chromeOptions = [
 
+  // TODO: in Lambda, turn on --no-sandbox
   // error when launch(); No usable sandbox! Update your kernel
   '--no-sandbox',
 
+  // TODO: in Lambda, turn on --disable-gpu
   // error when launch(); Failed to load libosmesa.so
   '--disable-gpu',
 
@@ -14,10 +16,13 @@ const options = [
   '--single-process'
 ];
 
-exports.execute = ((event, context, callback) => {
+// Future Lambda handler.
+exports.handler = ((event, context, callback) => {
+});
 
-  const domain = event['domain']
-  const url = event.options['url']
+exports.execute = ((domain, environment, options, scanner, callback) => {
+
+  const url = environment['url']
 
   console.log("[" + domain + "] Opening URL: " + url);
 
@@ -25,18 +30,18 @@ exports.execute = ((event, context, callback) => {
     const browser = await puppeteer.launch({
       headless: true,
       // executablePath: config.executablePath,
-      args: options
+      args: chromeOptions
     });
 
     const page = await browser.newPage();
     await page.goto(url);
 
-    //
-    const body = await page.content();
+    // Do the scanner-specific heavy lifting.
+    const data = await scanner(browser, page);
 
     await browser.close();
 
-    callback(null, body);
+    callback(null, data);
   })();
 
 });
