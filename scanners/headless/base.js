@@ -1,7 +1,9 @@
 'use strict';
 
 
-var scan = async function (domain, environment, options, browser, scanner, callback) {
+var scan = async function (domain, environment, options, getBrowser, scanner, callback) {
+
+  const browser = await getBrowser();
 
   const page = await browser.newPage();
   var data;

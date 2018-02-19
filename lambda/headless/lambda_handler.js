@@ -16,16 +16,15 @@ exports.handler = (event, context, callback) => {
   var environment = event.environment || {};
 
   // Log all events for debugging purposes.
-  console.log("Starting:")
   console.log(event);
 
   // TODO: error handling around these.
-  base = require("./scanners/headless/base")
-  scanner = require("./scanners/" + name);
+  var base = require("./scanners/headless/base")
+  var scanner = require("./scanners/" + name);
 
   var data = base.scan(
     domain, environment, options,
-    browser, scanner,
+    getBrowser, scanner,
     function(err, data) {
       // We capture start and end times locally as well, but it's
       // useful to know the start/end from Lambda's vantage point.
@@ -99,6 +98,7 @@ const chromeOptions = [
 ];
 
 
+// Async function to load Chrome from the Lambda container.
 var getBrowser = (() => {
   let browser;
   return async () => {
@@ -139,10 +139,13 @@ const isBrowserAvailable = async (browser) => {
 /** local test run **/
 
 if (process.env.TEST_LOCAL) {
+  var domain = process.argv[2];
+
   var event = {
-    domain: "example.com",
+    domain: domain,
+    scanner: "third_parties",
     options: {},
-    environment: {url: "https://example.com/"}
+    environment: {url: "https://" + domain + "/"}
   }
   var context = {}
   var callback = function(err, data) {

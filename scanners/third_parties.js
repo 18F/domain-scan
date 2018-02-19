@@ -1,6 +1,8 @@
-var fs = require('fs');
-var path = require('path');
-const { URL } = require('url');
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const URL = require('url');
 
 // Load in known third party service names.
 const knownPath = path.join(__dirname, '..', 'utils', 'known_services.json');
@@ -44,8 +46,10 @@ module.exports = {
 }
 
 var processUrl = (href, sourceHref, data) => {
-  var url = new URL(href);
-  var source = new URL(sourceHref);
+  var url = URL.parse(href);
+  var source = URL.parse(sourceHref);
+
+  let www_host, root_host;
 
   // Isolate the hostname with or without a www prefix,
   // and treat them effectively as the same hostname.
@@ -57,8 +61,8 @@ var processUrl = (href, sourceHref, data) => {
     root_host = url.hostname
   }
 
-  base_host = baseDomainFor(root_host);
-  source_base = baseDomainFor(source.hostname);
+  var base_host = baseDomainFor(root_host);
+  var source_base = baseDomainFor(source.hostname);
 
   /***
   * There are 4 cases:
@@ -116,9 +120,9 @@ var processUrl = (href, sourceHref, data) => {
   // Check every URL (even internal/nearby/affiliated ones)
   // against the list of known services.
   var known = false;
-  for (name in known_services) {
+  for (var name in known_services) {
     var services = known_services[name];
-    for (service of services) {
+    for (var service of services) {
 
       // Either an exact match, or can share a suffix with a known
       // service-owned hostname.

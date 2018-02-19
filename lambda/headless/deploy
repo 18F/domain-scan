@@ -33,9 +33,9 @@ mkdir -p build/scanners/headless
 mkdir -p build/utils
 
 # Copy & transpile each JS file to Node 6.10-compatible JS.
-./node_modules/.bin/babel lambda_handler.js --out-dir build
-./node_modules/.bin/babel ../../scanners/headless/base.js --out-dir build/scanners/headless
-./node_modules/.bin/babel ../../scanners/$SCANNER_NAME.js --out-dir build/scanners
+../../node_modules/.bin/babel lambda_handler.js --out-file build/lambda_handler.js
+../../node_modules/.bin/babel ../../scanners/headless/base.js --out-file build/scanners/headless/base.js
+../../node_modules/.bin/babel ../../scanners/$SCANNER_NAME.js --out-file build/scanners/$SCANNER_NAME.js
 
 # Copy in the known services map.
 cp ../../utils/known_services.json build/utils/
@@ -44,14 +44,13 @@ cp ../../utils/known_services.json build/utils/
 cp chrome/headless_shell.tar.gz build
 
 # Install npm dependencies in the build directory.
-cp -r package.json build
+cp -r ../../package.json build
 cd build
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1 npm install --production
 
-# Copy chrome in there.
 echo "Building zip package for $FUNCTION_NAME..."
-cd build
 zip -rq9 $FUNCTION_NAME.zip .
+
 cd ..
 
 # Create the function using the zipped code.
@@ -63,9 +62,9 @@ if [ "$IS_CREATE" == "--create" ]; then
     --zip-file fileb://./build/$FUNCTION_NAME.zip \
     --role $AWS_LAMBDA_ROLE \
     --handler lambda_handler.handler \
-    --runtime node6.10 \
+    --runtime nodejs6.10 \
     --timeout 300 \
-    --memory-size 1536
+    --memory-size 512
 
 # Or, update the function's code with the latest zipped code.
 else
