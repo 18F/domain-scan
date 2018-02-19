@@ -18,7 +18,7 @@ import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
 
-from scanners.headless.base import headless_scan
+from scanners.headless.local_bridge import headless_scan
 from utils import utils
 
 # basic setup - logs, output dirs

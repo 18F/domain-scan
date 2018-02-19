@@ -14,7 +14,7 @@ from utils import utils
 def headless_scan(scanner_name, domain, environment, options):
     raw = utils.scan(
         [
-            "./scanners/headless/base.js",
+            "./scanners/headless/local_bridge.js",
             scanner_name,
             utils.json_for({
                 'domain': domain,
