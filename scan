@@ -439,12 +439,20 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
         response = json.loads(raw)
 
+        # An errorMessage field implies a Lambda-level error.
         if response.get("errorMessage") is None:
             # Payload has some per-task Lambda-specific info.
             meta['lambda'] = {**meta['lambda'], **response['lambda']}
 
-            # Payload has the actual scan response data.
-            data = response['data']
+            if 'data' in response:
+                # Payload has the actual scan response data.
+                data = response['data']
+            else:
+                meta['errors'].append("Response object lacked 'data' field. Raw response: %s" % raw)
+
+            # An error field implies an exception during the scan.
+            if 'error' in response:
+                meta['errors'].append("Error or exception during scan: %s" % response['error'])
 
         else:
             meta['errors'].append("Lambda error: %s" % raw)

@@ -5,7 +5,7 @@
 */
 
 exports.handler = (event, context, callback) => {
-  var start_time = new Date();
+  var start_time = new Date().getTime() / 1000;
 
   // Tell Lambda to shut it down after the callback executes,
   // even if the container still has stuff (e.g. Chrome) running.
@@ -29,8 +29,8 @@ exports.handler = (event, context, callback) => {
     function(err, data) {
       // We capture start and end times locally as well, but it's
       // useful to know the start/end from Lambda's vantage point.
-      var end_time = new Date();
-      var duration = (end_time - start_time) / 1000;
+      var end_time = new Date().getTime() / 1000;
+      var duration = end_time - start_time;
 
       var response = {
         lambda: {
@@ -41,9 +41,23 @@ exports.handler = (event, context, callback) => {
           start_time: start_time,
           end_time: end_time,
           measured_duration: duration
-        },
-        data: data
+        }
       }
+
+      if (err) {
+        if (err instanceof Error)
+          response.error = err.stack;
+        else
+          response.error = err;
+      }
+
+      if (data === undefined) {
+        response.data = null;
+        if (!err)
+          response.error = "Data came back undefined for some reason.";
+      }
+      else
+        response.data = data;
 
       // TODO: JSON datetime sanitization, like the Python handler does.
       callback(null, response);
@@ -150,9 +164,20 @@ if (process.env.TEST_LOCAL) {
   }
   var context = {}
   var callback = function(err, data) {
-    console.log("Done:");
-    console.log(err);
-    console.log(data);
+    console.log("Done:\n");
+
+    if (err) {
+      console.log("Error:")
+      if (err instanceof Error)
+        console.log(err.stack);
+      else
+        console.log(error);
+    }
+
+    if (data) {
+      console.log("Data:")
+      console.log(data);
+    }
   }
 
   exports.handler(event, context, callback);

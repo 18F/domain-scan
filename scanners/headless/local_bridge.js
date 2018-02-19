@@ -22,6 +22,7 @@ var getBrowser = async () => {
     // TODO: Let executable path be overrideable.
     // executablePath: config.executablePath,
     headless: true,
+    // ignoreHTTPSErrors: true,
     args: [
       '--no-sandbox',
       '--disable-gpu',
