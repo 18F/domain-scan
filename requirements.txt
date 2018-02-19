@@ -3,7 +3,7 @@
 ##########################
 #
 # These are the only dependencies which must get packaged
-# into every Lambda build.
+# into every (Python-based) Lambda container build.
 
 strict-rfc3339
 publicsuffix

@@ -40,6 +40,8 @@ var scan = async function (domain, environment, options, scanner, callback) {
   return callback(null, data);
 };
 
+module.exports = {scan: scan}
+
 /********************************************************
 ** TODO: move this to its own CLI-specific interface file
 *********************************************************/
