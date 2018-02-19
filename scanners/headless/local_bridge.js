@@ -15,15 +15,35 @@ const scanner = require("../" + process.argv[2]);
 // the second argument passed is JSON-serialized data
 const params = JSON.parse(process.argv[3]);
 
-// When executed, run the scan function
-base.scan(
-  params.domain, params.environment, params.options,
-  scanner,
-  function(err, data) {
-    if (err) {
-      console.error(err);
-      process.exit(1);
+var go = async () => {
+
+  // Load the Chrome browser from the local system.
+  const puppeteer = require('puppeteer');
+  const browser = await puppeteer.launch({
+      // TODO: Let executable path be overrideable.
+      // executablePath: config.executablePath,
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-gpu',
+        '--single-process'
+      ]
+    });
+
+  // Execute the scan using the passed-in data, and the
+  // locally launched headless Chrome browser.
+  base.scan(
+    params.domain, params.environment, params.options,
+    browser, scanner,
+    function(err, data) {
+      if (err) {
+        console.error(err);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(data))
     }
-    console.log(JSON.stringify(data))
-  }
-);
+  );
+
+};
+
+go();

@@ -1,26 +1,7 @@
+'use strict';
 
-const puppeteer = require('puppeteer');
 
-const chromeOptions = [
-  // Resolves error:
-  //    error when launch(); No usable sandbox! Update your kernel
-  '--no-sandbox',
-
-  // Resolves error:
-  //    error when launch(); Failed to load libosmesa.so
-  '--disable-gpu',
-
-  // Resolves error: freeze when newPage()
-  '--single-process'
-];
-
-var scan = async function (domain, environment, options, scanner, callback) {
-
-  const browser = await puppeteer.launch({
-    headless: true,
-    // executablePath: config.executablePath,
-    args: chromeOptions
-  });
+var scan = async function (domain, environment, options, browser, scanner, callback) {
 
   const page = await browser.newPage();
   var data;

@@ -20,11 +20,12 @@ exports.handler = (event, context, callback) => {
   console.log(event);
 
   // TODO: error handling around these.
-  // base = require("./scanners/headless/base")
-  // scanner = require("./scanners/" + name);
+  base = require("./scanners/headless/base")
+  scanner = require("./scanners/" + name);
 
-  var data = scan(
-    domain, environment, options, // scanner,
+  var data = base.scan(
+    domain, environment, options,
+    browser, scanner,
     function(err, data) {
       // We capture start and end times locally as well, but it's
       // useful to know the start/end from Lambda's vantage point.
@@ -55,35 +56,6 @@ const puppeteer = require('puppeteer');
 var path = require('path');
 var fs = require('fs');
 var tar = require('tar');
-
-var scan = async function (domain, environment, options, callback) {
-
-  const browser = await getBrowser();
-
-  console.log("getting new page")
-  const page = await browser.newPage();
-  console.log("got new page");
-  var data;
-
-  // Do the scanner-specific heavy lifting.
-  try {
-    // data = await scanner.scan(domain, environment, options, browser, page);
-    var url = environment.url;
-    console.log("going to: " + url)
-    await page.goto(url);
-    console.log("getting content")
-    data = await page.content();
-  } catch (err) {
-    await browser.close();
-    return callback(err)
-  }
-
-  await browser.close();
-
-  // TODO: error handling
-  return callback(null, data);
-};
-
 
 const setupLocalChrome = () => {
   return new Promise((resolve, reject) => {
@@ -168,9 +140,9 @@ const isBrowserAvailable = async (browser) => {
 
 if (process.env.TEST_LOCAL) {
   var event = {
-    domain: "konklone.com",
+    domain: "example.com",
     options: {},
-    environment: {url: "https://konklone.com/"}
+    environment: {url: "https://example.com/"}
   }
   var context = {}
   var callback = function(err, data) {

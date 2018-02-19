@@ -1,12 +1,78 @@
-# aws lambda create-function \
-#     --function-name headless-test \
-#     --zip-file fileb://./headless-test.zip \
-#     --role $AWS_LAMBDA_ROLE \
-#     --handler lambda_handler.handler \
-#     --runtime nodejs6.10 \
-#     --timeout 300 \
-#     --memory-size 1536
+#!/bin/bash
 
-aws lambda update-function-code \
-    --function-name headless-test \
-    --zip-file fileb://./headless-test.zip \
+## Usage (from project root):
+#
+# ./lambda/headless/deploy [scanner] [--create]
+#
+# The --create flag will create a new function. Otherwise,
+# the function is assumed to exist and will be updated in place.
+#
+# Examples:
+#   ./lambda/deploy/headless third_parties --create
+#   ./lambda/deploy/headless third_parties
+
+SCANNER_NAME=$1
+FUNCTION_NAME="task_$SCANNER_NAME"
+
+IS_CREATE=$2
+
+if [ -z "$1" ]; then
+  echo "ERROR: A scanner name is required."
+fi
+
+echo "Building $FUNCTION_NAME from $SCANNER_NAME..."
+
+# Go into the lambda/headless dir
+cd lambda/headless
+
+# From the lambda dir - use the build/ dir to assemble a zip
+# and "publish" it back up to the lambda dir.
+rm -r build
+mkdir -p build
+mkdir -p build/scanners/headless
+mkdir -p build/utils
+
+# Copy & transpile each JS file to Node 6.10-compatible JS.
+./node_modules/.bin/babel lambda_handler.js --out-dir build
+./node_modules/.bin/babel ../../scanners/headless/base.js --out-dir build/scanners/headless
+./node_modules/.bin/babel ../../scanners/$SCANNER_NAME.js --out-dir build/scanners
+
+# Copy in the known services map.
+cp ../../utils/known_services.json build/utils/
+
+# Copy Chrome in.
+cp chrome/headless_shell.tar.gz build
+
+# Install npm dependencies in the build directory.
+cp -r package.json build
+cd build
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1 npm install --production
+
+# Copy chrome in there.
+echo "Building zip package for $FUNCTION_NAME..."
+cd build
+zip -rq9 $FUNCTION_NAME.zip .
+cd ..
+
+# Create the function using the zipped code.
+if [ "$IS_CREATE" == "--create" ]; then
+
+  echo "Creating Lambda function $FUNCTION_NAME..."
+  aws lambda create-function \
+    --function-name $FUNCTION_NAME \
+    --zip-file fileb://./build/$FUNCTION_NAME.zip \
+    --role $AWS_LAMBDA_ROLE \
+    --handler lambda_handler.handler \
+    --runtime node6.10 \
+    --timeout 300 \
+    --memory-size 1536
+
+# Or, update the function's code with the latest zipped code.
+else
+
+  echo "Updating Lambda code file for $FUNCTION_NAME..."
+  aws lambda update-function-code \
+    --function-name $FUNCTION_NAME \
+    --zip-file fileb://./build/$FUNCTION_NAME.zip
+
+fi
