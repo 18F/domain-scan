@@ -10,6 +10,7 @@ from utils import utils
 # Resulting data is serialized and returned via STDOUT.
 ###
 
+
 def headless_scan(scanner_name, domain, environment, options):
     raw = utils.scan(
         [

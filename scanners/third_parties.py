@@ -1,6 +1,4 @@
 import logging
-import json
-import os
 
 from utils import utils
 
@@ -84,6 +82,7 @@ def to_rows(data):
         str.join(" | ", data['known_services']),
         str.join(" | ", data['unknown_services'])
     ]]
+
 
 headers = [
     'Scanned URL',
