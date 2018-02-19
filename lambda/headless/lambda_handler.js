@@ -128,6 +128,7 @@ var getBrowser = (() => {
         headless: true,
         executablePath: executablePath,
         args: chromeOptions,
+        ignoreHTTPSErrors: true,
 
         // puppeteer 1.1.0 broke dumpio. Should be fixed soon.
         // dumpio: true
