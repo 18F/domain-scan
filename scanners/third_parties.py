@@ -3,33 +3,9 @@ import logging
 from utils import utils
 
 # Evaluate third party service usage using Chrome headless.
-#
-# If data exists for a domain from `pshtt`, it:
-# * will not run if the domain is used only to redirect externally
-# * otherwise, will run using the "canonical" URL.
-#
-#
-# Options:
-#
-# TODO:
-# * --timeout: Override default timeout of 60s.
-#
-# TODO:
-# * --affiliated: A suffix (e.g. ".gov", "twimg.com") known to
-#       be affiliated with the scanned domains.
 
-# Categories/Fields:
-#
-# * All external domains: All unique external domains that get pinged.
-# * All subdomains: All unique subdomains that get pinged.
-#
-# * Affiliated domains: Service domains known to be affiliated.
-# * Unknown domains: Any other external service domains.
-#
-# * [Known Service]: True / False
-
-# TODO: advertise Lambda support
-# lambda_support = True
+# Can also be run in Lambda.
+lambda_support = True
 
 # Signal that this is a JS-based scan using headless Chrome.
 # The scan method will be defined in third_parties.js instead.

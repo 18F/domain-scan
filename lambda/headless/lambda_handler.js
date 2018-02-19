@@ -1,14 +1,15 @@
+'use strict';
 
 /**
 * Node-based Lambda handler for headless browser scan functions.
 */
 
 exports.handler = (event, context, callback) => {
+  var start_time = new Date();
+
   // Tell Lambda to shut it down after the callback executes,
   // even if the container still has stuff (e.g. Chrome) running.
   context.callbackWaitsForEmptyEventLoop = false;
-
-  // start_time = new Date();
 
   var domain = event.domain;
   var options = event.options || {};
@@ -28,24 +29,24 @@ exports.handler = (event, context, callback) => {
     function(err, data) {
       // We capture start and end times locally as well, but it's
       // useful to know the start/end from Lambda's vantage point.
-      // end_time = new Date()
-      // duration = end_time - start_time
+      var end_time = new Date();
+      var duration = (end_time - start_time) / 1000;
 
-      // response = {
-      //   lambda: {
-      //     log_group_name: context.log_group_name,
-      //     log_stream_name: context.log_stream_name,
-      //     request_id: context.aws_request_id,
-      //     memory_limit: context.memory_limit_in_mb,
-      //     // start_time: start_time,
-      //     // end_time: end_time,
-      //     // measured_duration: duration
-      //   },
-      //   data: data
-      // }
+      var response = {
+        lambda: {
+          log_group_name: context.logGroupName,
+          log_stream_name: context.logStreamName,
+          request_id: context.awsRequestId,
+          memory_limit: context.memoryLimitInMB,
+          start_time: start_time,
+          end_time: end_time,
+          measured_duration: duration
+        },
+        data: data
+      }
 
       // TODO: JSON datetime sanitization, like the Python handler does.
-      callback(null, data);
+      callback(null, response);
     }
   );
 };
