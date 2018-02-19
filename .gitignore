@@ -4,6 +4,10 @@
 *.out
 *.txt
 
+dist
+package-lock.json
+node_modules
+
 /cache
 /data
 *.csv
@@ -17,7 +21,6 @@ __pycache__
 /results
 .env
 *.swp
-node_modules
 .python-version
 .ruby-version
 scripts/pulse-results/*.json

@@ -7,6 +7,6 @@
 #     --timeout 300 \
 #     --memory-size 1536
 
-aws lambda update-function \
+aws lambda update-function-code \
     --function-name puppeteer-starter-kit \
     --zip-file fileb://./envs/puppeteer-starter-kit.zip \
