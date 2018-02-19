@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.a11y.process_a11y import A11yProcessor
+from utils.a11y.process_a11y import A11yProcessor
 
 
 class ProcessA11yTestCase(unittest.TestCase):

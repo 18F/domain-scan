@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from statistics import mean
 
-from scanners.utils import mkdir_p, results_dir
+from utils.utils import mkdir_p, results_dir
 
 
 class A11yProcessor(object):
