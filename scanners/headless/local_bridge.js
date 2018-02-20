@@ -13,8 +13,23 @@ var base = require("./base")
 // the first argument passed in is the name of the scanner
 const scanner = require("../" + process.argv[2]);
 
-// the second argument passed is JSON-serialized data
-const params = JSON.parse(process.argv[3]);
+// the second argument passed is (ordinarily) JSON-serialized data
+var params;
+
+// Hook to allow slightly easier debugging.
+// TEST_LOCAL=1 ./scanners/headless/local_bridge.js third_parties example.com
+if (process.env.TEST_LOCAL) {
+  domain = process.argv[3];
+  params = {
+    domain: domain,
+    options: {},
+    environment: {url: "https://" + domain + "/"}
+  }
+}
+
+// Ordinarily, parse in the full params from a JSON-serialized blob.
+else
+  params = JSON.parse(process.argv[3]);
 
 // Async function to load Chrome from the local system.
 var getBrowser = async () => {
