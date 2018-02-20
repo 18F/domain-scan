@@ -8,6 +8,14 @@ const URL = require('url');
 const knownPath = path.join(__dirname, '..', 'utils', 'known_services.json');
 const known_services = JSON.parse(fs.readFileSync(knownPath, 'utf8'));
 
+// TEST_LOCAL will turn on debug output.
+// TODO: Allow --debug to turn on debug output from CLI/Python-land.
+var debug = false;
+if (process.env.TEST_LOCAL) debug = true;
+
+// Default overall timeout, in seconds.
+// TODO: make timeout calculation way more sophisticated. :)
+var default_timeout = 20;
 
 
 // JS entry point for third party scan.
@@ -30,11 +38,23 @@ module.exports = {
 
     // Trap each outgoing HTTP request to examine the URL.
     page.on('request', (request) => {
-      var requested = request.url();
-      processUrl(requested, url, data);
+      processUrl(request.url(), url, data);
     });
 
-    await page.goto(url);
+    // Override puppeteer default of 30, especially since that
+    // causes Lambda execution itself to timeout and halt.
+    page.setDefaultNavigationTimeout(default_timeout * 1000);
+
+    try {
+      await page.goto(url);
+    } catch (exc) {
+      // if it's a timeout, that's okay, send back what we got.
+      if (exc.message.includes("Navigation Timeout Exceeded"))
+        return data;
+
+      // otherwise, re-throw and handle higher up.
+      else throw exc;
+    }
 
     // TODO: make smarter use of timeouts and events to decide 'done'
 
@@ -45,6 +65,8 @@ module.exports = {
 var processUrl = (href, sourceHref, data) => {
   var url = URL.parse(href);
   var source = URL.parse(sourceHref);
+
+  if (debug) console.log("URL: " + href);
 
   // Ignore the original request to the page itself.
   if (href == sourceHref) return;
