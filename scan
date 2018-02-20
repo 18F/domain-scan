@@ -439,8 +439,11 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
         response = json.loads(raw)
 
+        if response is None:
+            meta['errors'].append("Response came back empty. Raw payload response:\n%s\nFull api_response:\n%s" % (raw, api_response))
+
         # An errorMessage field implies a Lambda-level error.
-        if response.get("errorMessage") is None:
+        elif response.get("errorMessage") is None:
             # Payload has some per-task Lambda-specific info.
             meta['lambda'] = {**meta['lambda'], **response['lambda']}
 

@@ -31,10 +31,7 @@ module.exports = {
     // Trap each outgoing HTTP request to examine the URL.
     page.on('request', (request) => {
       var requested = request.url();
-
-      // Ignore the original request to the page itself.
-      if (requested != url)
-        processUrl(requested, url, data);
+      processUrl(requested, url, data);
     });
 
     await page.goto(url);
@@ -48,6 +45,12 @@ module.exports = {
 var processUrl = (href, sourceHref, data) => {
   var url = URL.parse(href);
   var source = URL.parse(sourceHref);
+
+  // Ignore the original request to the page itself.
+  if (href == sourceHref) return;
+
+  // Ignore data: URIs.
+  if (url.protocol == "data:") return;
 
   let www_host, root_host;
 
