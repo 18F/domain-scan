@@ -20,7 +20,7 @@ However, **this dependency compilation work is already done for you** by default
 
 Once you have an AWS account, and permissions to use Lambda, you'll be able to run the commands below and execute scans in Lambda right away.
 
-#### Preparing scanners for use in Lambda
+#### Preparing your environment to use Lambda
 
 To prepare for using domain-scan with Lambda, you will need to:
 
@@ -40,13 +40,29 @@ Once the preparation steps above are done, you will need to run a command to cre
 
 Make sure the ARN for your Lambda execution role is set as the `AWS_LAMBDA_ROLE` environment variable.
 
-Then, from the project root, using `pshtt` as an example:
+For Python-based scanners, then from the project root, using `pshtt` as an example:
 
 ```bash
 ./lambda/deploy pshtt --create
 ```
 
-#### Using scanners in Lambda
+For Node-based scanners, then from the project root, using `third_parties` as an example:
+
+```bash
+./lambda/headless/deploy third_parties --create
+```
+
+#### Marking scanners as usable in Lambda
+
+Scanners must "opt in" to being runnable in Lambda by adding the `lambda_support` variable in its top-level scope, as [documented in the README](#developing-new-scanners).
+
+```python
+lambda_support = True
+```
+
+This allows the use of a mixture of local- and Lambda-based scanners in a single overall scan. For example, if using `--scan=one,two,three --lambda` arguments, and only the `one` scanner has indicated Lambda support, the scan will only attempt to invoke Lambda functions for the `one` scanner.
+
+#### Running scanners in Lambda
 
 Once Lambda functions are created in your AWS account, and your machine has permissions to invoke Lambda functions, all you need to do is add the `--lambda` flag:
 
@@ -74,10 +90,9 @@ If you use the `--meta` flag along with `--lambda`, you will get additional colu
 
 Currently, the only scanners tested for use in Lambda are:
 
-* `pshtt` - Third party data sources, such as the Chrome preload list, will be downloaded at the top of the scan and then trimmed per-domain to avoid excessive network transfer to Lambda and to third party servers.
-* `sslyze` - SSLyze will run in single-process mode inside Lambda, which lacks the `multiprocessing` features used by SSLyze's internal parallelization.
-
-(**Note:** to use `--lambda`, all scanners you use should be Lambda-compatible and have functions created in your AWS account. You can't yet mix locally- and Lambda-executed scanners.)
+* `pshtt` _(Python)_ - Third party data sources, such as the Chrome preload list, will be downloaded at the top of the scan and then trimmed per-domain to avoid excessive network transfer to Lambda and to third party servers.
+* `sslyze` _(Python)_ - SSLyze will run in single-process mode inside Lambda, which lacks the `multiprocessing` features used by SSLyze's internal parallelization.
+* `third_parties` _(Node)_ - Headless Chrome is directly packaged with the Lambda function, based on the version of Chrome packaged in this repository inside `lambda/headless/chrome/`.
 
 #### Developing on Lambda-based scanners
 
@@ -114,7 +129,7 @@ Another area for improvement would be to decouple ourselves further from local (
 Some notes on helpful additions to this system (contributions welcome!):
 
 * Scripts in `lambda/` that can perform other common functions, such as adjusting timeouts.
-* Automatically set/adjust Lambda function timeouts based on metadata managed inside Lambda-compatible scanners, such as a module-level `lambda_timeout` variable.
+* Automatically set/adjust Lambda function timeouts based on metadata managed inside Lambda-compatible scanners, such as a module-level `lambda_timeout` variable. (Or more maintainably, a module-level `lambda` variable with a dict of options, and which itself replaces `lambda_support` as the opt-in signal.)
 * A way to create test data that can be passed into the Lambda handler from the AWS console's `Test` button. An example for the `noop` scanner (a `task_noop` function) would be:
 
 ```json

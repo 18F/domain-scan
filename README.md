@@ -85,14 +85,32 @@ Once configured, scans can be run in Lambda using the `--lambda` flag, like so:
 ./scan example.com --scan=pshtt,sslyze --lambda
 ```
 
-##### Options
+# Using headless Chrome
+
+This tool has some built-in support for instrumenting headless Chrome, both locally and inside of [Amazon Lambda](docs/lambda.md).
+
+Chrome-based scanners use [Puppeteer](https://github.com/GoogleChrome/puppeteer), a Node-based wrapper for headless Chrome that is maintained by the Chrome team. This means that Chrome-based scanners make use of Node, even while domain-scan itself is instrumented in Python. This makes initial setup a little more complicated.
+
+* During **local scans**, Python will shell out to Node from `./scanners/headless/local_bridge.py` by executing `./scanners/headless/local_bridge.js`, which expects the `/usr/bin/env node` to be usable as its executor. The data which is sent into the Node scanner, including original CLI options and `environment` data, is passed as a serialized JSON string as a CLI parameter, and the Node scanner returns data back to Python by emitting JSON over STDOUT.
+
+* During **Lambda scans**, local execution remains exclusively in Python, and Node is never used locally. However, the Lambda function itself is expected to be in the `node6.10` runtime, and uses a special Node-based Lambda handler in `lambda/headless/handler.js` for this purpose. There is a separate `lambda/headless/deploy` script for the building and deployment of Node/Chrome-based Lambda functions.
+
+It is **recommended to use Lambda in production** for Chrome-based scanners -- not only for the increased speed, but because they use a simpler and cleaner method of cross-language communication (the HTTP-based function call to Amazon Lambda itself).
+
+Support for running headless Chrome locally is intended mostly for testing and debugging with fewer moving parts (and without risk of AWS costs). Lambda support is the expected method for production scanning use cases.
+
+See below for [how to structure a Chrome-based scanner](README.md#developing-chrome-scanners).
+
+See [`docs/lambda.md`](`docs/lambda.md`) for how to build and deploy Lambda-based scanners.
+
+### Options
 
 **Scanners:**
 
 * `pshtt` - HTTP/HTTPS/HSTS configuration, using [`pshtt`](https://github.com/dhs-ncats/pshtt).
 * `trustymail` - MX/SPF/STARTTLS/DMARC configuration, using [`trustymail`](https://github.com/dhs-ncats/trustymail).
 * `sslyze` - TLS/SSL configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `third_parties` - What third party web services are in use, using [`phantomas`](https://www.npmjs.com/packages/phantomas), a headless web browser that executes JavaScript and traps outgoing requests.
+* `third_parties` - What third party web services are in use, using [headless Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) to trap outgoing requests. (See documentation for [using](#using-headless-chrome) or [writing](#developing-chrome-scanners) Chrome-based scanners.)
 * `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
 * `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
 
@@ -108,7 +126,7 @@ Once configured, scans can be run in Lambda using the `--lambda` flag, like so:
 * `--suffix` - Add a suffix to all input domains. For example, a `--suffix` of `virginia.gov` will add `.virginia.gov` to the end of all input domains.
 * `--lambda` - Run certain scanners inside Amazon Lambda instead of locally. (See [the Lambda instructions](docs/lambda.md) for how to use this.)
 * `--lambda-profile` - When running Lambda-related commands, use a specified AWS named profile. Credentials/config for this named profile should already be configured separately in the execution environment.
-* `--meta` - Append some additional columns to each row with information about the scan itself. This includes start/end times and durations, as well as any encountered errors. When using `--lambda`, additional Lambda-specific information will be appended.
+* `--meta` - Append some additional columns to each row with information about the scan itself. This includes start/end times and durations, as well as any encountered errors. When also using `--lambda`, additional Lambda-specific information will be appended.
 
 ### Output
 
@@ -266,6 +284,8 @@ Because of `domain-scan`'s caching, all the results of an `pshtt` scan will be s
 
 Scanners are registered by creating a single Python file in the `scanners/` directory, where the file is given the name of the scanner (plus the `.py` extension).
 
+(Scanners that use Chrome are slightly different, require both a Python and JavaScript file, and their differences are [documented below](#developing-chrome-scanners).)
+
 Each scanner should define a few top-level functions and one variable that will be referenced at different points.
 
 For an example of how a scanner works, start with [`scanners/noop.py`](scanners/noop.py). The `noop` scanner is a test scanner that does nothing (no-op), but it implements and documents a scanner's basic Python contract.
@@ -296,7 +316,7 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   The `init_domain` function is **always run locally**.
 
-* `scan(domain, environment, options)` **(Required)**
+* `scan(domain, environment, options)` **(Required, unless using headless Chrome)**
 
   The `scan` function performs the core of the scanning work.
 
@@ -307,6 +327,8 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
   In all cases, cached scan data for the domain _will_ be stored to disk. If a scan was unsuccessful, the cached data will indicate that the scan was unsuccessful. Future scans that rely on cached responses will skip domains for which the cached scan was unsuccessful, and will not execute the `scan` function for those domains.
 
   The `scan` function is **run either locally or in Lambda**. (See [`docs/lambda.md`](docs/lambda.md) for how to execute functions in Lambda.)
+
+  If using headless Chrome, this method is [defined in a corresponding Node file instead](#developing-chrome-scanners), and `scan_headless` must be set to True as described below.
 
 * `to_rows(data)` **(Required)**
 
@@ -320,13 +342,25 @@ Scanners can implement 4 functions (2 required, 2 optional). In order of being c
 
   The `to_rows` function is **always run locally**.
 
-And each scanner must define one top-level variable:
+Scanners can implement a few top-level variables (1 required, others sometimes required):
 
 * `headers` **(Required)**
 
   The `headers` variable is a list of strings to use as column headers in the resulting CSV. These headers must be in the same order as the values in the lists returned by the `to_rows` function.
 
   The `headers` variable is **always referenced locally**.
+
+* `lambda_support` **(Required if using --lambda)**
+
+  Set `lambda_support` to True to have the scanner "opt in" to being runnable in Lambda.
+
+  If this variable is not set, or set to `False`, then using `--lambda` will have no effect on this scanner, and it will always be run locally.
+
+* `scan_headless` **(Required if using headless Chrome)**
+
+  Set `scan_headless` to True to have the scanner indicate that its `scan()` method is defined in a corresponding Node file, rather than in this Python file.
+
+  If this variable is not set, or set to `False`, then the `scan()` method must be defined. See documentation below for details on [developing Chrome scanners](#developing-chrome-scanners.
 
 In all of the above functions that receive it, `environment` is a dict that will contain (at least) a `scan_method` key whose value is either `"local"` or `"lambda"`.
 
@@ -336,6 +370,53 @@ In all of the above functions that receive it, `options` is a dict that contains
 
 For example, if the `./scan` command is run with the flags `--scan=pshtt,sslyze --lambda`, they will translate to an `options` dict that contains (at least) `{"scan": "pshtt,sslyze", "lambda": True}`.
 
+#### Developing Chrome scanners
+
+This tool has some built-in support for [instrumenting headless Chrome](#using-headless-chrome), both locally and inside of [Amazon Lambda](docs/lambda.md).
+
+To make a scanner that uses headless Chrome, create two files:
+
+* A Python file, e.g. `scanners/third_parties.py`, that **does not** have a `scan()` function, but **does** have the standard `init()`, `init_domain()`, `to_rows()` and `headers` values, as described above.
+
+* A Node file, e.g. `scanners/third_parties.js`, that has a scanning function as described below.
+
+The Node file must export the following method as part of its `modules.exports`:
+
+* `scan(domain, environment, options, browser, page)` **(Required)**
+
+  The `domain`, `environment`, and `options` parameters are identical to the Python equivalent. The `environment` dict is affected by the `init()` and `init_domain()` functions in the corresponding Python file for this scanner.
+
+  The `browser` parameter is an instance of Puppeteer's [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/v1.1.0/docs/api.md#class-browser) class. It will already be connected to a running Chromium instance.
+
+  The `page` parameter is an instance of Puppeteer's [`Page`](https://github.com/GoogleChrome/puppeteer/blob/v1.1.0/docs/api.md#class-page) class. It will already have been instantiated through `await browser.newPage()`, but not set to any particular URL.
+
+  Returning data from this function has identical effects to its Python equivalent: the return value is sent into the `to_rows()` Python function, and is cached to disk as JSON, etc.
+
+Below is a simplified example of a `scan()` method. A full scanner will be a bit more complicated -- see [`scanners/third_parties.js`](scanners/third_parties.js) for a real use case.
+
+```javascript
+module.exports = {
+  scan: async (domain, environment, options, browser, page) => {
+
+    // Catch each HTTP request made in the page context.
+    page.on('request', (request) => {
+      // process the request somehow
+    });
+
+    // Navigate to the page
+    try {
+      await page.goto(environment.url);
+    } catch (exc) {
+      // Error handling, including timeout handling.
+    }
+
+  }
+}
+```
+
+Note that the corresponding Python file (e.g. `scanners/third_parties.py`) is still needed, and its `init()` and `init_domain()` functions can affect the `environment` object.
+
+This can be used, for example, to provide a modified starting URL to the Node `scan()` function in the `environment` object, based on the results of previous (Python-based) scanners such as `pshtt`.
 
 ### Public domain
 

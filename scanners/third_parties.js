@@ -1,20 +1,23 @@
 'use strict';
 
+// Load in known third party service names.
 const fs = require('fs');
 const path = require('path');
-const URL = require('url');
-
-// Load in known third party service names.
 const knownPath = path.join(__dirname, '..', 'utils', 'known_services.json');
 const known_services = JSON.parse(fs.readFileSync(knownPath, 'utf8'));
 
+// Used to parse third party hostnames.
+const URL = require('url');
+
 // TEST_LOCAL will turn on debug output.
 // TODO: Allow --debug to turn on debug output from CLI/Python-land.
+// TODO: Move logging functions into base.js where possible.
 var debug = false;
 if (process.env.TEST_LOCAL) debug = true;
 
 // Default overall timeout, in seconds.
 // TODO: make timeout calculation way more sophisticated. :)
+// TODO: Move timeout management into base.js where possible.
 var default_timeout = 20;
 
 
@@ -175,6 +178,7 @@ var processUrl = (href, sourceHref, data) => {
 
 // For now, a naive base domain calculation.
 // TODO: use the Public Suffix List.
+// TODO: may be useful to move to base.js or make a utils.js file.
 var baseDomainFor = (input) => {
   return input.split("\.").slice(-2).join("\.");
 };
