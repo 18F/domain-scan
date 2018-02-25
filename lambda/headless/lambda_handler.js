@@ -83,14 +83,6 @@ const setupLocalChrome = () => {
   });
 };
 
-const debugLog = (log) => {
-  let message = log;
-  if (typeof log === 'function') message = log();
-  Promise.resolve(message).then(
-    (message) => console.log(message)
-  );
-};
-
 const localChromePath = path.join('headless_shell.tar.gz');
 const setupChromePath = path.join(path.sep, 'tmp');
 const executablePath = path.join(
