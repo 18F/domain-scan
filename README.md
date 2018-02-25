@@ -89,6 +89,14 @@ Once configured, scans can be run in Lambda using the `--lambda` flag, like so:
 
 This tool has some built-in support for instrumenting headless Chrome, both locally and inside of [Amazon Lambda](docs/lambda.md).
 
+Install a recent version of Node (using a user-space version manager such as [`nvm`](https://github.com/creationix/nvm) or [`nodeenv`](https://github.com/ekalinin/nodeenv) is recommended).
+
+Then install dependencies:
+
+```bash
+npm install
+```
+
 Chrome-based scanners use [Puppeteer](https://github.com/GoogleChrome/puppeteer), a Node-based wrapper for headless Chrome that is maintained by the Chrome team. This means that Chrome-based scanners make use of Node, even while domain-scan itself is instrumented in Python. This makes initial setup a little more complicated.
 
 * During **local scans**, Python will shell out to Node from `./scanners/headless/local_bridge.py` by executing `./scanners/headless/local_bridge.js`, which expects the `/usr/bin/env node` to be usable as its executor. The data which is sent into the Node scanner, including original CLI options and `environment` data, is passed as a serialized JSON string as a CLI parameter, and the Node scanner returns data back to Python by emitting JSON over STDOUT.
