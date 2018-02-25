@@ -12,7 +12,6 @@
 #   return certificate info. Defaults to true.
 ###
 
-from scanners import utils
 import logging
 
 import sslyze
@@ -27,6 +26,8 @@ import cryptography
 import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
+
+from utils import utils
 
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.

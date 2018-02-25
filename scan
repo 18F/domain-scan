@@ -18,7 +18,8 @@ import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
 
-from scanners import utils
+from scanners.headless.local_bridge import headless_scan
+from utils import utils
 
 # basic setup - logs, output dirs
 options = utils.options()
@@ -373,7 +374,14 @@ def perform_scan(params):
 # Let all errors bubble up to perform_scan.
 def perform_local_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting local scan...")
-    response = scanner.scan(domain, environment, options)
+
+    # Special Python->JS shim for local use of headless Chrome.
+    if hasattr(scanner, "scan_headless") and (scanner.scan_headless is True):
+        response = headless_scan(handles[scanner]['name'], domain, environment, options)
+
+    # Otherwise, just call out and expect the scan to run in Python.
+    else:
+        response = scanner.scan(domain, environment, options)
 
     # Serialize and re-parse data as JSON, to normalize dates
     # using explicit formatting regardless of local Python environment.
@@ -431,12 +439,23 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
         response = json.loads(raw)
 
-        if response.get("errorMessage") is None:
+        if response is None:
+            meta['errors'].append("Response came back empty. Raw payload response:\n%s\nFull api_response:\n%s" % (raw, api_response))
+
+        # An errorMessage field implies a Lambda-level error.
+        elif response.get("errorMessage") is None:
             # Payload has some per-task Lambda-specific info.
             meta['lambda'] = {**meta['lambda'], **response['lambda']}
 
-            # Payload has the actual scan response data.
-            data = response['data']
+            if 'data' in response:
+                # Payload has the actual scan response data.
+                data = response['data']
+            else:
+                meta['errors'].append("Response object lacked 'data' field. Raw response: %s" % raw)
+
+            # An error field implies an exception during the scan.
+            if 'error' in response:
+                meta['errors'].append("Error or exception during scan: %s" % response['error'])
 
         else:
             meta['errors'].append("Lambda error: %s" % raw)

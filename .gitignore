@@ -1,7 +1,12 @@
 /lambda/build
+/lambda/envs
 /lambda/*.txt
 *.out
 *.txt
+
+/lambda/headless/build
+package-lock.json
+node_modules
 
 /cache
 /data
@@ -16,7 +21,6 @@ __pycache__
 /results
 .env
 *.swp
-/node_modules
 .python-version
 .ruby-version
 scripts/pulse-results/*.json

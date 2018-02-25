@@ -2,11 +2,12 @@ import os
 import json
 import csv
 import logging
-from scanners import utils
 
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import google.api_core.exceptions
+
+from utils import utils
 
 # Options:
 #

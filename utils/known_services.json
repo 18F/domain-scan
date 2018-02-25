@@ -1,0 +1,110 @@
+{
+    "Google Analytics": [
+        "google-analytics.com"
+    ],
+
+    "Google Fonts": [
+        "fonts.googleapis.com",
+        "fonts.gstatic.com"
+    ],
+
+    "Google Custom Search Engine": [
+        "cse.google.com"
+    ],
+
+    "Google Maps": [
+        "maps.googleapis.com"
+    ],
+
+    "Google (Miscellaneous)": [
+        "csi.gstatic.com"
+    ],
+
+    "Google Tag Manager": [
+        "googletagmanager.com"
+    ],
+
+    "YouTube": [
+        "youtube.com",
+        "www.youtube.com",
+        "s.ytimg.com"
+    ],
+
+    "Chartbeat": [
+        "static.chartbeat.com"
+    ],
+
+    "DoubleClick": [
+        "stats.g.doubleclick.net"
+    ],
+
+    "Digital Analytics Program": [
+        "dap.digitalgov.gov"
+    ],
+    "DigitalGov Search": [
+        "search.usa.gov"
+    ],
+
+    "RawGit CDN": [
+        "cdn.rawgit.com"
+    ],
+    "GitHub": [
+        "raw.githubusercontent.com"
+    ],
+
+    "GovDelivery": [
+        "content.govdelivery.com"
+    ],
+
+    "Facebook": [
+        "facebook.net",
+        "facebook.com",
+        "fbcdn.net"
+    ],
+    "Twitter": [
+        "twitter.com",
+        "twimg.com"
+    ],
+    "MixPanel": [
+        "mixpanel.com",
+        "mxpnl.com"
+    ],
+
+    "Brightcove": [
+        "brightcove.com"
+    ],
+    "AddThis": [
+        "addthis.com",
+        "addthisedge.com"
+    ],
+    "LinkedIn": [
+        "linkedin.com"
+    ],
+    "Pinterest": [
+        "pinterest.com"
+    ],
+    "Amazon S3": [
+        "s3.amazonaws.com"
+    ],
+
+    "Google CDN": [
+        "ajax.googleapis.com"
+    ],
+
+    "Bootstrap CDN": [
+        "bootstrapcdn.com"
+    ],
+
+    "SiteImprove": [
+        "siteimproveanalytics.com",
+        "us4.siteimprove.com"
+    ],
+
+    "Qualtrics": [
+        "qualtrics.com"
+    ],
+
+    "CFI Group": [
+        "cfigroup.com"
+    ]
+}

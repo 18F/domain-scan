@@ -8,7 +8,8 @@ import csv
 import requests
 import logging
 import importlib
-from scanners import utils
+
+from utils import utils
 
 options = utils.options()
 utils.configure_logging(options)

@@ -4,7 +4,7 @@ import os
 import requests
 import yaml
 
-from scanners import utils
+from utils import utils
 
 
 workers = 3

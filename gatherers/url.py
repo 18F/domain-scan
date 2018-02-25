@@ -1,15 +1,13 @@
-from scanners import utils
 import os
 import requests
 import logging
 
-# url
-#
+from utils import utils
+
 # Gathers hostnames from a CSV at a given URL.
 #
 # --url: The URL to download. Can also be a local path.
 #        Will be parsed as a CSV.
-#
 
 
 def gather(suffixes, options, extra={}):

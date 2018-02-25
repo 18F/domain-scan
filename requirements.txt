@@ -1,29 +1,42 @@
-# Used in local execution and dev.
-ipython
-requests
+##########################
+# Common (Local + Lambda)
+##########################
+#
+# These are the only dependencies which must get packaged
+# into every (Python-based) Lambda container build.
 
-# Use PSL to determine base domains.
+strict-rfc3339
 publicsuffix
 
-# Used by all local and Lambda-based code.
-strict-rfc3339
 
-# To support a11y scanner:
-pyyaml
+#################
+# Common (Local)
+#################
 
-# Ubuntu 14.04 has an old version of six
-six>=1.6
+boto3
+ipython
 
-# To support pshtt scanner (and to stay fresh):
+
+############
+# Scanners
+############
+
+# pshtt
 git+git://github.com/dhs-ncats/pshtt.git#egg=pshtt
 
-# To support sslyze scanner:
+# sslyze
 sslyze
 cryptography
 
-# To support censys gatherer:
+# a11y
+pyyaml
+requests
+
+
+############
+# Gatherers
+############
+
+# censys
 google-cloud-bigquery
 google-auth-oauthlib
-
-# For Lambda support (only used locally):
-boto3
