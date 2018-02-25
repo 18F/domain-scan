@@ -11,7 +11,9 @@ Some scanners can be executed **inside Amazon Lambda** for much higher levels of
 
 Most scanners work by using **specialized third party tools**, such as [`SSLyze`](https://github.com/nabla-c0d3/sslyze) or [`trustymail`](https://github.com/dhs-ncats/trustymail). Each scanner in this repo is meant to add the smallest wrapper possible around the responses returned from these tools.
 
-The point of this project is to **coordinate** and **parallelize** those tools and produce **consistent data output**.
+There is also built-in support for using **headless Chrome** to efficiently measure sophisticated properties of web services. Especially powerful when **combined with Amazon Lambda**.
+
+The point of this project is to **batch, coordinate, and parallelize** those tools and produce **consistent data output**.
 
 Can be used with any domain, or any CSV where domains are the first column, such as the [official .gov domain list](https://github.com/GSA/data/raw/master/dotgov-domains/current-full.csv).
 
