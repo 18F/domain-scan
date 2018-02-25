@@ -1,11 +1,11 @@
 [![Code Climate](https://codeclimate.com/github/18F/domain-scan/badges/gpa.svg)](https://codeclimate.com/github/18F/domain-scan) [![Dependency Status](https://gemnasium.com/badges/github.com/18F/domain-scan.svg)](https://gemnasium.com/github.com/18F/domain-scan)
 
 
-## A domain scanner
+## A simple scanning system for the cloud
 
-A **lightweight scan pipeline** for orchestrating third party tools, at scale and using modern serverless infrastructure.
+A **lightweight scan pipeline** for orchestrating third party tools, at scale and (optionally) using serverless infrastructure.
 
-The point of this project is to make it easy to **coordinate and parallelize** those tools with a **simple scanning interface** that produces **consistent and database-agnostic output**.
+The point of this project is to make it easy to **coordinate and parallelize** third party tools with a **simple scanning interface** that produces **consistent and database-agnostic output**.
 
 Outputs aggregate CSV for humans and machines, and detailed JSON for machines.
 
