@@ -89,7 +89,7 @@ Once configured, scans can be run in Lambda using the `--lambda` flag, like so:
 ./scan example.com --scan=pshtt,sslyze --lambda
 ```
 
-# Using headless Chrome
+### Headless Chrome
 
 This tool has some built-in support for instrumenting headless Chrome, both locally and inside of [Amazon Lambda](docs/lambda.md).
 
@@ -122,7 +122,7 @@ See [`docs/lambda.md`](`docs/lambda.md`) for how to build and deploy Lambda-base
 * `pshtt` - HTTP/HTTPS/HSTS configuration, using [`pshtt`](https://github.com/dhs-ncats/pshtt).
 * `trustymail` - MX/SPF/STARTTLS/DMARC configuration, using [`trustymail`](https://github.com/dhs-ncats/trustymail).
 * `sslyze` - TLS/SSL configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `third_parties` - What third party web services are in use, using [headless Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) to trap outgoing requests. (See documentation for [using](#using-headless-chrome) or [writing](#developing-chrome-scanners) Chrome-based scanners.)
+* `third_parties` - What third party web services are in use, using [headless Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) to trap outgoing requests. (See documentation for [using](#headless-chrome) or [writing](#developing-chrome-scanners) Chrome-based scanners.)
 * `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
 * `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
 
@@ -384,7 +384,7 @@ For example, if the `./scan` command is run with the flags `--scan=pshtt,sslyze 
 
 #### Developing Chrome scanners
 
-This tool has some built-in support for [instrumenting headless Chrome](#using-headless-chrome), both locally and inside of [Amazon Lambda](docs/lambda.md).
+This tool has some built-in support for [instrumenting headless Chrome](#headless-chrome), both locally and inside of [Amazon Lambda](docs/lambda.md).
 
 To make a scanner that uses headless Chrome, create two files:
 
