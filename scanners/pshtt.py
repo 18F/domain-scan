@@ -4,7 +4,7 @@ import codecs
 import re
 from pshtt import pshtt
 
-from scanners import utils
+from utils import utils
 
 ###
 # Measure a site's HTTP behavior using DHS NCATS' pshtt tool.
