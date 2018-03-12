@@ -447,7 +447,7 @@ def sort_csv(input_filename):
 
     for row in csv.reader(input_file):
         # keep the header around
-        if (row[0].lower().startswith("domain")):
+        if (row[0].lower() == "domain"):
             header = row
             continue
 
