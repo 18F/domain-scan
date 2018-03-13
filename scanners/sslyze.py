@@ -14,7 +14,7 @@
 
 import logging
 
-import sslyze
+from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
@@ -379,19 +379,10 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         tls_wrapped_protocol = TlsWrappedProtocolEnum.STARTTLS_SMTP
 
     try:
-        server_info = sslyze.server_connectivity.ServerConnectivityInfo(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
-    except sslyze.server_connectivity.ServerConnectivityError as error:
-        logging.warn("\tServer connectivity not established during initialization.")
-        return None, None
-    except Exception as err:
-        utils.notify(err)
-        logging.warn("\tUnknown exception when initializing server connectivity info.")
-        return None, None
-
-    try:
         # logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
-        server_info.test_connectivity_to_server(network_timeout=network_timeout)
-    except sslyze.server_connectivity.ServerConnectivityError as err:
+        server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
+        server_info = server_tester.perform(network_timeout=network_timeout)
+    except ServerConnectivityError as err:
         logging.warn("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
