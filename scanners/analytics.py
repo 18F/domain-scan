@@ -23,6 +23,7 @@ def init(environment, options):
         try:
             utils.download(analytics_file, analytics_path)
         except:
+            logging.error(utils.format_last_exception())
             no_csv = "--analytics URL not downloaded successfully."
             logging.error(no_csv)
             return False

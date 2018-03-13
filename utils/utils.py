@@ -3,6 +3,7 @@ import re
 import errno
 import subprocess
 import sys
+import gzip
 import shutil
 import traceback
 import json
@@ -39,6 +40,18 @@ def download(url, destination):
     mkdir_p(os.path.dirname(destination))
 
     filename, headers = urllib.request.urlretrieve(url, destination)
+
+    # If it's a gzipped file, ungzip it and replace it
+    if headers.get("Content-Encoding") == "gzip":
+        print("hey")
+        unzipped_file = filename + ".unzipped"
+
+        with gzip.GzipFile(filename, 'rb') as inf:
+            with open(unzipped_file, 'w') as outf:
+                outf.write(inf.read().decode('utf-8'))
+
+        shutil.copyfile(unzipped_file, filename)
+
     return filename
 
 
