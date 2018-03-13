@@ -52,10 +52,13 @@ RUN \
       nodejs \
       npm
 
+RUN apt-get install -qq --yes locales && locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+
 ###
 ## Python
 ###
-ENV PYENV_RELEASE=1.1.1 PYENV_PYTHON_VERSION=3.6.1 PYENV_ROOT=/opt/pyenv \
+ENV PYENV_RELEASE=1.2.2 PYENV_PYTHON_VERSION=3.6.4 PYENV_ROOT=/opt/pyenv \
     PYENV_REPO=https://github.com/pyenv/pyenv
 
 RUN wget ${PYENV_REPO}/archive/v${PYENV_RELEASE}.zip \
@@ -67,35 +70,35 @@ RUN wget ${PYENV_REPO}/archive/v${PYENV_RELEASE}.zip \
 #
 # Uncomment these lines if you just want to install python...
 #
-# ENV PATH $PYENV_ROOT/bin:$PYENV_ROOT/versions/${PYENV_PYTHON_VERSION}/bin:$PATH
-# RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
-#     && eval "$(pyenv init -)" \
-#     && pyenv install $PYENV_PYTHON_VERSION \
-#     && pyenv local ${PYENV_PYTHON_VERSION}
+ENV PATH $PYENV_ROOT/bin:$PYENV_ROOT/versions/${PYENV_PYTHON_VERSION}/bin:$PATH
+RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
+    && eval "$(pyenv init -)" \
+    && pyenv install $PYENV_PYTHON_VERSION \
+    && pyenv local ${PYENV_PYTHON_VERSION}
 
 #
 # ...uncomment these lines if you want to also debug python code in GDB
 #
-ENV PATH $PYENV_ROOT/bin:$PYENV_ROOT/versions/${PYENV_PYTHON_VERSION}-debug/bin:$PATH
-RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
-    && eval "$(pyenv init -)" \
-    && pyenv install --debug --keep $PYENV_PYTHON_VERSION \
-    && pyenv local ${PYENV_PYTHON_VERSION}-debug
-RUN ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py \
-    /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python3.6-gdb.py \
-    && ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py \
-    /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python3-gdb.py \
-    && ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py \
-    /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python-gdb.py
-RUN apt-get -qq --yes --no-install-recommends --no-install-suggests install gdb
-RUN echo add-auto-load-safe-path \
-    /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/ \
-    >> etc/gdb/gdbinit
+# ENV PATH $PYENV_ROOT/bin:$PYENV_ROOT/versions/${PYENV_PYTHON_VERSION}-debug/bin:$PATH
+# RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
+#     && eval "$(pyenv init -)" \
+#     && pyenv install --debug --keep $PYENV_PYTHON_VERSION \
+#     && pyenv local ${PYENV_PYTHON_VERSION}-debug
+# RUN ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py \
+#     /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python3.6-gdb.py \
+#     && ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py \
+#     /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python3-gdb.py \
+#     && ln -s /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/python-gdb.py \
+#     /opt/pyenv/versions/${PYENV_PYTHON_VERSION}-debug/bin/python-gdb.py
+# RUN apt-get -qq --yes --no-install-recommends --no-install-suggests install gdb
+# RUN echo add-auto-load-safe-path \
+#     /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/ \
+#     >> etc/gdb/gdbinit
 
 COPY requirements.txt requirements.txt
-RUN pip3 install --upgrade pip \
-    && pip3 install --upgrade setuptools \
-    && pip3 install -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --upgrade setuptools \
+    && pip install -r requirements.txt
 
 ###
 # Go
@@ -118,12 +121,11 @@ RUN npm install --global phantomas phantomjs-prebuilt \
     es6-promise@3.1.2 pa11y@3.0.1
 
 ###
-# pshtt
+# pshtt and trustymail
 ###
-RUN apt-get install -qq --yes locales && locale-gen en_US.UTF-8
-ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
-RUN pip3 install pshtt
-
+RUN pip install --upgrade \
+    git+https://github.com/dhs-ncats/pshtt.git@develop \
+    git+https://github.com/dhs-ncats/trustymail.git@develop
 
 ###
 # Create unprivileged User
@@ -133,7 +135,6 @@ RUN mkdir $SCANNER_HOME \
     && groupadd -r scanner \
     &&  useradd -r -c "Scanner user" -g scanner scanner \
     && chown -R scanner:scanner ${SCANNER_HOME}
-
 
 ###
 # Prepare to Run
