@@ -3,6 +3,7 @@ import re
 import errno
 import subprocess
 import sys
+import gzip
 import shutil
 import traceback
 import json
@@ -34,9 +35,6 @@ def run(run_method, additional=None):
 
 
 # TODO: Somewhat better error handling.
-import gzip
-import shutil
-
 def download(url, destination):
     # make sure path is present
     mkdir_p(os.path.dirname(destination))
@@ -50,10 +48,9 @@ def download(url, destination):
 
         with gzip.GzipFile(filename, 'rb') as inf:
             with open(unzipped_file, 'w') as outf:
-                 outf.write(inf.read().decode('utf-8'))
+                outf.write(inf.read().decode('utf-8'))
 
         shutil.copyfile(unzipped_file, filename)
-
 
     return filename
 
