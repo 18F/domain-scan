@@ -25,7 +25,7 @@ ipython
 git+git://github.com/dhs-ncats/pshtt.git#egg=pshtt
 
 # sslyze
-sslyze
+sslyze>=1.4.0
 cryptography
 
 # a11y
