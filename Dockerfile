@@ -98,7 +98,7 @@ RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
 COPY requirements.txt requirements.txt
 RUN pip install --upgrade pip \
     && pip install --upgrade setuptools \
-    && pip install -r requirements.txt
+    && pip install --upgrade -r requirements.txt
 
 ###
 # Go
