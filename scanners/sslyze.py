@@ -354,7 +354,7 @@ def analyze_certs(certs):
         policies = ext.value
         for policy in policies:
             oids.append(policy.policy_identifier.dotted_string)
-    except ExtensionNotFound:
+    except cryptography.x509.ExtensionNotFound:
         # If not found, just move on.
         pass
 
