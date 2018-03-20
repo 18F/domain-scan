@@ -1,9 +1,9 @@
 import logging
 
+import trustymail.trustymail as tmail
 import trustymail
 # Monkey patching trustymail to make it cache the PSL where we want
 trustymail.PublicSuffixListFilename = 'cache/public-suffix-list.txt'
-import trustymail.trustymail as tmail
 
 ###
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
