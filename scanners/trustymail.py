@@ -1,5 +1,4 @@
 import logging
-import os
 
 import trustymail
 # Monkey patching trustymail to make it cache the PSL where we want
