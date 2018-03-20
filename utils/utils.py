@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import errno
@@ -58,7 +59,7 @@ def download(url, destination):
 # read options from the command line
 #   e.g. ./scan --since=2012-03-04 --debug whatever.com
 #     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
-def options():
+def xoptions():
     options = {"_": []}
     for arg in sys.argv[1:]:
         if arg.startswith("--"):
@@ -77,6 +78,22 @@ def options():
         else:
             options["_"].append(arg)
     return options
+
+
+def options():
+    parser = argparse.ArgumentParser(prefix_chars="--")
+    parser.add_argument("--suffix", nargs="?")
+    parser.add_argument("--dap", nargs="?")
+    parser.add_argument("--private", nargs="?")
+    parser.add_argument("--parents", nargs="?")
+    parser.add_argument("--export", action="store_true")
+    parsed, remaining = parser.parse_known_args()
+    import pytest
+    pytest.set_trace()
+    opts = parsed.__dict__
+    opts = {k: opts[k] for k in opts if opts[k] is not None}
+    opts["_"] = remaining
+    return opts
 
 
 def configure_logging(options=None):
