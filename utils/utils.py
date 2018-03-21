@@ -14,6 +14,7 @@ import logging
 import datetime
 import strict_rfc3339
 import codecs
+from itertools import chain
 from urllib.error import URLError
 
 import publicsuffix
@@ -59,7 +60,8 @@ def download(url, destination):
 # read options from the command line
 #   e.g. ./scan --since=2012-03-04 --debug whatever.com
 #     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
-def xoptions():
+def options_for_scan():
+    # Parse options for the ``scan`` command.
     options = {"_": []}
     for arg in sys.argv[1:]:
         if arg.startswith("--"):
@@ -118,41 +120,42 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 def options():
+    if sys.argv[0].endswith("gather"):
+        return options_for_gather()
+    elif sys.argv[0].endswith("scan"):
+        return options_for_scan()
+
+
+def build_gather_options_parser(services):
     parser = ArgumentParser(prefix_chars="--")
-    parser.add_argument("--a11y_config", nargs="+",
-                        type=options_endswith('.json'))
-    parser.add_argument("--a11y_redirects", nargs="+",
-                        type=options_endswith('.yml'))
-    parser.add_argument("--analytics", nargs="+")
-    parser.add_argument("--cache", nargs="?")
-    parser.add_argument("--dap", nargs="?")
-    parser.add_argument("--debug", nargs="?")
-    parser.add_argument("--dmarc", nargs="?")
-    parser.add_argument("--dns", nargs="?")
-    parser.add_argument("--ignore-www", nargs="?")
-    parser.add_argument("--include-parents", nargs="?")
-    parser.add_argument("--lambda", nargs="?")
-    parser.add_argument("--lambda-profile", nargs="?")
-    parser.add_argument("--log", nargs="?")
-    parser.add_argument("--meta", nargs="?")
-    parser.add_argument("--network_timout", nargs="?")
-    parser.add_argument("--output", nargs="?")
-    parser.add_argument("--parents", nargs="?")
-    parser.add_argument("--private", nargs="?")
-    parser.add_argument("--rdns", nargs="?")
-    parser.add_argument("--scan", nargs="?")
-    parser.add_argument("--serial", nargs="?")
-    parser.add_argument("--smtp-localhost", nargs="?")
-    parser.add_argument("--smtp-timeout", nargs="?")
-    parser.add_argument("--sort", nargs="?")
-    parser.add_argument("--spf", nargs="?")
-    parser.add_argument("--sslyze-certs", nargs="?")
-    parser.add_argument("--sslyze-serial", nargs="?")
-    parser.add_argument("--starttls", nargs="?")
-    parser.add_argument("--suffix", nargs="?")
-    parser.add_argument("--timeout", nargs="?")
-    parser.add_argument("--workers", nargs="?")
+
+    for service in services:
+        flag = f"--{service}"
+        parser.add_argument(flag, nargs=1, required=True)
+
+    parser.add_argument("--cache", action="store_true")
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--ignore-www", action="store_true")
+    parser.add_argument("--include-parents", action="store_true")
+    parser.add_argument("--log", nargs="+")
+    parser.add_argument("--parents", nargs="+")
+    parser.add_argument("--rdns", nargs="+")
+    parser.add_argument("--sort", action="store_true")
+    parser.add_argument("--suffix", nargs="+", required=True)
+    parser.add_argument("--timeout", nargs="+")
+    return parser
+
+
+def options_for_gather():
+    # Parse options for the ``gather`` command.
+    set_services = ("censys")
+    services = [s for s in sys.argv[1].split(",") if s not in set_services]
+    parser = build_gather_options_parser(services)
     parsed, remaining = parser.parse_known_args()
+    for remainder in remaining:
+        if remainder.startswith("--"):
+            raise argparse.ArgumentTypeError(
+                f"{remainder} isn't a valid argument here.")
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
     opts["_"] = remaining
@@ -162,11 +165,12 @@ def options():
     values for them because that's how ``nargs='+'`` works, so we need to
     extract the single values.
     """
-    should_be_singles = (
-        "a11y_config",
-        "a11y_redirects",
-        "analytics",
-    )
+    should_be_singles = [
+        "parents",
+        "suffix"
+    ]
+    for service in services:
+        should_be_singles.append(service)
 
     for kwd in should_be_singles:
         if kwd in opts:
@@ -605,3 +609,7 @@ def suffix_pattern(suffixes):
     prefixed = [suffix.replace(".", "\\.") for suffix in suffixes]
     center = str.join("|", prefixed)
     return re.compile("(?:%s)$" % center)
+
+
+def flatten(l):
+    return list(chain.from_iterable(l))
