@@ -242,7 +242,7 @@ To configure access, set **one** of two environment variables:
 Options:
 
 * --timeout: Override the 10 minute job timeout (specify in seconds).
-* --cache: Use locally cached export data instead of hitting BigQuery.
+* --cache: Use locally cached data instead of hitting BigQuery.
 
 **Example:**
 
@@ -254,10 +254,10 @@ Find hostnames ending in either `.gov` or `.fed.us` from within Censys.io's cert
 
 ### Gathering Usage Examples
 
-To gather .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export):
+To gather .gov hostnames from Censys.io:
 
 ```bash
-./gather censys --suffix=.gov --export --debug
+./gather censys --suffix=.gov --debug
 ```
 
 To gather .gov hostnames from a hosted CSV, such as one from the [Digital Analytics Program](https://analytics.usa.gov):
@@ -266,10 +266,10 @@ To gather .gov hostnames from a hosted CSV, such as one from the [Digital Analyt
 ./gather dap --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv
 ```
 
-Or to gather federal-only .gov hostnames from [Censys.io's Export API](https://censys.io/api/v1/docs/export), a remote CSV, and a local CSV:
+Or to gather federal-only .gov hostnames from Censys' API, a remote CSV, and a local CSV:
 
 ```bash
-./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv --export
+./gather censys,dap,private --suffix=.gov --dap=https://analytics.usa.gov/data/live/sites-extended.csv --private=/path/to/private-research.csv --parents=https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv
 ```
 
 ### a11y setup
