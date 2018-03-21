@@ -80,19 +80,98 @@ def xoptions():
     return options
 
 
+def options_endswith(end):
+    def func(arg):
+        if arg.endswith(end):
+            return arg
+        raise argparse.ArgumentTypeError(f"value must end in '{end}'")
+    return func
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    """
+    This lets us test for errors from argparse by overriding the error method.
+    See https://stackoverflow.com/questions/5943249
+    """
+    def _get_action_from_name(self, name):
+        """Given a name, get the Action instance registered with this parser.
+        If only it were made available in the ArgumentError object. It is
+        passed as its first arg...
+        """
+        container = self._actions
+        if name is None:
+            return None
+        for action in container:
+            if '/'.join(action.option_strings) == name:
+                return action
+            elif action.metavar == name:
+                return action
+            elif action.dest == name:
+                return action
+
+    def error(self, message):
+        exc = sys.exc_info()[1]
+        if exc:
+            exc.argument = self._get_action_from_name(exc.argument_name)
+            raise exc
+        super(ArgumentParser, self).error(message)
+
+
 def options():
-    parser = argparse.ArgumentParser(prefix_chars="--")
-    parser.add_argument("--suffix", nargs="?")
+    parser = ArgumentParser(prefix_chars="--")
+    parser.add_argument("--a11y_config", nargs="+",
+                        type=options_endswith('.json'))
+    parser.add_argument("--a11y_redirects", nargs="+",
+                        type=options_endswith('.yml'))
+    parser.add_argument("--analytics", nargs="+")
+    parser.add_argument("--cache", nargs="?")
     parser.add_argument("--dap", nargs="?")
-    parser.add_argument("--private", nargs="?")
+    parser.add_argument("--debug", nargs="?")
+    parser.add_argument("--dmarc", nargs="?")
+    parser.add_argument("--dns", nargs="?")
+    parser.add_argument("--ignore-www", nargs="?")
+    parser.add_argument("--include-parents", nargs="?")
+    parser.add_argument("--lambda", nargs="?")
+    parser.add_argument("--lambda-profile", nargs="?")
+    parser.add_argument("--log", nargs="?")
+    parser.add_argument("--meta", nargs="?")
+    parser.add_argument("--network_timout", nargs="?")
+    parser.add_argument("--output", nargs="?")
     parser.add_argument("--parents", nargs="?")
-    parser.add_argument("--export", action="store_true")
+    parser.add_argument("--private", nargs="?")
+    parser.add_argument("--rdns", nargs="?")
+    parser.add_argument("--scan", nargs="?")
+    parser.add_argument("--serial", nargs="?")
+    parser.add_argument("--smtp-localhost", nargs="?")
+    parser.add_argument("--smtp-timeout", nargs="?")
+    parser.add_argument("--sort", nargs="?")
+    parser.add_argument("--spf", nargs="?")
+    parser.add_argument("--sslyze-certs", nargs="?")
+    parser.add_argument("--sslyze-serial", nargs="?")
+    parser.add_argument("--starttls", nargs="?")
+    parser.add_argument("--suffix", nargs="?")
+    parser.add_argument("--timeout", nargs="?")
+    parser.add_argument("--workers", nargs="?")
     parsed, remaining = parser.parse_known_args()
-    import pytest
-    pytest.set_trace()
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
     opts["_"] = remaining
+
+    """
+    The following expect a single argument, but argparse returns multiple
+    values for them because that's how ``nargs='+'`` works, so we need to
+    extract the single values.
+    """
+    should_be_singles = (
+        "a11y_config",
+        "a11y_redirects",
+        "analytics",
+    )
+
+    for kwd in should_be_singles:
+        if kwd in opts:
+            opts[kwd] = opts[kwd][0]
+
     return opts
 
 
