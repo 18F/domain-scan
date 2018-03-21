@@ -95,17 +95,22 @@ RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
 #     /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/ \
 #     >> etc/gdb/gdbinit
 
+###
+# Update pip and setuptools to the latest versions
+###
+RUN pip install --upgrade pip setuptools
+
+###
+# domain-scan
+###
 COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip \
-    && pip install --upgrade setuptools \
-    && pip install --upgrade -r requirements.txt
+RUN pip install --upgrade -r requirements.txt
 
 ###
 # Go
 ###
 ENV GOLANG_VERSION=1.8.3 PATH=/go/bin:/usr/src/go/bin:$PATH GOPATH=/go \
     GOROOT=/usr/src/go
-
 RUN curl -sSL https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz \
     | tar -v -C /usr/src -xz
 
@@ -133,7 +138,7 @@ RUN pip install --upgrade \
 ENV SCANNER_HOME /home/scanner
 RUN mkdir $SCANNER_HOME \
     && groupadd -r scanner \
-    &&  useradd -r -c "Scanner user" -g scanner scanner \
+    && useradd -r -c "Scanner user" -g scanner scanner \
     && chown -R scanner:scanner ${SCANNER_HOME}
 
 ###
