@@ -1,9 +1,9 @@
-import logging
 import codecs
-
+import logging
+import os
 import re
-from pshtt import pshtt
 
+from pshtt import pshtt
 from utils import utils
 
 ###
@@ -12,8 +12,9 @@ from utils import utils
 # Network timeout for each internal pshtt HTTP request.
 pshtt_timeout = 20
 
-# default to a custom user agent, can be overridden
-user_agent = "github.com/18f/domain-scan, pshtt.py"
+# Default to a custom user agent that can be overridden via an environment
+# variable
+user_agent = os.environ.get("PSHTT_USER_AGENT", "18F/domain-scan/pshtt.py")
 
 # Keep here to get some best-effort container reuse in Lambda.
 suffix_list = None
