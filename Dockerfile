@@ -130,7 +130,7 @@ RUN npm install --global phantomas phantomjs-prebuilt \
 ###
 RUN pip install --upgrade \
     git+https://github.com/dhs-ncats/pshtt.git@develop \
-    git+https://github.com/dhs-ncats/trustymail.git@bugfix/problem_with_psl_caching
+    git+https://github.com/dhs-ncats/trustymail.git@develop
 
 ###
 # Create unprivileged User
