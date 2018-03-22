@@ -22,7 +22,7 @@ def get_gather_args_with_mandatory_values():
     optional_actions = parser._get_optional_actions()
     mandatory_value_args = []
     for oa in optional_actions:
-        if oa.nargs in ("?", "+"):
+        if oa.nargs in ("?", "+", 1):
             mandatory_value_args.append(oa.dest)
     return mandatory_value_args
 
@@ -165,4 +165,15 @@ def test_options_for_gather_missing_arg_parameter(monkeypatch, args):
 @pytest.mark.xfail(raises=argparse.ArgumentTypeError)
 def test_options_for_gather_arg_mismatch(monkeypatch, args):
     monkeypatch.setattr(sys, "argv", args.split(" "))
+    subutils.options_for_gather()
+
+
+@pytest.mark.parametrize("args", gather_args_with_mandatory_values)
+@pytest.mark.xfail(raises=argparse.ArgumentError)
+def test_options_for_gather_missing_mandatory(monkeypatch, args):
+    command = f"./gather censys --suffix=.gov --{args}"
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    subutils.options_for_gather()
+    command = f"./gather censys --suffix=.gov --{args}="
+    monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_gather()
