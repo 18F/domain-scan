@@ -56,7 +56,6 @@ def scan(domain, environment, options):
         'dmarc': options.get('dmarc', False)
     }
 
-    import trustymail.trustymail as tmail
     import trustymail
     if environment['scan_method'] == 'local':
         # Local scanning
@@ -70,6 +69,7 @@ def scan(domain, environment, options):
         trustymail.PublicSuffixListFilename = './public-suffix-list.txt'
         # Monkey patching trustymail to make the PSL cache read-only
         trustymail.PublicSuffixListReadOnly = True
+    import trustymail.trustymail as tmail
 
     data = tmail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
 
