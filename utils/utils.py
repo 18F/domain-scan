@@ -86,7 +86,7 @@ def options_endswith(end):
     def func(arg):
         if arg.endswith(end):
             return arg
-        raise argparse.ArgumentTypeError(f"value must end in '{end}'")
+        raise argparse.ArgumentTypeError("value must end in '%s'" % end)
     return func
 
 
@@ -130,7 +130,7 @@ def build_gather_options_parser(services):
     parser = ArgumentParser(prefix_chars="--")
 
     for service in services:
-        flag = f"--{service}"
+        flag = "--%s" % service
         parser.add_argument(flag, nargs=1, required=True)
 
     parser.add_argument("--cache", action="store_true")
@@ -155,7 +155,7 @@ def options_for_gather():
     for remainder in remaining:
         if remainder.startswith("--"):
             raise argparse.ArgumentTypeError(
-                f"{remainder} isn't a valid argument here.")
+                "%s isn't a valid argument here." % remainder)
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
     opts["_"] = remaining

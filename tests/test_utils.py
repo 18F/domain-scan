@@ -171,9 +171,9 @@ def test_options_for_gather_arg_mismatch(monkeypatch, args):
 @pytest.mark.parametrize("args", gather_args_with_mandatory_values)
 @pytest.mark.xfail(raises=argparse.ArgumentError)
 def test_options_for_gather_missing_mandatory(monkeypatch, args):
-    command = f"./gather censys --suffix=.gov --{args}"
+    command = "./gather censys --suffix=.gov --%s" % args
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_gather()
-    command = f"./gather censys --suffix=.gov --{args}="
+    command = "./gather censys --suffix=.gov --%s=" % args
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_gather()
