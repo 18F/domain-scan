@@ -40,3 +40,10 @@ requests
 # censys
 google-cloud-bigquery
 google-auth-oauthlib
+
+
+############
+# Tests
+############
+
+pytest

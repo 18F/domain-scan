@@ -1,5 +1,7 @@
 import unittest
 
+from context import utils  # noqa
+
 from utils.a11y.process_a11y import A11yProcessor
 
 
