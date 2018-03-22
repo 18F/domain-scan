@@ -1,12 +1,8 @@
 import logging
 
-import trustymail.trustymail as tmail
-import trustymail
-# Monkey patching trustymail to make it cache the PSL where we want
-trustymail.PublicSuffixListFilename = 'cache/public-suffix-list.txt'
-
 ###
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
+###
 
 # default to a long timeout
 default_timeout = 30
@@ -59,6 +55,21 @@ def scan(domain, environment, options):
         'spf': options.get('spf', False),
         'dmarc': options.get('dmarc', False)
     }
+
+    import trustymail.trustymail as tmail
+    import trustymail
+    if environment['scan_method'] == 'local':
+        # Local scanning
+        #
+        # Monkey patching trustymail to make it cache the PSL where we want
+        trustymail.PublicSuffixListFilename = 'cache/public-suffix-list.txt'
+    else:
+        # Lambda scanning
+        #
+        # Monkey patching trustymail to make it cache the PSL where we want
+        trustymail.PublicSuffixListFilename = './public-suffix-list.txt'
+        # Monkey patching trustymail to make the PSL cache read-only
+        trustymail.PublicSuffixListReadOnly = True
 
     data = tmail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
 
