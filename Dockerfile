@@ -1,9 +1,7 @@
 # VERSION 0.3.0
 
-# USAGE
-
-FROM      ubuntu:16.04
-MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
+FROM ubuntu:16.04
+MAINTAINER Shane Frasier <jeremy.frasier@beta.dhs.gov>
 
 ###
 # Dependencies
