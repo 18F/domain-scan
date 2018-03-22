@@ -18,6 +18,7 @@ RUN \
         --yes \
         --no-install-recommends \
         --no-install-suggests \
+      apt-utils \
       build-essential \
       curl \
       git \
@@ -48,12 +49,33 @@ RUN \
       libbz2-dev \
       llvm \
       libncursesw5-dev \
-      # Not sure what these dependencies are for
+      # Additional dependencies for third-parties scanner
       nodejs \
-      npm
+      npm \
+      # Chrome dependencies
+      fonts-liberation \
+      libappindicator1 \
+      libasound2 \
+      libatk-bridge2.0-0 \
+      libgtk-3-0 \
+      libnspr4 \
+      libnss3 \
+      libxss1 \
+      libxtst6 \
+      lsb-release \
+      xdg-utils
 
 RUN apt-get install -qq --yes locales && locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+
+###
+# Google Chrome
+###
+RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && dpkg -i google-chrome-stable_current_amd64.deb \
+    && rm google-chrome-stable_current_amd64.deb
+# The third-parties scanner looks for an executable called chrome
+RUN ln -s /usr/bin/google-chrome-stable /usr/bin/chrome
 
 ###
 ## Python
@@ -107,23 +129,9 @@ COPY requirements.txt requirements.txt
 RUN pip install --upgrade -r requirements.txt
 
 ###
-# Go
-###
-ENV GOLANG_VERSION=1.8.3 PATH=/go/bin:/usr/src/go/bin:$PATH GOPATH=/go \
-    GOROOT=/usr/src/go
-RUN curl -sSL https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz \
-    | tar -v -C /usr/src -xz
-
-###
 # Node
 ###
 RUN ln -s /usr/bin/nodejs /usr/bin/node
-
-###
-# phantomas
-###
-RUN npm install --global phantomas phantomjs-prebuilt \
-    es6-promise@3.1.2 pa11y@3.0.1
 
 ###
 # pshtt and trustymail
