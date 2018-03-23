@@ -103,7 +103,7 @@ def run(options=None):
     # `domains` can be either a path or a domain name.
     # It can also be a URL, and if it is we want to download it now,
     # and then adjust the value to be the path of the cached download.
-    domains = options["_"][0]
+    domains = options["_"]
 
     if domains.startswith("http:") or domains.startswith("https:"):
 
