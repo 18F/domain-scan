@@ -137,10 +137,6 @@ def build_gather_options_parser(services):
     ])
     parser = ArgumentParser(prefix_chars="--", usage=usage_message)
 
-    if services and services[0].startswith("--"):
-            raise argparse.ArgumentTypeError(
-                "First argument must be a list of gatherers.")
-
     for service in services:
         flag = "--%s" % service
         parser.add_argument(flag, nargs=1, required=True)
@@ -176,14 +172,32 @@ def build_gather_options_parser(services):
 
 def options_for_gather():
     # Parse options for the ``gather`` command.
+    """
+    The gather command requires a comma-separated list of one or more
+    gatherers, and an argument (with a value) whose name corresponds to each
+    gatherer, as well as a mandatory suffix value.
+
+    ``./gather dap --suffix=.gov`` is insuffucient, because the present of the
+    ``dap`` gatherer means that ``--dap=<someurl>`` is therefore required as an
+    argument.
+
+    Hence we look for the first argument before building the parser, so that
+    the additional required arguments can be passed to it.
+
+    The ``set_services`` are those services, like ``censys``, that don't have a
+    matching argument, and the inclusion of the help flags is necessary here so
+    that they don't get added as services.
+    """
     set_services = (
         "--help",
         "-h",
         "censys",
     )
-    # Since we need to create a required argument for each service, we need to
-    # get the first argument here, before we build the parser.
     services = [s for s in sys.argv[1].split(",") if s not in set_services]
+    if services and services[0].startswith("--"):
+            raise argparse.ArgumentTypeError(
+                "First argument must be a list of gatherers.")
+
     parser = build_gather_options_parser(services)
     parsed, remaining = parser.parse_known_args()
     for remainder in remaining:
@@ -195,9 +209,9 @@ def options_for_gather():
     opts["_"] = remaining
 
     """
-    The following expect a single argument, but argparse returns multiple
-    values for them because that's how ``nargs='+'`` works, so we need to
-    extract the single values.
+    The following expect a single argument, but argparse returns lists for them
+    because that's how ``nargs=<n/'*'/'+'>`` works, so we need to extract the
+    single values.
     """
     should_be_singles = [
         "parents",
@@ -210,26 +224,18 @@ def options_for_gather():
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
 
-    """
-    # A lot of the flags should only be present if a given gatherer is prsent.
+    # Some of the flags should only be present if a given gatherer is prsent.
     matching_args = (
-        {"args": ["cache"], "gatherer": "censys"},
-        {"args": ["dap"], "gatherer": "dap"},
-        # {
-        # "args": ["a11y_config", "a11y_redirects"],
-        # "gatherer": "a11y"
-        # },
+        {"args": ["cache", "timeout"], "gatherer": "censys"},
     )
+    candidates = flatten([arg.split(",") for arg in opts["_"]])
 
-    for ma in matching_args:
-        candidates = flatten([arg.split(",") for arg in opts["_"]])
+    for ma in (ma for ma in matching_args if ma["gatherer"] not in candidates):
+        for arg in ma["args"]:
+            if arg in opts and opts[arg]:
+                raise argparse.ArgumentTypeError(
+                    f"{arg} doesn't apply with the specified gatherers")
 
-        if ma["gatherer"] not in candidates:
-            for arg in ma["args"]:
-                if arg in opts and opts[arg]:
-                    raise argparse.ArgumentTypeError(
-                        f"{arg} doesn't apply with the specified gatherers")
-    """
     return opts
 
 

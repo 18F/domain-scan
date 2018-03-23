@@ -120,14 +120,12 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         "".join([
             "./gather dap --suffix=.gov --dap=",
             "https://analytics.usa.gov/data/live/sites-extended.csv",
-            " --cache",
         ]),
         {
             '_': ['dap'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
-            'cache': True,
         }
     ),
     (
@@ -152,6 +150,15 @@ def test_options_for_gather(monkeypatch, args, expected):
 
 
 @pytest.mark.parametrize("args", [
+    "./gather --yo --suffix=.gov",
+])
+@pytest.mark.xfail(raises=argparse.ArgumentTypeError)
+def test_options_for_gather_no_gatherer(monkeypatch, args):
+    monkeypatch.setattr(sys, "argv", args.split(" "))
+    subutils.options_for_gather()
+
+
+@pytest.mark.parametrize("args", [
     "./gather censys --suffix",
     "./gather dap,censys --dap --suffix=.gov",
     "./gather dap --dap --suffix=.gov",
@@ -165,6 +172,8 @@ def test_options_for_gather_missing_arg_parameter(monkeypatch, args):
 
 @pytest.mark.parametrize("args", [
     "./gather censys --a11y_config=file.json --suffix=.gov",
+    "./gather dap --dap=file.json --suffix=.gov --cache",
+    "./gather dap --dap=file.json --suffix=.gov --timeout=10",
 ])
 @pytest.mark.xfail(raises=argparse.ArgumentTypeError)
 def test_options_for_gather_arg_mismatch(monkeypatch, args):
