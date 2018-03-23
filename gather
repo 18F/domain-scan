@@ -11,7 +11,7 @@ import importlib
 
 from utils import utils
 
-options = utils.options()
+options = utils.options_for_gather()
 utils.configure_logging(options)
 utils.mkdir_p(utils.cache_dir())
 utils.mkdir_p(utils.results_dir())
@@ -48,11 +48,11 @@ def run(options=None):
         os.remove(result)
 
     # Opt in to include parent (second-level) domains.
-    include_parents = options.get("include-parents", False)
+    include_parents = options.get("include_parents", False)
 
     # Opt into stripping www. prefixes from hostnames, effectively
     # collapsing www.[host] and [host] into one record.
-    ignore_www = options.get("ignore-www", False)
+    ignore_www = options.get("ignore_www", False)
 
     # --parents should be a CSV whose first column is parent domains
     # that will act as a whitelist for which subdomains to gather.
