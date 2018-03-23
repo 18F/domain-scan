@@ -171,8 +171,9 @@ def build_gather_options_parser(services):
 
 
 def options_for_gather():
-    # Parse options for the ``gather`` command.
     """
+    Parse options for the ``gather`` command.
+
     The gather command requires a comma-separated list of one or more
     gatherers, and an argument (with a value) whose name corresponds to each
     gatherer, as well as a mandatory suffix value.
@@ -234,13 +235,19 @@ def options_for_gather():
         for arg in ma["args"]:
             if arg in opts and opts[arg]:
                 raise argparse.ArgumentTypeError(
-                    f"{arg} doesn't apply with the specified gatherers")
+                    "%s doesn't apply with the specified gatherers" % arg)
 
     return opts
 
 
 def build_scan_options_parser(services):
     parser = ArgumentParser(prefix_chars="--")
+    parser.add_argument("domains", help="".join([
+        "Either a comma-separated list of domains or the path to a local CSV ",
+        "file containing the domains to be scanned. The CSV's header row ",
+        "will be ignored if the first cell starts with \"Domain\" ",
+        "(case-insensitive).",
+    ]))
     parser.add_argument("--cache", action="store_true", help="".join([
         "Use previously cached scan data to avoid scans hitting the network ",
         "where possible.",
@@ -291,22 +298,12 @@ def build_scan_options_parser(services):
 def options_for_scan():
     # Parse options for the ``scan`` command.
     parser = build_scan_options_parser([])
-    parsed, remaining = parser.parse_known_args()
-    parsed, remaining = parser.parse_known_args()
-    for remainder in remaining:
-        if remainder.startswith("--"):
-            raise argparse.ArgumentTypeError(
-                "%s isn't a valid argument here." % remainder)
-    if len(remaining) < 1:
-            raise argparse.ArgumentTypeError(
-                "at least one domain or CSV is required")
-    elif len(remaining) > 1:
-            raise argparse.ArgumentTypeError(
-                "Unknown options %s" % ", ".join(remaining[1:]))
+    parsed = parser.parse_args()
 
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
-    opts["_"] = remaining[0]
+    opts["_"] = opts["domains"]
+    del opts["domains"]
 
     if opts.get("lambda_profile") and not opts.get("lambda"):
             raise argparse.ArgumentTypeError(

@@ -159,6 +159,21 @@ def test_options_for_gather_no_gatherer(monkeypatch, args):
 
 
 @pytest.mark.parametrize("args", [
+    "./gather --help",
+    "./gather -h",
+])
+def test_options_for_gather_help(monkeypatch, capsys, args):
+    monkeypatch.setattr(sys, "argv", args.split(" "))
+    # Handling exception here instead of with decorator because we want to
+    # examine the console output.
+    with pytest.raises(SystemExit) as exc:
+        subutils.options_for_gather()
+    assert exc.typename == "SystemExit"
+    out, err = capsys.readouterr()
+    assert out.startswith("usage: gather GATHERERS")
+
+
+@pytest.mark.parametrize("args", [
     "./gather censys --suffix",
     "./gather dap,censys --dap --suffix=.gov",
     "./gather dap --dap --suffix=.gov",
@@ -192,11 +207,17 @@ def test_options_for_gather_missing_mandatory(monkeypatch, arg):
     subutils.options_for_gather()
 
 
-@pytest.mark.xfail(raises=argparse.ArgumentTypeError)
-def test_options_for_scan_no_target(monkeypatch):
+def test_options_for_scan_no_target(monkeypatch, capsys):
+    # Handling exception here instead of with decorator because for some reason
+    # even our enhanced ArgumentParser generates SystemExit for this error
+    # instead of a more specific exception.
     command = "./scan --scan=a11y"
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    subutils.options_for_scan()
+    with pytest.raises(SystemExit) as exc:
+        subutils.options_for_scan()
+    assert exc.typename == "SystemExit"
+    out, err = capsys.readouterr()
+    assert err.endswith("arguments are required: domains\n")
 
 
 def test_options_for_scan_basic(monkeypatch):
@@ -210,13 +231,28 @@ def test_options_for_scan_basic(monkeypatch):
     }
 
 
+@pytest.mark.parametrize("args", [
+    "./scan --help",
+    "./scan -h",
+])
+def test_options_for_scan_help(monkeypatch, capsys, args):
+    monkeypatch.setattr(sys, "argv", args.split(" "))
+    # Handling exception here instead of with decorator because we want to
+    # examine the console output.
+    with pytest.raises(SystemExit) as exc:
+        subutils.options_for_scan()
+    assert exc.typename == "SystemExit"
+    out, err = capsys.readouterr()
+    assert out.startswith("usage: scan [-h]")
+
+
 @pytest.mark.parametrize("arg", scan_args_with_mandatory_values)
 @pytest.mark.xfail(raises=argparse.ArgumentError)
 def test_options_for_scan_missing_mandatory(monkeypatch, arg):
-    command = "./gather example.org --scan=a11y --%s" % arg.replace("_", "-")
+    command = "./scan example.org --scan=a11y --%s" % arg.replace("_", "-")
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_scan()
-    command = "./gather example.org --scan=a11y --%s=" % arg.replace("_", "-")
+    command = "./scan example.org --scan=a11y --%s=" % arg.replace("_", "-")
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_scan()
 
