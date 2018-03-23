@@ -5,9 +5,8 @@ from .context import utils  # noqa
 from utils import utils as subutils
 
 
-def get_gather_default_false_values():
+def get_default_false_values(parser):
     # Get these from the parser rather than having to keep a manual list.
-    parser = subutils.build_gather_options_parser([])
     optional_actions = parser._get_optional_actions()
     default_false_values = {}
     for oa in optional_actions:
@@ -16,9 +15,8 @@ def get_gather_default_false_values():
     return default_false_values
 
 
-def get_gather_args_with_mandatory_values():
+def get_args_with_mandatory_values(parser):
     # Get these from the parser rather than having to keep a manual list.
-    parser = subutils.build_gather_options_parser([])
     optional_actions = parser._get_optional_actions()
     mandatory_value_args = []
     for oa in optional_actions:
@@ -27,8 +25,14 @@ def get_gather_args_with_mandatory_values():
     return mandatory_value_args
 
 
-gather_default_false_values = get_gather_default_false_values()
-gather_args_with_mandatory_values = get_gather_args_with_mandatory_values()
+gather_default_false_values = get_default_false_values(
+    subutils.build_gather_options_parser([]))
+gather_args_with_mandatory_values = get_args_with_mandatory_values(
+    subutils.build_gather_options_parser([]))
+scan_default_false_values = get_default_false_values(
+    subutils.build_scan_options_parser([]))
+scan_args_with_mandatory_values = get_args_with_mandatory_values(
+    subutils.build_scan_options_parser([]))
 
 
 @pytest.mark.parametrize("args,expected", [
@@ -168,12 +172,48 @@ def test_options_for_gather_arg_mismatch(monkeypatch, args):
     subutils.options_for_gather()
 
 
-@pytest.mark.parametrize("args", gather_args_with_mandatory_values)
+@pytest.mark.parametrize("arg", gather_args_with_mandatory_values)
 @pytest.mark.xfail(raises=argparse.ArgumentError)
-def test_options_for_gather_missing_mandatory(monkeypatch, args):
-    command = "./gather censys --suffix=.gov --%s" % args
+def test_options_for_gather_missing_mandatory(monkeypatch, arg):
+    command = "./gather censys --suffix=.gov --%s" % arg.replace("_", "-")
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_gather()
-    command = "./gather censys --suffix=.gov --%s=" % args
+    command = "./gather censys --suffix=.gov --%s=" % arg.replace("_", "-")
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_gather()
+
+
+@pytest.mark.xfail(raises=argparse.ArgumentTypeError)
+def test_options_for_scan_no_target(monkeypatch):
+    command = "./scan --scan=a11y"
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    subutils.options_for_scan()
+
+
+def test_options_for_scan_basic(monkeypatch):
+    command = "./scan example.org --scan=a11y"
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    result = subutils.options_for_scan()
+    assert result == {
+        "_": "example.org",
+        "scan": "a11y",
+        **scan_default_false_values,
+    }
+
+
+@pytest.mark.parametrize("arg", scan_args_with_mandatory_values)
+@pytest.mark.xfail(raises=argparse.ArgumentError)
+def test_options_for_scan_missing_mandatory(monkeypatch, arg):
+    command = "./gather example.org --scan=a11y --%s" % arg.replace("_", "-")
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    subutils.options_for_scan()
+    command = "./gather example.org --scan=a11y --%s=" % arg.replace("_", "-")
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    subutils.options_for_scan()
+
+
+@pytest.mark.xfail(raises=argparse.ArgumentTypeError)
+def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
+    command = "./scan example.org --scan=a11y --lambda-profile=something"
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    subutils.options_for_scan()

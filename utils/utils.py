@@ -60,7 +60,7 @@ def download(url, destination):
 # read options from the command line
 #   e.g. ./scan --since=2012-03-04 --debug whatever.com
 #     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
-def options_for_scan():
+def xoptions_for_scan():
     # Parse options for the ``scan`` command.
     options = {"_": []}
     for arg in sys.argv[1:]:
@@ -127,28 +127,62 @@ def options():
 
 
 def build_gather_options_parser(services):
-    parser = ArgumentParser(prefix_chars="--")
+    usage_message = "".join([
+        "%(prog)s GATHERERS --suffix [SUFFIX] "
+        "--[GATHERER] [GATHERER OPTIONS] [options] ",
+        "(GATHERERS and SUFFIX are comma-separated lists)\n",
+        "For example:\n",
+        "./gather dap --suffix=.gov ",
+        "--dap=https://analytics.usa.gov/data/live/sites-extended.csv"
+    ])
+    parser = ArgumentParser(prefix_chars="--", usage=usage_message)
+
+    if services and services[0].startswith("--"):
+            raise argparse.ArgumentTypeError(
+                "First argument must be a list of gatherers.")
 
     for service in services:
         flag = "--%s" % service
         parser.add_argument(flag, nargs=1, required=True)
 
-    parser.add_argument("--cache", action="store_true")
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--ignore-www", action="store_true")
-    parser.add_argument("--include-parents", action="store_true")
-    parser.add_argument("--log", nargs="+")
-    parser.add_argument("--parents", nargs="+")
-    parser.add_argument("--rdns", nargs="+")
-    parser.add_argument("--sort", action="store_true")
-    parser.add_argument("--suffix", nargs="+", required=True)
-    parser.add_argument("--timeout", nargs="+")
+    parser.add_argument("--cache", action="store_true",
+                        help="Use local filesystem cache (censys only).")
+    parser.add_argument("--debug", action="store_true",
+                        help="Show debug information.")
+    parser.add_argument("--ignore-www", action="store_true",
+                        help="Ignore the www. prefixes of hostnames.")
+    parser.add_argument("--include-parents", action="store_true",
+                        help="Include second-level domains.")
+    parser.add_argument("--log", nargs=1)
+    parser.add_argument("--parents", nargs=1, help="".join([
+        "A path or URL to a CSV whose first column is second-level domains. ",
+        "Any subdomain not contained within these second-level domains will ",
+        "be excluded."
+    ]))
+    parser.add_argument("--sort", action="store_true", help="".join([
+        "Sort result CSVs by domain name, alphabetically. (Note: this causes ",
+        "the entire dataset to be read into memory.)",
+    ]))
+    parser.add_argument("--suffix", nargs=1, required=True, help="".join([
+        "Comma-separated list of suffixes, e.g '.gov' ",
+        "or '.fed.us' or '.gov,.gov.uk' (required)."
+    ]))
+    parser.add_argument("--timeout", nargs=1, help="".join([
+        "Override the 10 minute job timeout (specify in seconds) ",
+        "(censys only).",
+    ]))
     return parser
 
 
 def options_for_gather():
     # Parse options for the ``gather`` command.
-    set_services = ("censys")
+    set_services = (
+        "--help",
+        "-h",
+        "censys",
+    )
+    # Since we need to create a required argument for each service, we need to
+    # get the first argument here, before we build the parser.
     services = [s for s in sys.argv[1].split(",") if s not in set_services]
     parser = build_gather_options_parser(services)
     parsed, remaining = parser.parse_known_args()
@@ -167,10 +201,114 @@ def options_for_gather():
     """
     should_be_singles = [
         "parents",
-        "suffix"
+        "suffix",
     ]
     for service in services:
         should_be_singles.append(service)
+
+    for kwd in should_be_singles:
+        if kwd in opts:
+            opts[kwd] = opts[kwd][0]
+
+    """
+    # A lot of the flags should only be present if a given gatherer is prsent.
+    matching_args = (
+        {"args": ["cache"], "gatherer": "censys"},
+        {"args": ["dap"], "gatherer": "dap"},
+        # {
+        # "args": ["a11y_config", "a11y_redirects"],
+        # "gatherer": "a11y"
+        # },
+    )
+
+    for ma in matching_args:
+        candidates = flatten([arg.split(",") for arg in opts["_"]])
+
+        if ma["gatherer"] not in candidates:
+            for arg in ma["args"]:
+                if arg in opts and opts[arg]:
+                    raise argparse.ArgumentTypeError(
+                        f"{arg} doesn't apply with the specified gatherers")
+    """
+    return opts
+
+
+def build_scan_options_parser(services):
+    parser = ArgumentParser(prefix_chars="--")
+    parser.add_argument("--cache", action="store_true", help="".join([
+        "Use previously cached scan data to avoid scans hitting the network ",
+        "where possible.",
+    ]))
+    parser.add_argument("--debug", action="store_true",
+                        help="Print out more stuff. Useful with '--serial'")
+    parser.add_argument("--lambda", action="store_true", help="".join([
+        "Run certain scanners inside Amazon Lambda instead of locally.",
+    ]))
+    parser.add_argument("--lambda-profile", nargs=1, help="".join([
+        "When running Lambda-related commands, use a specified AWS named ",
+        "profile. Credentials/config for this named profile should already ",
+        "be configured separately in the execution environment.",
+    ]))
+    parser.add_argument("--meta", action="store_true", help="".join([
+        "Append some additional columns to each row with information about ",
+        "the scan itself. This includes start/end times and durations, as ",
+        "well as any encountered errors. When also using '--lambda', ",
+        "additional, Lambda-specific information will be appended.",
+    ]))
+    parser.add_argument("--scan", nargs=1, required=True,
+                        help="Comma-separated list of scanners (required).")
+    parser.add_argument("--sort", action="store_true", help="".join([
+        "Sort result CSVs by domain name, alphabetically. (Note: this causes ",
+        "the entire dataset to be read into memory.)",
+    ]))
+    parser.add_argument("--serial", action="store_true", help="".join([
+        "Disable parallelization, force each task to be done simultaneously. ",
+        "Helpful for testing and debugging.",
+    ]))
+
+    parser.add_argument("--suffix", nargs=1, help="".join([
+        "Add a suffix to all input domains. For example, a --suffix of ",
+        "'virginia.gov' will add '.virginia.gov' to the end of all ",
+        "input domains."
+    ]))
+    parser.add_argument("--output", nargs=1, help="".join([
+        "Where to output the 'cache/' and 'results/' directories. ",
+        "Defaults to './'.",
+    ]))
+    parser.add_argument("--workers", nargs=1,
+                        help="Limit parallel threads per-scanner to a number.")
+    # TODO: Should output and workers have default values?
+
+    return parser
+
+
+def options_for_scan():
+    # Parse options for the ``scan`` command.
+    parser = build_scan_options_parser([])
+    parsed, remaining = parser.parse_known_args()
+    parsed, remaining = parser.parse_known_args()
+    for remainder in remaining:
+        if remainder.startswith("--"):
+            raise argparse.ArgumentTypeError(
+                "%s isn't a valid argument here." % remainder)
+    if len(remaining) < 1:
+            raise argparse.ArgumentTypeError(
+                "at least one domain or CSV is required")
+    elif len(remaining) > 1:
+            raise argparse.ArgumentTypeError(
+                "Unknown options %s" % ", ".join(remaining[1:]))
+
+    opts = parsed.__dict__
+    opts = {k: opts[k] for k in opts if opts[k] is not None}
+    opts["_"] = remaining[0]
+
+    if opts.get("lambda_profile") and not opts.get("lambda"):
+            raise argparse.ArgumentTypeError(
+                "Can't set lambda profile unless lambda flag is set.")
+
+    should_be_singles = [
+        "scan",
+    ]
 
     for kwd in should_be_singles:
         if kwd in opts:
