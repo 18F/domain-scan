@@ -39,7 +39,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
     (
         "gather dap --dap=someurl --suffix=.gov",
         {
-            "_": ["dap"],
+            "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": ".gov",
             **gather_default_false_values,
@@ -50,7 +50,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             "gather dap --suffix=.gov --dap=",
             "https://analytics.usa.gov/data/live/sites-extended.csv"]),
         {
-            "_": ["dap"],
+            "gatherers": ["dap"],
             **gather_default_false_values,
             "suffix": ".gov",
             "dap": "https://analytics.usa.gov/data/live/sites-extended.csv",
@@ -64,7 +64,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             "https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv",
         ]),
         {
-            '_': ['censys,dap,private'],
+            'gatherers': ['censys', 'dap', 'private'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
@@ -80,7 +80,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             "https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv",
         ]),
         {
-            '_': ['censys,dap,private'],
+            'gatherers': ['censys', 'dap', 'private'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
@@ -95,7 +95,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             " --ignore-www",
         ]),
         {
-            '_': ['dap'],
+            'gatherers': ['dap'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
@@ -109,7 +109,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             " --include-parents",
         ]),
         {
-            '_': ['dap'],
+            'gatherers': ['dap'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
@@ -122,7 +122,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             "https://analytics.usa.gov/data/live/sites-extended.csv",
         ]),
         {
-            '_': ['dap'],
+            'gatherers': ['dap'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
@@ -135,7 +135,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
             " --debug",
         ]),
         {
-            '_': ['dap'],
+            'gatherers': ['dap'],
             **gather_default_false_values,
             'suffix': '.gov',
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
@@ -151,6 +151,7 @@ def test_options_for_gather(monkeypatch, args, expected):
 
 @pytest.mark.parametrize("args", [
     "./gather --yo --suffix=.gov",
+    "./gather , --suffix=.gov",
 ])
 @pytest.mark.xfail(raises=argparse.ArgumentTypeError)
 def test_options_for_gather_no_gatherer(monkeypatch, args):

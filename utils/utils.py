@@ -190,24 +190,26 @@ def options_for_gather():
     that they don't get added as services.
     """
     set_services = (
+        ",",
         "--help",
         "-h",
         "censys",
     )
-    services = [s for s in sys.argv[1].split(",") if s not in set_services]
+    services = [s.strip() for s in sys.argv[1].split(",")
+                if s not in set_services and s.strip()]
     if services and services[0].startswith("--"):
             raise argparse.ArgumentTypeError(
                 "First argument must be a list of gatherers.")
 
     parser = build_gather_options_parser(services)
     parsed, remaining = parser.parse_known_args()
+
     for remainder in remaining:
-        if remainder.startswith("--"):
+        if remainder.startswith("--") or remainder == ",":
             raise argparse.ArgumentTypeError(
                 "%s isn't a valid argument here." % remainder)
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
-    opts["_"] = remaining
 
     """
     The following expect a single argument, but argparse returns lists for them
@@ -225,17 +227,28 @@ def options_for_gather():
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
 
-    # Some of the flags should only be present if a given gatherer is prsent.
+    opts["gatherers"] = [g.strip() for g in
+                         remaining[0].split(",") if g.strip()]
+    if not opts["gatherers"]:
+        raise argparse.ArgumentTypeError(
+            "First argument must be a comma-separated list of gatherers")
+
+    # Some of the flags should only be present if a given gatherer is present.
     matching_args = (
         {"args": ["cache", "timeout"], "gatherer": "censys"},
     )
-    candidates = flatten([arg.split(",") for arg in opts["_"]])
+    candidates = (ma for ma in matching_args
+                  if ma["gatherer"] not in opts["gatherers"])
 
-    for ma in (ma for ma in matching_args if ma["gatherer"] not in candidates):
+    for ma in candidates:
         for arg in ma["args"]:
             if arg in opts and opts[arg]:
                 raise argparse.ArgumentTypeError(
                     "%s doesn't apply with the specified gatherers" % arg)
+
+    # Some of the arguments expect single values on the command line, but those
+    # values may contain comma-separated multiple values, so create the
+    # necesary lists here.
 
     return opts
 
