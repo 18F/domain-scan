@@ -41,7 +41,61 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             "gatherers": ["dap"],
             "dap": "someurl",
-            "suffix": ".gov",
+            "suffix": [".gov"],
+            **gather_default_false_values,
+        }
+    ),
+    (
+        "gather dap --dap=someurl --suffix=gov",
+        {
+            "gatherers": ["dap"],
+            "dap": "someurl",
+            "suffix": [".gov"],
+            **gather_default_false_values,
+        }
+    ),
+    (
+        "gather dap --dap=someurl --suffix=gov,",
+        {
+            "gatherers": ["dap"],
+            "dap": "someurl",
+            "suffix": [".gov"],
+            **gather_default_false_values,
+        }
+    ),
+    (
+        "gather dap --dap=someurl --suffix=,gov",
+        {
+            "gatherers": ["dap"],
+            "dap": "someurl",
+            "suffix": [".gov"],
+            **gather_default_false_values,
+        }
+    ),
+    (
+        "gather dap --dap=someurl --suffix=.gov,.gov.uk",
+        {
+            "gatherers": ["dap"],
+            "dap": "someurl",
+            "suffix": [".gov", ".gov.uk"],
+            **gather_default_false_values,
+        }
+    ),
+    (
+        "gather dap --dap=someurl --suffix=.gov,gov.uk",
+        {
+            "gatherers": ["dap"],
+            "dap": "someurl",
+            "suffix": [".gov", ".gov.uk"],
+            **gather_default_false_values,
+        }
+    ),
+    (
+        "gather dap --dap=someurl --suffix=gov,gov.uk",
+        {
+            "gatherers": ["dap"],
+            "dap": "someurl",
+            "suffix": [".gov", ".gov.uk"],
             **gather_default_false_values,
         }
     ),
@@ -52,7 +106,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             "gatherers": ["dap"],
             **gather_default_false_values,
-            "suffix": ".gov",
+            "suffix": [".gov"],
             "dap": "https://analytics.usa.gov/data/live/sites-extended.csv",
         }
     ),
@@ -66,7 +120,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             'gatherers': ['censys', 'dap', 'private'],
             **gather_default_false_values,
-            'suffix': '.gov',
+            'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'private': '/path/to/private-research.csv',
             'parents': 'https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv',
@@ -82,7 +136,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             'gatherers': ['censys', 'dap', 'private'],
             **gather_default_false_values,
-            'suffix': '.gov',
+            'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'private': '/path/to/private-research.csv',
             'parents': 'https://github.com/GSA/data/raw/master/dotgov-domains/current-federal.csv',
@@ -97,7 +151,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             'gatherers': ['dap'],
             **gather_default_false_values,
-            'suffix': '.gov',
+            'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'ignore_www': True,
         }
@@ -111,7 +165,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             'gatherers': ['dap'],
             **gather_default_false_values,
-            'suffix': '.gov',
+            'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'include_parents': True,
         }
@@ -124,7 +178,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             'gatherers': ['dap'],
             **gather_default_false_values,
-            'suffix': '.gov',
+            'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
         }
     ),
@@ -137,7 +191,7 @@ scan_args_with_mandatory_values = get_args_with_mandatory_values(
         {
             'gatherers': ['dap'],
             **gather_default_false_values,
-            'suffix': '.gov',
+            'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'debug': True,
         }

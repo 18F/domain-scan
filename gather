@@ -37,11 +37,7 @@ def run(options=None):
         exit(1)
 
     # For now, require a --suffix.
-    suffixes = utils.normalize_suffixes(options.get("suffix"))
-    if suffixes is None:
-        logging.error("--suffix with one or more patterns is required.")
-        exit(1)
-    # Turn the suffix into a regex.
+    suffixes = options.get("suffix")
     suffix_pattern = utils.suffix_pattern(suffixes)
 
     # Clear out existing result CSVs, to avoid inconsistent data.

@@ -248,8 +248,13 @@ def options_for_gather():
 
     # Some of the arguments expect single values on the command line, but those
     # values may contain comma-separated multiple values, so create the
-    # necesary lists here.
+    # necessary lists here.
 
+    def fix_suffix(suffix: str) -> str:
+        return suffix if suffix.startswith(".") else ".%s" % suffix
+
+    opts["suffix"] = [fix_suffix(s.strip()) for s in opts["suffix"].split(",")
+                      if s.strip()]
     return opts
 
 
@@ -741,22 +746,6 @@ def sort_csv(input_filename):
 
     # replace the original
     shutil.move(tmp_filename, input_filename)
-
-
-# Given a user-input domain suffix, normalize it.
-def normalize_suffixes(given):
-    if (given is None) or (type(given) is not str):
-        return None
-
-    suffixes = []
-    for suffix in given.split(","):
-        suffix = suffix.strip()
-
-        if not suffix.startswith("."):
-            suffix = (".%s" % suffix)
-        suffixes.append(suffix)
-
-    return suffixes
 
 
 # Given a domain suffix, provide a compiled regex.
