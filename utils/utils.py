@@ -310,7 +310,11 @@ def options_for_scan():
                 "Can't set lambda profile unless lambda flag is set.")
 
     should_be_singles = [
+        "lambda_profile",
+        "output",
         "scan",
+        "suffix",
+        "workers",
     ]
 
     for kwd in should_be_singles:

@@ -262,3 +262,29 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
     command = "./scan example.org --scan=a11y --lambda-profile=something"
     monkeypatch.setattr(sys, "argv", command.split(" "))
     subutils.options_for_scan()
+
+
+@pytest.mark.parametrize("command,expected", [
+    (
+        "./scan example.org --scan=a11y --workers=1",
+        {
+            "_": "example.org",
+            "scan": "a11y",
+            "workers": "1",
+            **scan_default_false_values,
+        }
+    ),
+    (
+        "./scan example.org --scan=a11y --output=..",
+        {
+            "_": "example.org",
+            "scan": "a11y",
+            "output": "..",
+            **scan_default_false_values,
+        }
+    ),
+])
+def test_options_for_scan_check_for_single_args(monkeypatch, command, expected):
+    monkeypatch.setattr(sys, "argv", command.split(" "))
+    result = subutils.options_for_scan()
+    assert result == expected
