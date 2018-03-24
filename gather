@@ -32,11 +32,7 @@ strip_redacted = re.compile("^(\?\.)+")
 def run(options=None):
 
     sources = options["gatherers"]
-    if not sources:
-        logging.error("Specify a gatherer.")
-        exit(1)
 
-    # For now, require a --suffix.
     suffixes = options.get("suffix")
     suffix_pattern = utils.suffix_pattern(suffixes)
 
