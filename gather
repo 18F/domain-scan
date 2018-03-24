@@ -55,7 +55,6 @@ def run(options=None):
     # that will act as a whitelist for which subdomains to gather.
     parents = get_parent_domains(options)
 
-
     # De-duping hostnames. This will cause the system to hold all
     # hostnames in memory at once, but oh well.
     hostnames_cache = {}
@@ -168,7 +167,6 @@ def run(options=None):
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
 
 
-
 # Read in parent domains from the first column of a given CSV.
 def get_parent_domains(options):
     parents = options.get("parents")
@@ -201,6 +199,6 @@ def get_parent_domains(options):
 
     return parent_domains
 
+
 if __name__ == '__main__':
     run(options)
-
