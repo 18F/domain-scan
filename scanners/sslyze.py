@@ -17,7 +17,7 @@ import logging
 import sslyze
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
-from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
+from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
 from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
@@ -130,7 +130,7 @@ def to_rows(data):
 
             row['protocols'].get('sslv2'), row['protocols'].get('sslv3'),
             row['protocols'].get('tlsv1.0'), row['protocols'].get('tlsv1.1'),
-            row['protocols'].get('tlsv1.2'),
+            row['protocols'].get('tlsv1.2'), row['protocols'].get('tlsv1.3'),
 
             row['config'].get('any_dhe'), row['config'].get('all_dhe'),
             row['config'].get('weakest_dh'),
@@ -158,7 +158,7 @@ headers = [
     "Scanned Hostname",
     "Scanned Port",
     "STARTTLS SMTP",
-    "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2",
+    "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3",
 
     "Any Forward Secrecy", "All Forward Secrecy",
     "Weakest DH Group Size",
@@ -207,14 +207,14 @@ def run_sslyze(data, environment, options):
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_serial(scanner, server_info, data, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs = scan_serial(scanner, server_info, data, options)
     else:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = scan_parallel(scanner, server_info, data, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs = scan_parallel(scanner, server_info, data, options)
 
     # Only analyze protocols if all the scanners functioned.
     # Very difficult to draw conclusions if some worked and some did not.
-    if sslv2 and sslv3 and tlsv1 and tlsv1_1 and tlsv1_2:
-        analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2)
+    if sslv2 and sslv3 and tlsv1 and tlsv1_1 and tlsv1_2 and tlsv1_3:
+        analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3)
 
     if certs:
         data['certs'] = analyze_certs(certs)
@@ -222,13 +222,14 @@ def run_sslyze(data, environment, options):
     return data
 
 
-def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2):
+def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3):
     data['protocols'] = {
         'sslv2': supported_protocol(sslv2),
         'sslv3': supported_protocol(sslv3),
         'tlsv1.0': supported_protocol(tlsv1),
         'tlsv1.1': supported_protocol(tlsv1_1),
-        'tlsv1.2': supported_protocol(tlsv1_2)
+        'tlsv1.2': supported_protocol(tlsv1_2),
+        'tlsv1.3': supported_protocol(tlsv1_3)
     }
 
     accepted_ciphers = (
@@ -236,7 +237,8 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2):
         (sslv3.accepted_cipher_list or []) +
         (tlsv1.accepted_cipher_list or []) +
         (tlsv1_1.accepted_cipher_list or []) +
-        (tlsv1_2.accepted_cipher_list or [])
+        (tlsv1_2.accepted_cipher_list or []) +
+        (tlsv1_3.accepted_cipher_list or [])
     )
 
     if len(accepted_ciphers) > 0:
@@ -365,12 +367,14 @@ def analyze_certs(certs):
 
         # Check which browsers for which the cert is marked as EV.
         browsers = []
-        if oid in firefox_ev:
-            browsers.append("Firefox")
-        if oid in chromium_ev:
-            browsers.append("Chrome")
-        elif oid in meant_to_be_ev:
-            browsers.append("Other")
+        if oid in mozilla_ev:
+            browsers.append("Mozilla")
+        if oid in google_ev:
+            browsers.append("Google")
+        if oid in microsoft_ev:
+            browsers.append("Microsoft")
+        if oid in apple_ev:
+            browsers.append("Apple")
 
         if len(browsers) > 0:
             data['certs']['ev'] = True
@@ -465,6 +469,8 @@ def scan_serial(scanner, server_info, data, options):
     tlsv1_1 = scanner.run_scan_command(server_info, Tlsv11ScanCommand())
     logging.debug("\t\tTLSv1.2 scan.")
     tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
+    logging.debug("\t\tTLSv1.3 scan.")
+    tlsv1_3 = scanner.run_scan_command(server_info, Tlsv13ScanCommand())
 
     certs = None
     if options.get("sslyze-certs", True) is True:
@@ -482,7 +488,7 @@ def scan_serial(scanner, server_info, data, options):
 
     logging.debug("\tDone scanning.")
 
-    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
+    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs
 
 
 # Run each scan in parallel, using multi-processing.
@@ -497,15 +503,15 @@ def scan_parallel(scanner, server_info, data, options):
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
             logging.warn("%s\n%s" % (text, utils.format_last_exception()))
-            return None, None, None, None, None, None
+            return None, None, None, None, None, None, None
         except Exception as err:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
             logging.warn(text)
-            return None, None, None, None, None, None
+            return None, None, None, None, None, None, None
 
     # Initialize commands and result containers
-    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs = None, None, None, None, None, None
+    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs = None, None, None, None, None, None
 
     # Queue them all up
     queue(Sslv20ScanCommand())
@@ -513,6 +519,7 @@ def scan_parallel(scanner, server_info, data, options):
     queue(Tlsv10ScanCommand())
     queue(Tlsv11ScanCommand())
     queue(Tlsv12ScanCommand())
+    queue(Tlsv13ScanCommand())
 
     if options.get("sslyze-certs", True) is True:
         queue(CertificateInfoScanCommand())
@@ -525,7 +532,7 @@ def scan_parallel(scanner, server_info, data, options):
                 error = ("Scan command failed: %s" % result.as_text())
                 logging.warn(error)
                 data['errors'].append(error)
-                return None, None, None, None, None, None
+                return None, None, None, None, None, None, None
 
             if type(result.scan_command) == Sslv20ScanCommand:
                 sslv2 = result
@@ -537,6 +544,8 @@ def scan_parallel(scanner, server_info, data, options):
                 tlsv1_1 = result
             elif type(result.scan_command) == Tlsv12ScanCommand:
                 tlsv1_2 = result
+            elif type(result.scan_command) == Tlsv13ScanCommand:
+                tlsv1_3 = result
             elif type(result.scan_command) == CertificateInfoScanCommand:
                 certs = result
             else:
@@ -553,134 +562,232 @@ def scan_parallel(scanner, server_info, data, options):
 
     # There was an error during async processing.
     if was_error:
-        return None, None, None, None, None, None
+        return None, None, None, None, None, None, None
 
     logging.debug("\tDone scanning.")
 
-    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, certs
+    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs
 
-# Chromium source:
+# Google source:
 # https://cs.chromium.org/chromium/src/net/cert/ev_root_ca_metadata.cc?sq=package:chromium&dr=C
 
-chromium_ev = [
-  "1.3.6.1.4.1.17326.10.14.2.1.2",
-  "1.3.6.1.4.1.17326.10.14.2.2.2",
-  "1.3.6.1.4.1.17326.10.8.12.1.2",
-  "1.3.6.1.4.1.17326.10.8.12.2.2",
-  "1.3.6.1.4.1.6449.1.2.1.5.1",
-  "1.3.6.1.4.1.782.1.2.1.8.1",
-  "1.3.159.1.17.1",
-  "1.3.6.1.4.1.34697.2.1",
-  "1.3.6.1.4.1.34697.2.2",
-  "1.3.6.1.4.1.34697.2.3",
-  "1.3.6.1.4.1.34697.2.4",
-  "2.23.140.1.1",
-  "1.3.6.1.4.1.13177.10.1.3.10",
-  "1.3.6.1.4.1.6334.1.100.1",
-  "2.16.578.1.26.1.3.3",
-  "1.3.6.1.4.1.22234.2.5.2.3.1",
-  "1.2.616.1.113527.2.5.1.1",
-  "2.16.156.112554.3",
-  "1.3.6.1.4.1.29836.1.10",
-  "1.3.6.1.4.1.6449.1.2.1.5.1",
-  "1.3.6.1.4.1.6334.1.100.1",
-  "2.16.840.1.114412.2.1",
-  "1.3.6.1.4.1.4788.2.202.1",
-  "2.16.840.1.114028.10.1.2",
-  "1.3.6.1.4.1.14370.1.6",
-  "2.16.792.3.0.4.1.1.4",
-  "1.3.6.1.4.1.14370.1.6",
-  "1.3.6.1.4.1.4146.1.1",
-  "2.16.840.1.114413.1.7.23.3",
-  "1.3.6.1.4.1.6334.1.100.1",
-  "1.3.6.1.4.1.14777.6.1.1",
-  "1.3.6.1.4.1.14777.6.1.2",
-  "1.3.171.1.1.10.5.2",
-  "1.3.6.1.4.1.782.1.2.1.8.1",
-  "2.16.756.5.14.7.4.8",
-  "1.3.6.1.4.1.8024.0.2.100.1.2",
-  "1.3.6.1.4.1.8024.0.2.100.1.2",
-  "2.16.840.1.114404.1.1.2.4.1",
-  "1.2.392.200091.100.721.1",
-  "2.16.528.1.1003.1.2.7",
-  "1.3.6.1.4.1.23223.1.1.1",
-  "2.16.840.1.114414.1.7.23.3",
-  "2.16.840.1.114414.1.7.24.3",
-  "2.23.140.1.12.16.756.1.89.1.2.1.1",
-  "2.16.756.1.83.21.0",
-  "2.16.840.1.113733.1.7.48.1",
-  "1.3.6.1.4.1.40869.1.1.22.3",
-  "1.3.6.1.4.1.7879.13.24.1",
-  "1.3.6.1.4.1.6449.1.2.1.5.1",
-  "1.3.6.1.4.1.782.1.2.1.8.1",
-  "2.16.840.1.114413.1.7.23.3",
-  "2.16.840.1.114414.1.7.23.3",
-  "2.16.840.1.113733.1.7.23.6",
-  "2.16.840.1.114171.500.9",
-  "2.16.840.1.114404.1.1.2.4.1"
+google_ev = [
+    "1.2.392.200091.100.721.1",
+    "1.2.616.1.113527.2.5.1.1",
+    "1.3.159.1.17.1",
+    "1.3.171.1.1.10.5.2",
+    "1.3.6.1.4.1.13177.10.1.3.10",
+    "1.3.6.1.4.1.14370.1.6",
+    "1.3.6.1.4.1.14777.6.1.1",
+    "1.3.6.1.4.1.14777.6.1.2",
+    "1.3.6.1.4.1.17326.10.14.2.1.2",
+    "1.3.6.1.4.1.17326.10.14.2.2.2",
+    "1.3.6.1.4.1.17326.10.8.12.1.2",
+    "1.3.6.1.4.1.17326.10.8.12.2.2",
+    "1.3.6.1.4.1.22234.2.5.2.3.1",
+    "1.3.6.1.4.1.23223.1.1.1",
+    "1.3.6.1.4.1.29836.1.10",
+    "1.3.6.1.4.1.34697.2.1",
+    "1.3.6.1.4.1.34697.2.2",
+    "1.3.6.1.4.1.34697.2.3",
+    "1.3.6.1.4.1.34697.2.4",
+    "1.3.6.1.4.1.40869.1.1.22.3",
+    "1.3.6.1.4.1.4146.1.1",
+    "1.3.6.1.4.1.4788.2.202.1",
+    "1.3.6.1.4.1.6334.1.100.1",
+    "1.3.6.1.4.1.6449.1.2.1.5.1",
+    "1.3.6.1.4.1.782.1.2.1.8.1",
+    "1.3.6.1.4.1.7879.13.24.1",
+    "1.3.6.1.4.1.8024.0.2.100.1.2",
+    "2.16.156.112554.3",
+    "2.16.528.1.1003.1.2.7",
+    "2.16.578.1.26.1.3.3",
+    "2.16.756.1.83.21.0",
+    "2.16.756.1.89.1.2.1.1",
+    "2.16.756.5.14.7.4.8",
+    "2.16.792.3.0.4.1.1.4",
+    "2.16.840.1.113733.1.7.23.6",
+    "2.16.840.1.113733.1.7.48.1",
+    "2.16.840.1.114028.10.1.2",
+    "2.16.840.1.114171.500.9",
+    "2.16.840.1.114404.1.1.2.4.1",
+    "2.16.840.1.114412.2.1",
+    "2.16.840.1.114413.1.7.23.3",
+    "2.16.840.1.114414.1.7.23.3",
+    "2.16.840.1.114414.1.7.24.3",
+    "2.23.140.1.1"
 ]
 
-# Firefox source:
+# Mozilla source:
 # https://dxr.mozilla.org/mozilla-central/source/security/certverifier/ExtendedValidation.cpp
 
-firefox_ev = [
-  "1.3.6.1.4.1.6334.1.100.1",
-  "2.16.756.1.89.1.2.1.1",
-  "2.16.840.1.113733.1.7.23.6",
-  "1.3.6.1.4.1.14370.1.6",
-  "2.16.840.1.113733.1.7.48.1",
-  "2.16.840.1.114404.1.1.2.4.1",
-  "1.3.6.1.4.1.6449.1.2.1.5.1",
-  "2.16.840.1.114413.1.7.23.3",
-  "2.16.840.1.114414.1.7.23.3",
-  "2.16.840.1.114412.2.1",
-  "1.3.6.1.4.1.8024.0.2.100.1.2",
-  "1.3.6.1.4.1.782.1.2.1.8.1",
-  "2.16.840.1.114028.10.1.2",
-  "1.3.6.1.4.1.4146.1.1",
-  "2.16.578.1.26.1.3.3",
-  "1.3.6.1.4.1.22234.2.5.2.3.1",
-  "1.3.6.1.4.1.17326.10.14.2.1.2",
-  "1.3.6.1.4.1.17326.10.8.12.1.2",
-  "1.3.6.1.4.1.34697.2.1",
-  "1.3.6.1.4.1.34697.2.2",
-  "1.3.6.1.4.1.34697.2.3",
-  "1.3.6.1.4.1.34697.2.4",
-  "1.2.616.1.113527.2.5.1.1",
-  "1.3.6.1.4.1.14777.6.1.1",
-  "1.3.6.1.4.1.14777.6.1.2",
-  "1.3.6.1.4.1.7879.13.24.1",
-  "1.3.6.1.4.1.40869.1.1.22.3",
-  "1.3.6.1.4.1.4788.2.202.1",
-  "2.16.840.1.113733.1.7.23.6",
-  "1.3.6.1.4.1.14370.1.6",
-  "2.16.840.1.113733.1.7.48.1",
-  "1.3.6.1.4.1.13177.10.1.3.10",
-  "1.3.6.1.4.1.40869.1.1.22.3",
-  "2.16.792.3.0.4.1.1.4",
-  "1.3.159.1.17.1",
-  "2.16.840.1.114412.2.1",
-  "1.3.6.1.4.1.8024.0.2.100.1.2",
-  "1.3.6.1.4.1.6449.1.2.1.5.1",
-  "1.3.6.1.4.1.4146.1.1",
-  "2.16.840.1.114028.10.1.2",
-  "2.16.528.1.1003.1.2.7",
-  "2.16.840.1.114028.10.1.2",
-  "2.16.156.112554.3",
-  "1.2.392.200091.100.721.1",
-  "2.16.756.5.14.7.4.8",
-  "1.3.6.1.4.1.22234.3.5.3.1",
-  "1.3.6.1.4.1.22234.3.5.3.2",
-  "1.3.6.1.4.1.22234.2.14.3.11",
-  "2.16.840.1.113733.1.7.23.6",
-  "2.23.140.1.1",
-  "1.3.171.1.1.10.5.2",
-  "1.2.156.112559.1.1.6.1"
+mozilla_ev = [
+    "1.2.156.112559.1.1.6.1",
+    "1.2.392.200091.100.721.1",
+    "1.2.616.1.113527.2.5.1.1",
+    "1.3.159.1.17.1",
+    "1.3.171.1.1.10.5.2",
+    "1.3.6.1.4.1.13177.10.1.3.10",
+    "1.3.6.1.4.1.14370.1.6",
+    "1.3.6.1.4.1.14777.6.1.1",
+    "1.3.6.1.4.1.14777.6.1.2",
+    "1.3.6.1.4.1.17326.10.14.2.1.2",
+    "1.3.6.1.4.1.17326.10.8.12.1.2",
+    "1.3.6.1.4.1.22234.2.14.3.11",
+    "1.3.6.1.4.1.22234.2.5.2.3.1",
+    "1.3.6.1.4.1.22234.3.5.3.1",
+    "1.3.6.1.4.1.22234.3.5.3.2",
+    "1.3.6.1.4.1.34697.2.1",
+    "1.3.6.1.4.1.34697.2.2",
+    "1.3.6.1.4.1.34697.2.3",
+    "1.3.6.1.4.1.34697.2.4",
+    "1.3.6.1.4.1.40869.1.1.22.3",
+    "1.3.6.1.4.1.4146.1.1",
+    "1.3.6.1.4.1.4788.2.202.1",
+    "1.3.6.1.4.1.6334.1.100.1",
+    "1.3.6.1.4.1.6449.1.2.1.5.1",
+    "1.3.6.1.4.1.782.1.2.1.8.1",
+    "1.3.6.1.4.1.7879.13.24.1",
+    "1.3.6.1.4.1.8024.0.2.100.1.2",
+    "2.16.156.112554.3",
+    "2.16.528.1.1003.1.2.7",
+    "2.16.578.1.26.1.3.3",
+    "2.16.756.1.89.1.2.1.1",
+    "2.16.756.5.14.7.4.8",
+    "2.16.792.3.0.4.1.1.4",
+    "2.16.840.1.113733.1.7.23.6",
+    "2.16.840.1.113733.1.7.48.1",
+    "2.16.840.1.114028.10.1.2",
+    "2.16.840.1.114404.1.1.2.4.1",
+    "2.16.840.1.114412.2.1",
+    "2.16.840.1.114413.1.7.23.3",
+    "2.16.840.1.114414.1.7.23.3",
+    "2.23.140.1.1"
 ]
 
 
-# Uses an OID asserted in the CA's CPS as EV, but may not
-# be in any browser yet. Compiled manually.
-meant_to_be_ev = [
+# Microsoft source:
+# https://github.com/PeculiarVentures/tl-create
+# Filtered to --microsoft with --for of SERVER_AUTH.
 
+microsoft_ev = [
+    "0.4.0.2042.1.4",
+    "0.4.0.2042.1.5",
+    "1.2.156.112559.1.1.6.1",
+    "1.2.156.112559.1.1.7.1",
+    "1.2.156.112570.1.1.3",
+    "1.2.392.200091.100.721.1",
+    "1.2.40.0.17.1.22",
+    "1.2.616.1.113527.2.5.1.1",
+    "1.2.616.1.113527.2.5.1.7",
+    "1.3.159.1.17.1",
+    "1.3.171.1.1.1.10.5",
+    "1.3.171.1.1.10.5.2",
+    "1.3.6.1.4.1.13177.10.1.3.10",
+    "1.3.6.1.4.1.14370.1.6",
+    "1.3.6.1.4.1.14777.6.1.1",
+    "1.3.6.1.4.1.14777.6.1.2",
+    "1.3.6.1.4.1.15096.1.3.1.51.2",
+    "1.3.6.1.4.1.15096.1.3.1.51.4",
+    "1.3.6.1.4.1.17326.10.14.2.1.2",
+    "1.3.6.1.4.1.17326.10.16.3.6.1.3.2.1",
+    "1.3.6.1.4.1.17326.10.16.3.6.1.3.2.2",
+    "1.3.6.1.4.1.17326.10.8.12.1.1",
+    "1.3.6.1.4.1.17326.10.8.12.1.2",
+    "1.3.6.1.4.1.18332.55.1.1.2.12",
+    "1.3.6.1.4.1.18332.55.1.1.2.22",
+    "1.3.6.1.4.1.22234.2.14.3.11",
+    "1.3.6.1.4.1.22234.2.5.2.3.1",
+    "1.3.6.1.4.1.22234.3.5.3.1",
+    "1.3.6.1.4.1.22234.3.5.3.2",
+    "1.3.6.1.4.1.23223.1.1.1",
+    "1.3.6.1.4.1.29836.1.10",
+    "1.3.6.1.4.1.311.94.1.1",
+    "1.3.6.1.4.1.34697.2.1",
+    "1.3.6.1.4.1.34697.2.2",
+    "1.3.6.1.4.1.34697.2.3",
+    "1.3.6.1.4.1.34697.2.4",
+    "1.3.6.1.4.1.36305.2",
+    "1.3.6.1.4.1.38064.1.1.1.0",
+    "1.3.6.1.4.1.40869.1.1.22.3",
+    "1.3.6.1.4.1.4146.1.1",
+    "1.3.6.1.4.1.4146.1.2",
+    "1.3.6.1.4.1.4788.2.202.1",
+    "1.3.6.1.4.1.6334.1.100.1",
+    "1.3.6.1.4.1.6449.1.2.1.5.1",
+    "1.3.6.1.4.1.782.1.2.1.8.1",
+    "1.3.6.1.4.1.7879.13.24.1",
+    "1.3.6.1.4.1.8024.0.2.100.1.2",
+    "2.16.156.112554.3",
+    "2.16.528.1.1003.1.2.7",
+    "2.16.578.1.26.1.3.3",
+    "2.16.756.1.17.3.22.32",
+    "2.16.756.1.17.3.22.34",
+    "2.16.756.1.83.21.0",
+    "2.16.756.1.89.1.2.1.1",
+    "2.16.792.3.0.4.1.1.4",
+    "2.16.840.1.113733.1.7.23.6",
+    "2.16.840.1.113733.1.7.48.1",
+    "2.16.840.1.113839.0.6.9",
+    "2.16.840.1.114028.10.1.2",
+    "2.16.840.1.114404.1.1.2.4.1",
+    "2.16.840.1.114412.2.1",
+    "2.16.840.1.114413.1.7.23.3",
+    "2.16.840.1.114414.1.7.23.3",
+    "2.16.840.1.114414.1.7.24.2",
+    "2.16.840.1.114414.1.7.24.3",
+    "2.23.140.1.1",
+    "2.23.140.1.3"
+]
+
+# Apple source:
+# https://github.com/PeculiarVentures/tl-create
+# Filtered to --apple with a --for of SERVER_AUTH.
+
+apple_ev = [
+    "1.2.250.1.177.1.18.2.2",
+    "1.2.392.200091.100.721.1",
+    "1.2.616.1.113527.2.5.1.1",
+    "1.3.159.1.17.1",
+    "1.3.6.1.4.1.13177.10.1.3.10",
+    "1.3.6.1.4.1.14370.1.6",
+    "1.3.6.1.4.1.14777.6.1.1",
+    "1.3.6.1.4.1.14777.6.1.2",
+    "1.3.6.1.4.1.17326.10.14.2.1.2",
+    "1.3.6.1.4.1.17326.10.8.12.1.2",
+    "1.3.6.1.4.1.18332.55.1.1.2.22",
+    "1.3.6.1.4.1.22234.2.14.3.11",
+    "1.3.6.1.4.1.22234.2.5.2.3.1",
+    "1.3.6.1.4.1.22234.3.5.3.1",
+    "1.3.6.1.4.1.23223.1.1.1",
+    "1.3.6.1.4.1.23223.2",
+    "1.3.6.1.4.1.34697.2.1",
+    "1.3.6.1.4.1.34697.2.2",
+    "1.3.6.1.4.1.34697.2.3",
+    "1.3.6.1.4.1.34697.2.4",
+    "1.3.6.1.4.1.40869.1.1.22.3",
+    "1.3.6.1.4.1.4146.1.1",
+    "1.3.6.1.4.1.4788.2.202.1",
+    "1.3.6.1.4.1.6334.1.100.1",
+    "1.3.6.1.4.1.6449.1.2.1.5.1",
+    "1.3.6.1.4.1.782.1.2.1.8.1",
+    "1.3.6.1.4.1.7879.13.24.1",
+    "1.3.6.1.4.1.8024.0.2.100.1.2",
+    "2.16.156.112554.3",
+    "2.16.528.1.1003.1.2.7",
+    "2.16.578.1.26.1.3.3",
+    "2.16.756.1.83.21.0",
+    "2.16.756.1.89.1.2.1.1",
+    "2.16.756.5.14.7.4.8",
+    "2.16.792.3.0.4.1.1.4",
+    "2.16.840.1.113733.1.7.23.6",
+    "2.16.840.1.113733.1.7.48.1",
+    "2.16.840.1.114028.10.1.2",
+    "2.16.840.1.114404.1.1.2.4.1",
+    "2.16.840.1.114412.1.3.0.2",
+    "2.16.840.1.114412.2.1",
+    "2.16.840.1.114413.1.7.23.3",
+    "2.16.840.1.114414.1.7.23.3",
+    "2.16.840.1.114414.1.7.24.3",
+    "2.23.140.1.1"
 ]
