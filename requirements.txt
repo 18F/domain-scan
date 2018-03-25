@@ -47,3 +47,4 @@ google-auth-oauthlib
 ############
 
 pytest
+typing-extensions
