@@ -123,6 +123,9 @@ def scan(domain, environment, options):
 def to_rows(data):
     retVal = []
     for row in data:
+
+        ev = row.get('certs', {}).get('ev', {})
+
         retVal.append([
             row['hostname'],
             row['port'],
@@ -144,9 +147,9 @@ def to_rows(data):
             row['certs'].get('not_before'), row['certs'].get('not_after'),
             row['certs'].get('served_issuer'), row['certs'].get('constructed_issuer'),
 
-            row['certs'].get('ev'),
-            str.join(", ", row['certs'].get('ev_oids', [])),
-            str.join(", ", row['certs'].get('ev_browsers', [])),
+            ev.get('asserted'), ev.get('trusted'),
+            str.join(", ", ev.get('trusted_oids', [])),
+            str.join(", ", ev.get('trusted_browsers', [])),
 
             row.get('errors')
         ])
@@ -172,7 +175,8 @@ headers = [
     "Not Before", "Not After",
     "Highest Served Issuer", "Highest Constructed Issuer",
 
-    "EV", "EV OIDs", "EV Browsers",
+    "Asserts EV", "Trusted for EV",
+    "EV Trusted OIDs", "EV Trusted Browsers",
 
     "Errors"
 ]
@@ -360,10 +364,18 @@ def analyze_certs(certs):
         # If not found, just move on.
         pass
 
-    data['certs']['ev'] = False
-    data['certs']['ev_oids'] = []
-    data['certs']['ev_browsers'] = []
+    data['certs']['ev'] = {
+        'asserted': False,
+        'trusted': False,
+        'trusted_oids': [],
+        'trusted_browsers': []
+    }
+
     for oid in oids:
+
+        # If it matches the generic EV OID, the certifciate is
+        # asserting that it was issued following the EV guidelines.
+        data['certs']['ev']['asserted'] = (oid == evg_oid)
 
         # Check which browsers for which the cert is marked as EV.
         browsers = []
@@ -377,16 +389,16 @@ def analyze_certs(certs):
             browsers.append("Apple")
 
         if len(browsers) > 0:
-            data['certs']['ev'] = True
+            data['certs']['ev']['trusted'] = True
 
             # Log each new OID we observe as marked for EV.
-            if oid not in data['certs']['ev_oids']:
-                data['certs']['ev_oids'].append(oid)
+            if oid not in data['certs']['ev']['trusted_oids']:
+                data['certs']['ev']['trusted_oids'].append(oid)
 
             # For all matching browsers, log each new one.
             for browser in browsers:
-                if browser not in data['certs']['ev_browsers']:
-                    data['certs']['ev_browsers'].append(browser)
+                if browser not in data['certs']['ev']['trusted_browsers']:
+                    data['certs']['ev']['trusted_browsers'].append(browser)
 
     return data['certs']
 
@@ -568,6 +580,10 @@ def scan_parallel(scanner, server_info, data, options):
 
     return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs
 
+
+# EV Guidelines OID
+evg_oid = "2.23.140.1.1"
+
 # Google source:
 # https://cs.chromium.org/chromium/src/net/cert/ev_root_ca_metadata.cc?sq=package:chromium&dr=C
 
@@ -614,8 +630,7 @@ google_ev = [
     "2.16.840.1.114412.2.1",
     "2.16.840.1.114413.1.7.23.3",
     "2.16.840.1.114414.1.7.23.3",
-    "2.16.840.1.114414.1.7.24.3",
-    "2.23.140.1.1"
+    "2.16.840.1.114414.1.7.24.3"
 ]
 
 # Mozilla source:
@@ -661,8 +676,7 @@ mozilla_ev = [
     "2.16.840.1.114404.1.1.2.4.1",
     "2.16.840.1.114412.2.1",
     "2.16.840.1.114413.1.7.23.3",
-    "2.16.840.1.114414.1.7.23.3",
-    "2.23.140.1.1"
+    "2.16.840.1.114414.1.7.23.3"
 ]
 
 
@@ -735,9 +749,7 @@ microsoft_ev = [
     "2.16.840.1.114413.1.7.23.3",
     "2.16.840.1.114414.1.7.23.3",
     "2.16.840.1.114414.1.7.24.2",
-    "2.16.840.1.114414.1.7.24.3",
-    "2.23.140.1.1",
-    "2.23.140.1.3"
+    "2.16.840.1.114414.1.7.24.3"
 ]
 
 # Apple source:
@@ -788,6 +800,5 @@ apple_ev = [
     "2.16.840.1.114412.2.1",
     "2.16.840.1.114413.1.7.23.3",
     "2.16.840.1.114414.1.7.23.3",
-    "2.16.840.1.114414.1.7.24.3",
-    "2.23.140.1.1"
+    "2.16.840.1.114414.1.7.24.3"
 ]
