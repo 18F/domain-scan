@@ -1,9 +1,7 @@
 # VERSION 0.3.0
 
-# USAGE
-
-FROM      ubuntu:16.04
-MAINTAINER V. David Zvenyach <vladlen.zvenyach@gsa.gov>
+FROM ubuntu:16.04
+MAINTAINER Shane Frasier <jeremy.frasier@beta.dhs.gov>
 
 ###
 # Dependencies
@@ -18,6 +16,7 @@ RUN \
         --yes \
         --no-install-recommends \
         --no-install-suggests \
+      apt-utils \
       build-essential \
       curl \
       git \
@@ -48,12 +47,33 @@ RUN \
       libbz2-dev \
       llvm \
       libncursesw5-dev \
-      # Not sure what these dependencies are for
+      # Additional dependencies for third-parties scanner
       nodejs \
-      npm
+      npm \
+      # Chrome dependencies
+      fonts-liberation \
+      libappindicator1 \
+      libasound2 \
+      libatk-bridge2.0-0 \
+      libgtk-3-0 \
+      libnspr4 \
+      libnss3 \
+      libxss1 \
+      libxtst6 \
+      lsb-release \
+      xdg-utils
 
 RUN apt-get install -qq --yes locales && locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+
+###
+# Google Chrome
+###
+RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && dpkg -i google-chrome-stable_current_amd64.deb \
+    && rm google-chrome-stable_current_amd64.deb
+# The third-parties scanner looks for an executable called chrome
+RUN ln -s /usr/bin/google-chrome-stable /usr/bin/chrome
 
 ###
 ## Python
@@ -95,30 +115,21 @@ RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
 #     /opt/pyenv/sources/${PYENV_PYTHON_VERSION}-debug/Python-${PYENV_PYTHON_VERSION}/ \
 #     >> etc/gdb/gdbinit
 
+###
+# Update pip and setuptools to the latest versions
+###
+RUN pip install --upgrade pip setuptools
+
+###
+# domain-scan
+###
 COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip \
-    && pip install --upgrade setuptools \
-    && pip install --upgrade -r requirements.txt
-
-###
-# Go
-###
-ENV GOLANG_VERSION=1.8.3 PATH=/go/bin:/usr/src/go/bin:$PATH GOPATH=/go \
-    GOROOT=/usr/src/go
-
-RUN curl -sSL https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz \
-    | tar -v -C /usr/src -xz
+RUN pip install --upgrade -r requirements.txt
 
 ###
 # Node
 ###
 RUN ln -s /usr/bin/nodejs /usr/bin/node
-
-###
-# phantomas
-###
-RUN npm install --global phantomas phantomjs-prebuilt \
-    es6-promise@3.1.2 pa11y@3.0.1
 
 ###
 # pshtt and trustymail
@@ -133,7 +144,7 @@ RUN pip install --upgrade \
 ENV SCANNER_HOME /home/scanner
 RUN mkdir $SCANNER_HOME \
     && groupadd -r scanner \
-    &&  useradd -r -c "Scanner user" -g scanner scanner \
+    && useradd -r -c "Scanner user" -g scanner scanner \
     && chown -R scanner:scanner ${SCANNER_HOME}
 
 ###

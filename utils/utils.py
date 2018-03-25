@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import errno
@@ -13,6 +14,7 @@ import logging
 import datetime
 import strict_rfc3339
 import codecs
+from itertools import chain
 from urllib.error import URLError
 
 import publicsuffix
@@ -58,7 +60,8 @@ def download(url, destination):
 # read options from the command line
 #   e.g. ./scan --since=2012-03-04 --debug whatever.com
 #     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
-def options():
+def options_for_scan():
+    # Parse options for the ``scan`` command.
     options = {"_": []}
     for arg in sys.argv[1:]:
         if arg.startswith("--"):
@@ -77,6 +80,103 @@ def options():
         else:
             options["_"].append(arg)
     return options
+
+
+def options_endswith(end):
+    def func(arg):
+        if arg.endswith(end):
+            return arg
+        raise argparse.ArgumentTypeError("value must end in '%s'" % end)
+    return func
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    """
+    This lets us test for errors from argparse by overriding the error method.
+    See https://stackoverflow.com/questions/5943249
+    """
+    def _get_action_from_name(self, name):
+        """Given a name, get the Action instance registered with this parser.
+        If only it were made available in the ArgumentError object. It is
+        passed as its first arg...
+        """
+        container = self._actions
+        if name is None:
+            return None
+        for action in container:
+            if '/'.join(action.option_strings) == name:
+                return action
+            elif action.metavar == name:
+                return action
+            elif action.dest == name:
+                return action
+
+    def error(self, message):
+        exc = sys.exc_info()[1]
+        if exc:
+            exc.argument = self._get_action_from_name(exc.argument_name)
+            raise exc
+        super(ArgumentParser, self).error(message)
+
+
+def options():
+    if sys.argv[0].endswith("gather"):
+        return options_for_gather()
+    elif sys.argv[0].endswith("scan"):
+        return options_for_scan()
+
+
+def build_gather_options_parser(services):
+    parser = ArgumentParser(prefix_chars="--")
+
+    for service in services:
+        flag = "--%s" % service
+        parser.add_argument(flag, nargs=1, required=True)
+
+    parser.add_argument("--cache", action="store_true")
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--ignore-www", action="store_true")
+    parser.add_argument("--include-parents", action="store_true")
+    parser.add_argument("--log", nargs="+")
+    parser.add_argument("--parents", nargs="+")
+    parser.add_argument("--rdns", nargs="+")
+    parser.add_argument("--sort", action="store_true")
+    parser.add_argument("--suffix", nargs="+", required=True)
+    parser.add_argument("--timeout", nargs="+")
+    return parser
+
+
+def options_for_gather():
+    # Parse options for the ``gather`` command.
+    set_services = ("censys")
+    services = [s for s in sys.argv[1].split(",") if s not in set_services]
+    parser = build_gather_options_parser(services)
+    parsed, remaining = parser.parse_known_args()
+    for remainder in remaining:
+        if remainder.startswith("--"):
+            raise argparse.ArgumentTypeError(
+                "%s isn't a valid argument here." % remainder)
+    opts = parsed.__dict__
+    opts = {k: opts[k] for k in opts if opts[k] is not None}
+    opts["_"] = remaining
+
+    """
+    The following expect a single argument, but argparse returns multiple
+    values for them because that's how ``nargs='+'`` works, so we need to
+    extract the single values.
+    """
+    should_be_singles = [
+        "parents",
+        "suffix"
+    ]
+    for service in services:
+        should_be_singles.append(service)
+
+    for kwd in should_be_singles:
+        if kwd in opts:
+            opts[kwd] = opts[kwd][0]
+
+    return opts
 
 
 def configure_logging(options=None):
@@ -509,3 +609,7 @@ def suffix_pattern(suffixes):
     prefixed = [suffix.replace(".", "\\.") for suffix in suffixes]
     center = str.join("|", prefixed)
     return re.compile("(?:%s)$" % center)
+
+
+def flatten(l):
+    return list(chain.from_iterable(l))

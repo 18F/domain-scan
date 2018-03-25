@@ -1,21 +1,16 @@
 import logging
-import os
-
-from trustymail import trustymail
 
 ###
 # Inspect a site's DNS Mail configuration using DHS NCATS' trustymail tool.
-
-# TODO: move to trustymail's Python API
-command = os.environ.get("TRUSTYMAIL_PATH", "trustymail")
+###
 
 # default to a long timeout
 default_timeout = 30
 
-# This is the same default timeout used in trustymail/cli.py
+# This is the same default timeout used in trustymail/scripts/trustymail
 default_smtp_timeout = 5
 
-# These are the same default ports used in trustymail.cli.py
+# These are the same default ports used in trustymail/scripts/trustymail
 default_smtp_ports = '25,465,587'
 
 # We want to enforce the use of Google DNS by default.  This gives
@@ -61,10 +56,25 @@ def scan(domain, environment, options):
         'dmarc': options.get('dmarc', False)
     }
 
-    data = trustymail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
+    import trustymail
+    if environment['scan_method'] == 'local':
+        # Local scanning
+        #
+        # Monkey patching trustymail to make it cache the PSL where we want
+        trustymail.PublicSuffixListFilename = 'cache/public-suffix-list.txt'
+    else:
+        # Lambda scanning
+        #
+        # Monkey patching trustymail to make it cache the PSL where we want
+        trustymail.PublicSuffixListFilename = './public-suffix-list.txt'
+        # Monkey patching trustymail to make the PSL cache read-only
+        trustymail.PublicSuffixListReadOnly = True
+    import trustymail.trustymail as tmail
+
+    data = tmail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
 
     if not data:
-        logging.warn("\ttrustymail command failed, skipping.")
+        logging.warn("\ttrustymail scan failed, skipping.")
 
     # Reset the logging level
     logging.getLogger().setLevel(old_log_level)

@@ -1,3 +1,7 @@
+.git
+.gitignore
+cache
 lambda
+public_suffix_list.dat
 results
 venv
