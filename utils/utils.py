@@ -83,6 +83,13 @@ def xoptions_for_scan():
 
 
 def options_endswith(end):
+    """
+    Returns a function that checks that an argument ends ``end``.
+
+    :arg str end: The string that is supposed to be at the end of the argument.
+
+    :rtype: function
+    """
     def func(arg):
         if arg.endswith(end):
             return arg
@@ -120,6 +127,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 def options():
+    """
+    Checks to see whether ``gather`` or ``scan`` was called and returns the
+    parsed options for the appropriate function call.
+
+    :rtype: dict
+    """
     if sys.argv[0].endswith("gather"):
         return options_for_gather()
     elif sys.argv[0].endswith("scan"):
@@ -127,6 +140,14 @@ def options():
 
 
 def build_gather_options_parser(services):
+    """
+    Takes a list of services that should be added as required flags, then
+    builds the argparse parser object.
+
+    :arg list[str] services: services with required flags.
+
+    :rtype: ArgumentParser
+    """
     usage_message = "".join([
         "%(prog)s GATHERERS --suffix [SUFFIX] "
         "--[GATHERER] [GATHERER OPTIONS] [options] ",
@@ -173,6 +194,11 @@ def build_gather_options_parser(services):
 def options_for_gather():
     """
     Parse options for the ``gather`` command.
+
+    :rtype: dict
+
+    Impure
+        Reads from sys.argv.
 
     The gather command requires a comma-separated list of one or more
     gatherers, and an argument (with a value) whose name corresponds to each
@@ -258,7 +284,12 @@ def options_for_gather():
     return opts
 
 
-def build_scan_options_parser(services):
+def build_scan_options_parser():
+    """
+    Builds the argparse parser object.
+
+    :rtype: ArgumentParser
+    """
     parser = ArgumentParser(prefix_chars="--")
     parser.add_argument("domains", help="".join([
         "Either a comma-separated list of domains or the path to a local CSV ",
@@ -314,8 +345,16 @@ def build_scan_options_parser(services):
 
 
 def options_for_scan():
-    # Parse options for the ``scan`` command.
-    parser = build_scan_options_parser([])
+    """
+    Parse options for the ``scan`` command.
+
+    :rtype: dict
+
+    Impure
+        Reads from sys.argv.
+
+    """
+    parser = build_scan_options_parser()
     parsed = parser.parse_args()
 
     opts = parsed.__dict__

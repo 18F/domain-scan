@@ -30,9 +30,9 @@ gather_default_false_values = get_default_false_values(
 gather_args_with_mandatory_values = get_args_with_mandatory_values(
     subutils.build_gather_options_parser([]))
 scan_default_false_values = get_default_false_values(
-    subutils.build_scan_options_parser([]))
+    subutils.build_scan_options_parser())
 scan_args_with_mandatory_values = get_args_with_mandatory_values(
-    subutils.build_scan_options_parser([]))
+    subutils.build_scan_options_parser())
 
 
 @pytest.mark.parametrize("args,expected", [
