@@ -1,5 +1,4 @@
 import csv
-from py._path import local
 import pytest
 from runner import runner
 
