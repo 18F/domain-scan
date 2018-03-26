@@ -282,6 +282,7 @@ def test_options_for_scan_basic(monkeypatch):
     assert result == {
         "_": "example.org",
         "scan": "a11y",
+        "output": "./",
         **scan_default_false_values,
     }
 
@@ -326,6 +327,7 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
             "_": "example.org",
             "scan": "a11y",
             "workers": "1",
+            "output": "./",
             **scan_default_false_values,
         }
     ),

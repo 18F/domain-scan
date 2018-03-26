@@ -333,13 +333,13 @@ def build_scan_options_parser():
         "'virginia.gov' will add '.virginia.gov' to the end of all ",
         "input domains."
     ]))
-    parser.add_argument("--output", nargs=1, help="".join([
+    parser.add_argument("--output", nargs=1, default=["./"], help="".join([
         "Where to output the 'cache/' and 'results/' directories. ",
         "Defaults to './'.",
     ]))
     parser.add_argument("--workers", nargs=1,
                         help="Limit parallel threads per-scanner to a number.")
-    # TODO: Should output and workers have default values?
+    # TODO: Should workers have a default value?
 
     return parser
 
@@ -366,6 +366,7 @@ def options_for_scan():
             raise argparse.ArgumentTypeError(
                 "Can't set lambda profile unless lambda flag is set.")
 
+    # We know we want one value, but the ``nargs`` flag means we get a list.
     should_be_singles = [
         "lambda_profile",
         "output",
@@ -373,7 +374,6 @@ def options_for_scan():
         "suffix",
         "workers",
     ]
-
     for kwd in should_be_singles:
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
