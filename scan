@@ -89,6 +89,7 @@ lambda_log_delay = 20
 # Entry point. `options` is a dict of CLI flags.
 ###
 
+
 def run(options=None):
 
     if not options["_"]:
@@ -272,7 +273,6 @@ def scan_domains(scanners, domains, options):
         if get_lambda_details:
             add_lambda_details(handles[scanner]['filename'])
 
-
     logging.warn("Results written to CSV.")
 
     # Save metadata.
@@ -287,6 +287,7 @@ def scan_domains(scanners, domains, options):
         'scan_uuid': scan_uuid
     }
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
+
 
 ###
 # Core scan method. (Run once in each worker.)
@@ -323,8 +324,6 @@ def perform_scan(params):
             data = json.loads(raw)
             if (data.__class__ is dict) and data.get('invalid'):
                 data = None
-
-
         else:
             # Supported methods: local scans, and Lambda-based.
             if environment['scan_method'] == "lambda":
@@ -359,11 +358,13 @@ def perform_scan(params):
                 logging.warn("\t%s" % error)
 
         # If --meta wasn't requested, throw it all away.
-        if not options.get("meta", False): meta = None
+        if not options.get("meta", False):
+            meta = None
 
         runner.write_rows(rows, domain, utils.base_domain_for(domain), scanner, handles[scanner]['writer'], meta=meta)
     except:
         logging.warn(utils.format_last_exception())
+
 
 ###
 # Local scan (default).
@@ -405,7 +406,7 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
     data = None
     meta['lambda'] = {}
 
-    task_prefix = "task_" # default, maybe make optional later
+    task_prefix = "task_"  # default, maybe make optional later
     task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
 
     # JSON payload that arrives as the 'event' object in Lambda.
@@ -480,6 +481,7 @@ def domains_from(arg):
     else:
         yield arg
 
+
 # Given just a CSV with some Lambda detail headers at the end,
 # fill in the remaining fields from CloudWatch logs. Try to keep
 # this function relatively stateless (only relying on info in the
@@ -491,7 +493,6 @@ def add_lambda_details(input_filename):
     tmp_filename = "%s.tmp" % input_filename
     tmp_file = open(tmp_filename, 'w', newline='')
     tmp_writer = csv.writer(tmp_file)
-
 
     header = None
 
@@ -565,7 +566,6 @@ def fetch_lambda_details(dict_row):
         return lambda_fields
 
     if events and events.get('events'):
-        first_event = events['events'][0]
         last_event = events['events'][-1]
 
         # Track when the last log entry for this task was ingested.
@@ -585,6 +585,7 @@ def fetch_lambda_details(dict_row):
         logging.warn("\tNo logs found for (group, stream, task): %s, %s, %s" % (log_group_name, log_stream_name, request_id))
 
     return lambda_fields
+
 
 if __name__ == '__main__':
     run(options)
