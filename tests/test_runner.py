@@ -9,11 +9,11 @@ class MockScanner:
 
 
 @pytest.fixture
-def output_file(tmpdir: local.LocalPath) -> str:
+def output_file(tmpdir):
     return str(tmpdir.join('output.csv'))
 
 
-def test_write_rows(output_file: str) -> None:
+def test_write_rows(output_file):
     data = [
         ['value 1', 'value 2'],
         ['value 3', 'value 4'],
@@ -32,7 +32,7 @@ def test_write_rows(output_file: str) -> None:
     ]
 
 
-def test_write_rows_no_data(output_file: str) -> None:
+def test_write_rows_no_data(output_file):
     with open(output_file, 'w') as output_file_obj:
         csv_writer = csv.writer(output_file_obj)
         runner.write_rows(None, 'foo.gov', 'foo.gov', MockScanner(), csv_writer)
@@ -46,7 +46,7 @@ def test_write_rows_no_data(output_file: str) -> None:
     ]
 
 
-def test_write_rows_with_meta(output_file: str) -> None:
+def test_write_rows_with_meta(output_file):
     data = [
         ['value 1', 'value 2'],
     ]
@@ -79,7 +79,7 @@ def test_write_rows_with_meta(output_file: str) -> None:
     }]
 
 
-def test_rows_with_lambda_meta(output_file: str) -> None:
+def test_rows_with_lambda_meta(output_file):
     data = [
         ['value 1', 'value 2'],
     ]

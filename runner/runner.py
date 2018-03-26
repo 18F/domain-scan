@@ -1,18 +1,7 @@
-import typing
 from utils import utils
-from typing_extensions import Protocol
 
 
-class ScannerProtocol(Protocol):
-    headers = []  # type: typing.List[str]
-
-
-def write_rows(rows: typing.Optional[typing.List[typing.List]],
-               domain: str,
-               base_domain: str,
-               scanner: ScannerProtocol,
-               csv_writer: typing.Any,
-               meta: typing.Optional[typing.Mapping[str, typing.Any]] = None):
+def write_rows(rows, domain, base_domain, scanner, csv_writer, meta=None):
 
     # If we didn't get any info, we'll still output information about why the scan failed.
     if rows is None:
