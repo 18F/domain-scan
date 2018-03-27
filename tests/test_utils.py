@@ -33,6 +33,17 @@ scan_default_false_values = get_default_false_values(
     subutils.build_scan_options_parser())
 scan_args_with_mandatory_values = get_args_with_mandatory_values(
     subutils.build_scan_options_parser())
+default_underscore_both = {
+    "cache_dir": "./cache",
+    "report_dir": "./",
+    "results_dir": "./results",
+}
+default_underscore_scan = {
+    **default_underscore_both
+}
+default_underscore_gather = {
+    **default_underscore_both
+}
 
 
 @pytest.mark.parametrize("args,expected", [
@@ -280,7 +291,8 @@ def test_options_for_scan_basic(monkeypatch):
     monkeypatch.setattr(sys, "argv", command.split(" "))
     result = subutils.options_for_scan()
     assert result == {
-        "_": "example.org",
+        "_": default_underscore_scan,
+        "domains": "example.org",
         "scan": "a11y",
         "output": "./",
         **scan_default_false_values,
@@ -324,7 +336,8 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
     (
         "./scan example.org --scan=a11y --workers=1",
         {
-            "_": "example.org",
+            "_": default_underscore_scan,
+            "domains": "example.org",
             "scan": "a11y",
             "workers": "1",
             "output": "./",
@@ -334,7 +347,12 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
     (
         "./scan example.org --scan=a11y --output=..",
         {
-            "_": "example.org",
+            "_": {
+                "cache_dir": "../cache",
+                "report_dir": "..",
+                "results_dir": "../results",
+            },
+            "domains": "example.org",
             "scan": "a11y",
             "output": "..",
             **scan_default_false_values,

@@ -359,8 +359,6 @@ def options_for_scan():
 
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
-    opts["_"] = opts["domains"]
-    del opts["domains"]
 
     if opts.get("lambda_profile") and not opts.get("lambda"):
             raise argparse.ArgumentTypeError(
@@ -377,6 +375,13 @@ def options_for_scan():
     for kwd in should_be_singles:
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
+
+    # Derive some options not set directly at CLI:
+    opts["_"] = {
+        "cache_dir": os.path.join(opts.get("output", "./"), "cache"),
+        "report_dir": opts.get("output", "./"),
+        "results_dir": os.path.join(opts.get("output", "./"), "results"),
+    }
 
     return opts
 
@@ -443,16 +448,16 @@ def read(source):
     return contents
 
 
-def report_dir():
-    return options().get("output", "./")
+def report_dir(options):
+    return options.get("output", "./")
 
 
-def cache_dir():
-    return os.path.join(report_dir(), "cache")
+def cache_dir(options):
+    return os.path.join(report_dir(options), "cache")
 
 
-def results_dir():
-    return os.path.join(report_dir(), "results")
+def results_dir(options):
+    return os.path.join(report_dir(options), "results")
 
 
 # Read in JSON file of known third party services.
@@ -522,18 +527,18 @@ def unsafe_execute(command):
 # Predictable cache path for a domain and operation.
 
 
-def cache_path(domain, operation, ext="json"):
-    return os.path.join(cache_dir(), operation, ("%s.%s" % (domain, ext)))
+def cache_path(domain, operation, ext="json", cache_dir="./cache"):
+    return os.path.join(cache_dir, operation, ("%s.%s" % (domain, ext)))
 
 
 # cache a single one-off file, not associated with a domain or operation
-def cache_single(filename):
-    return os.path.join(cache_dir(), filename)
+def cache_single(filename, cache_dir="./cache"):
+    return os.path.join(cache_dir, filename)
 
 
 # Used to quickly get cached data for a domain.
-def data_for(domain, operation):
-    path = cache_path(domain, operation)
+def data_for(domain, operation, cache_dir="./cache"):
+    path = cache_path(domain, operation, cache_dir=cache_dir)
     if os.path.exists(path):
         raw = read(path)
         data = json.loads(raw)
@@ -581,7 +586,7 @@ def just_microseconds(duration):
 
 
 # Return base domain for a subdomain, factoring in the Public Suffix List.
-def base_domain_for(subdomain):
+def base_domain_for(subdomain, cache_dir="./cache"):
     global suffix_list
 
     """
@@ -590,7 +595,7 @@ def base_domain_for(subdomain):
     If suffix_list is None, the caches have not been initialized, so do that.
     """
     if suffix_list is None:
-        suffix_list, discard = load_suffix_list()
+        suffix_list, discard = load_suffix_list(cache_dir=cache_dir)
 
     if suffix_list is None:
         logging.warn("Error downloading the PSL.")
@@ -601,9 +606,9 @@ def base_domain_for(subdomain):
 
 # Returns an instantiated PublicSuffixList object, and the
 # list of lines read from the file.
-def load_suffix_list():
+def load_suffix_list(cache_dir="./cache"):
 
-    cached_psl = cache_single("public-suffix-list.txt")
+    cached_psl = cache_single("public-suffix-list.txt", cache_dir=cache_dir)
 
     if os.path.exists(cached_psl):
         logging.debug("Using cached Public Suffix List...")
@@ -632,9 +637,9 @@ def load_suffix_list():
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it doesn't support HTTPS.
 # Useful for saving time on TLS-related scanning.
-def domain_doesnt_support_https(domain):
+def domain_doesnt_support_https(domain, cache_dir="./cache"):
     # Make sure we have the cached data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -652,13 +657,13 @@ def domain_doesnt_support_https(domain):
 
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it canonically prepends 'www'.
-def domain_uses_www(domain):
+def domain_uses_www(domain, cache_dir="./cache"):
     # Don't prepend www to www.
     if domain.startswith("www."):
         return False
 
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
 
     if not inspection:
         return False
@@ -673,9 +678,9 @@ def domain_uses_www(domain):
     )
 
 
-def domain_mail_servers_that_support_starttls(domain):
+def domain_mail_servers_that_support_starttls(domain, cache_dir="./cache"):
     retVal = []
-    data = data_for(domain, 'trustymail')
+    data = data_for(domain, 'trustymail', cache_dir=cache_dir)
     if data:
         starttls_results = data.get('Domain Supports STARTTLS Results')
         if starttls_results:
@@ -687,9 +692,9 @@ def domain_mail_servers_that_support_starttls(domain):
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it's not live.
 # Useful for skipping scans on non-live domains.
-def domain_not_live(domain):
+def domain_not_live(domain, cache_dir="./cache"):
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -699,9 +704,9 @@ def domain_not_live(domain):
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it redirects.
 # Useful for skipping scans on redirect domains.
-def domain_is_redirect(domain):
+def domain_is_redirect(domain, cache_dir="./cache"):
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -711,9 +716,9 @@ def domain_is_redirect(domain):
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know its canonical URL.
 # Useful for focusing scans on the right endpoint.
-def domain_canonical(domain):
+def domain_canonical(domain, cache_dir="./cache"):
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 

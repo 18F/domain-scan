@@ -59,8 +59,11 @@ def gather(suffixes, options, extra={}):
     query = query_for(suffixes)
     logging.debug("Censys query:\n%s\n" % query)
 
+    # Hardcode this for now:
+    cache_dir = "./cache"
     # Plan to store in cache/censys/export.csv.
-    download_path = utils.cache_path("export", "censys", ext="csv")
+    download_path = utils.cache_path("export", "censys", ext="csv",
+                                     cache_dir=cache_dir)
 
     # Reuse of cached data can be turned on with --cache.
     cache = options.get("cache", False)
