@@ -57,31 +57,6 @@ def download(url, destination):
     return filename
 
 
-# read options from the command line
-#   e.g. ./scan --since=2012-03-04 --debug whatever.com
-#     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
-def xoptions_for_scan():
-    # Parse options for the ``scan`` command.
-    options = {"_": []}
-    for arg in sys.argv[1:]:
-        if arg.startswith("--"):
-
-            if "=" in arg:
-                key, value = arg.split('=')
-            else:
-                key, value = arg, "True"
-
-            key = key.split("--")[1]
-            if value.lower() == 'true':
-                value = True
-            elif value.lower() == 'false':
-                value = False
-            options[key.lower()] = value
-        else:
-            options["_"].append(arg)
-    return options
-
-
 def options_endswith(end):
     """
     Returns a function that checks that an argument ends ``end``.
