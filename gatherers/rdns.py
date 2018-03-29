@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from typing import Generator, List, Pattern
 
 # Reverse DNS
 #
@@ -39,15 +40,21 @@ def gather(suffixes, options, extra={}):
     with open(path) as lines:
         logging.debug("\tReading %s..." % path)
 
-        for line in lines:
-            record = json.loads(line)
-            # logging.debug("\t%s" % record["value"])
+        for record in process_lines(lines, ip_filter, number_filter):
+            yield record
 
-            # Filter out IP-like reflected addresses.
-            is_ip = (ip_filter.search(record["value"]) is not None)
 
-            # Check if it's just something like '1234.what.ever.gov'
-            is_number = (number_filter.search(record["value"]) is not None)
+def process_lines(lines: List[str], ip_filter: Pattern,
+                  number_filter: Pattern) -> Generator[str, str, None]:
+    for line in lines:
+        record = json.loads(line)
+        # logging.debug("\t%s" % record["value"])
 
-            if (not is_ip) and (not is_number):
-                yield record["value"]
+        # Filter out IP-like reflected addresses.
+        is_ip = (ip_filter.search(record["value"]) is not None)
+
+        # Check if it's just something like '1234.what.ever.gov'
+        is_number = (number_filter.search(record["value"]) is not None)
+
+        if (not is_ip) and (not is_number):
+            yield record["value"]
