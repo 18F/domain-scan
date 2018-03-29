@@ -3,7 +3,6 @@ from .context import gatherers  # noqa
 from gatherers import rdns
 
 
-
 @pytest.mark.parametrize("data,expected", [
     (
         [
