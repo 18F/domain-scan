@@ -64,7 +64,8 @@ class Gatherer(Gatherer):
         logging.debug("Censys query:\n%s\n" % query)
 
         # Plan to store in cache/censys/export.csv.
-        download_path = utils.cache_path("export", "censys", ext="csv")
+        download_path = utils.cache_path(
+            "export", "censys", ext="csv", cache_dir=self.cache_dir)
 
         # Reuse of cached data can be turned on with --cache.
         cache = self.options.get("cache", False)

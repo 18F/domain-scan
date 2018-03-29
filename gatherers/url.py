@@ -21,7 +21,7 @@ class Gatherer(Gatherer):
         # remote URL
         if url.startswith("http:") or url.startswith("https:"):
             # Though it's saved in cache/, it will be downloaded every time.
-            remote_path = os.path.join(utils.cache_dir(), "url.csv")
+            remote_path = os.path.join(self.cache_dir, "url.csv")
 
             try:
                 response = requests.get(url)
