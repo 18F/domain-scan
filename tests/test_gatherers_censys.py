@@ -44,6 +44,3 @@ CENSYS_TWO_SUFFIX_QUERY = "\n".join([
 def test_query_for(suffixes, expected):
     result = censys.query_for(suffixes)
     assert result == expected
-
-
-

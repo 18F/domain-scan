@@ -2,6 +2,7 @@ import os
 import json
 import csv
 import logging
+from typing import List
 
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -127,8 +128,7 @@ def gather(suffixes, options, extra={}):
 #     OR sans LIKE "%.gov")
 #   OR (common_names LIKE "%.fed.us"
 #     OR sans LIKE "%.fed.us");
-
-def query_for(suffixes):
+def query_for(suffixes: List[str]) -> str:
 
     select = "\n".join([
         "    parsed.subject.common_name,",
@@ -136,9 +136,9 @@ def query_for(suffixes):
     ])
 
     from_clause = "\n".join([
-    "    `censys-io.certificates_public.certificates`,",
-    "    UNNEST(parsed.subject.common_name) AS common_names,",
-    "    UNNEST(parsed.extensions.subject_alt_name.dns_names) AS sans",
+        "    `censys-io.certificates_public.certificates`,",
+        "    UNNEST(parsed.subject.common_name) AS common_names,",
+        "    UNNEST(parsed.extensions.subject_alt_name.dns_names) AS sans",
     ])
 
     # Returns query fragment for a specific suffix.
@@ -156,16 +156,25 @@ def query_for(suffixes):
     return query
 
 
-# Load BigQuery credentials from either a JSON string, or
-# a JSON file. Passed in via environment variables either way.
-def load_credentials():
-    creds = os.environ.get("BIGQUERY_CREDENTIALS", None)
+def get_credentials_from_env_var_or_file(env_var: str="",
+                                         env_file_var: str="") -> str:
+    creds = os.environ.get(env_var, None)
 
     if creds is None:
-        path = os.environ.get("BIGQUERY_CREDENTIALS_PATH", None)
+        path = os.environ.get(env_file_var, None)
         if path is not None:
             with open(path) as f:
                 creds = f.read()
+
+    return creds
+
+
+# Load BigQuery credentials from either a JSON string, or
+# a JSON file. Passed in via environment variables either way.
+def load_credentials():
+    creds = get_credentials_from_env_var_or_file(
+        env_var="BIGQUERY_CREDENTIALS",
+        env_file_var="BIGQUERY_CREDENTIALS_PATH")
 
     if creds is None:
         return None
