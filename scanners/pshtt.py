@@ -49,7 +49,8 @@ def init(environment, options):
 # exist.  Override the list in place, which should only modify it
 # per-scan.
 def init_domain(domain, environment, options):
-    base_domain = utils.base_domain_for(domain)
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+    base_domain = utils.base_domain_for(domain, cache_dir=cache_dir)
 
     preload_list = []
     if domain in environment.get("preload_list", []):

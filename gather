@@ -11,11 +11,6 @@ import importlib
 
 from utils import utils
 
-options = utils.options_for_gather()
-utils.configure_logging(options)
-utils.mkdir_p(utils.cache_dir())
-utils.mkdir_p(utils.results_dir())
-
 # some metadata about the scan itself
 start_time = utils.local_now()
 start_command = str.join(" ", sys.argv)
@@ -29,22 +24,15 @@ strip_wildcard = re.compile("^(\*.)+")
 strip_redacted = re.compile("^(\?\.)+")
 
 
-def run(options=None):
+def run(options=None, cache_dir="./cache", results_dir="./results"):
 
-    if not options["_"]:
-        logging.error("Specify a gatherer.")
-        exit(1)
+    sources = options["gatherers"]
 
-    # For now, require a --suffix.
-    suffixes = utils.normalize_suffixes(options.get("suffix"))
-    if suffixes is None:
-        logging.error("--suffix with one or more patterns is required.")
-        exit(1)
-    # Turn the suffix into a regex.
+    suffixes = options.get("suffix")
     suffix_pattern = utils.suffix_pattern(suffixes)
 
     # Clear out existing result CSVs, to avoid inconsistent data.
-    for result in glob.glob("%s/*.csv" % utils.results_dir()):
+    for result in glob.glob("%s/*.csv" % results_dir):
         os.remove(result)
 
     # Opt in to include parent (second-level) domains.
@@ -56,10 +44,7 @@ def run(options=None):
 
     # --parents should be a CSV whose first column is parent domains
     # that will act as a whitelist for which subdomains to gather.
-    parents = get_parent_domains(options)
-
-    # Import the gatherer(s).
-    sources = options["_"][0].split(",")
+    parents = get_parent_domains(options, cache_dir=cache_dir)
 
     # De-duping hostnames. This will cause the system to hold all
     # hostnames in memory at once, but oh well.
@@ -138,7 +123,7 @@ def run(options=None):
     headers += sources
 
     # Open CSV file.
-    gathered_filename = "%s/%s.csv" % (utils.results_dir(), "gathered")
+    gathered_filename = "%s/%s.csv" % (results_dir, "gathered")
     gathered_file = open(gathered_filename, 'w', newline='')
     gathered_writer = csv.writer(gathered_file)
     gathered_writer.writerow(headers)
@@ -170,12 +155,11 @@ def run(options=None):
         'end_time': utils.utc_timestamp(end_time),
         'command': start_command
     }
-    utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
-
+    utils.write(utils.json_for(metadata), "%s/meta.json" % results_dir)
 
 
 # Read in parent domains from the first column of a given CSV.
-def get_parent_domains(options):
+def get_parent_domains(options, cache_dir="./cache"):
     parents = options.get("parents")
     if not parents:
         return None
@@ -185,7 +169,7 @@ def get_parent_domains(options):
     if parents.startswith("http:") or parents.startswith("https:"):
 
         # Though it's saved in cache/, it will be downloaded every time.
-        parents_path = os.path.join(utils.cache_dir(), "parents.csv")
+        parents_path = os.path.join(cache_dir, "parents.csv")
 
         try:
             response = requests.get(parents)
@@ -206,6 +190,14 @@ def get_parent_domains(options):
 
     return parent_domains
 
-if __name__ == '__main__':
-    run(options)
 
+if __name__ == '__main__':
+    options = utils.options_for_gather()
+    utils.configure_logging(options)
+    # If we need to add a way to change these, we can add an option to gather.
+    cache_dir = "./cache"
+    results_dir = "./results"
+    utils.mkdir_p(cache_dir)
+    utils.mkdir_p(results_dir)
+
+    run(options, cache_dir=cache_dir, results_dir=results_dir)
