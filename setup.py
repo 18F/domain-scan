@@ -24,7 +24,7 @@ setup(
 
     # Author details
     author='GSA 18F',
-    # TODO: What is the right email -- author_email='ncats@hq.dhs.gov',
+    author_email='pulse@cio.gov',
 
     license='License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
 
