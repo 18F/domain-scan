@@ -30,11 +30,6 @@ number_filter = re.compile("^[\d\-]+\.")
 
 class Gatherer(Gatherer):
 
-    def __init__(self, suffixes: List[str], options: dict, extra: dict={}):
-        self.suffixes = suffixes
-        self.options = options
-        self.extra = extra
-
     def gather(self):
         path = self.options.get("rdns")
 

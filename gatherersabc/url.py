@@ -1,6 +1,5 @@
 import os
 import logging
-from typing import List
 
 import requests
 
@@ -9,11 +8,6 @@ from utils import utils
 
 
 class Gatherer(Gatherer):
-
-    def __init__(self, suffixes: List[str], options: dict, extra: dict={}):
-        self.suffixes = suffixes
-        self.options = options
-        self.extra = extra
 
     def gather(self):
         # Defaults to --url, but can be overridden.
