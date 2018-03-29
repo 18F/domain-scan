@@ -71,7 +71,7 @@ def run(options=None, cache_dir="./cache", results_dir="./results"):
                 exit(1)
 
         # Iterate over each hostname.
-        for domain in gatherer.gather(suffixes, options, extra):
+        for domain in gatherer.gather():
 
             # Always apply the suffix filter to returned names.
             if not suffix_pattern.search(domain):
