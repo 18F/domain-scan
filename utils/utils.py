@@ -110,8 +110,6 @@ def options():
     """
     if sys.argv[0].endswith("gather"):
         return options_for_gather()
-    elif sys.argv[0].endswith("gatherabc"):
-        return options_for_gather()
     elif sys.argv[0].endswith("scan"):
         return options_for_scan()
 
