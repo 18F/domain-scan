@@ -329,10 +329,12 @@ def perform_scan(params):
         scan_environment = {**environment, **scan_environment}
 
         # If --cache is on, read from this. Always write to it.
-        domain_cache = utils.cache_path(domain, handles[scanner]['name'],
-                                        ext="json", cache_dir=cache_dir)
+        domain_cache = utils.cache_path(
+            domain, handles[scanner]['name'],
+            ext="json", cache_dir=cache_dir
+        )
 
-        if (options.get("_", {}).get("cache_dir")) and (os.path.exists(domain_cache)):
+        if (options.get("cache")) and (os.path.exists(domain_cache)):
             logging.warn("\tUsing cached scan response.")
             raw = utils.read(domain_cache)
             data = json.loads(raw)
