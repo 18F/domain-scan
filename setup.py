@@ -53,7 +53,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='https best practices',
+    keywords='https best practices web-crawling domain scanning',
 
     packages=['domain_scan'],
 
