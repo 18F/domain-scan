@@ -130,27 +130,28 @@ def gather(suffixes, options, extra={}):
 
 def query_for(suffixes):
 
-    select = """
-    parsed.subject.common_name,
-    parsed.extensions.subject_alt_name.dns_names
-    """
+    select = "\n".join([
+        "    parsed.subject.common_name,",
+        "    parsed.extensions.subject_alt_name.dns_names",
+    ])
 
-    from_clause = """
-    `censys-io.certificates_public.certificates`,
-    UNNEST(parsed.subject.common_name) AS common_names,
-    UNNEST(parsed.extensions.subject_alt_name.dns_names) AS sans
-    """
+    from_clause = "\n".join([
+    "    `censys-io.certificates_public.certificates`,",
+    "    UNNEST(parsed.subject.common_name) AS common_names,",
+    "    UNNEST(parsed.extensions.subject_alt_name.dns_names) AS sans",
+    ])
 
     # Returns query fragment for a specific suffix.
     def suffix_query(suffix):
-        return """
-        (common_names LIKE \"%%%s\" OR sans LIKE \"%%%s\")
-        """ % (suffix, suffix)
+        return "\n".join([
+            "(common_names LIKE \"%%%s\"" % suffix,
+            "      OR sans LIKE \"%%%s\")" % suffix,
+        ])
 
     # Join the individual suffix clauses into one WHERE clause.
-    where = str.join(" OR ", [suffix_query(suffix) for suffix in suffixes])
+    where = str.join("\n    OR ", [suffix_query(suffix) for suffix in suffixes])
 
-    query = "SELECT %s FROM %s WHERE %s" % (select, from_clause, where)
+    query = "SELECT\n%s\nFROM\n%s\nWHERE\n    %s" % (select, from_clause, where)
 
     return query
 
