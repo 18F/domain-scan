@@ -151,7 +151,14 @@ def query_for(suffixes: List[str]) -> str:
     # Join the individual suffix clauses into one WHERE clause.
     where = str.join("\n    OR ", [suffix_query(suffix) for suffix in suffixes])
 
-    query = "SELECT\n%s\nFROM\n%s\nWHERE\n    %s" % (select, from_clause, where)
+    query = "\n".join([
+        "SELECT",
+        select,
+        "FROM",
+        from_clause,
+        "WHERE",
+        "    %s" % where
+    ])
 
     return query
 
