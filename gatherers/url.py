@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-from gatherersabc.gathererabc import Gatherer
+from gatherers.gathererabc import Gatherer
 from utils import utils
 
 

@@ -4,7 +4,7 @@ import re
 
 from typing import Generator, List, Pattern
 
-from gatherersabc.gathererabc import Gatherer
+from gatherers.gathererabc import Gatherer
 
 # Reverse DNS
 #
