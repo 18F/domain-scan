@@ -20,13 +20,6 @@ from scanners.headless.local_bridge import headless_scan
 from utils import utils
 from runner import runner
 
-# basic setup - logs, output dirs
-options = utils.options()
-domain_suffix = options.get("suffix")
-lambda_mode = options.get("lambda", False)
-utils.configure_logging(options)
-utils.mkdir_p(utils.cache_dir())
-utils.mkdir_p(utils.results_dir())
 
 # Default and maximum for local workers (threads) per-scanner.
 default_workers = 10
@@ -39,10 +32,11 @@ start_command = str.join(" ", sys.argv)
 # Generate a random UUID for the entire scan.
 scan_uuid = str(uuid.uuid4())
 
-# AWS credentials should be set externally (disk, env, IAMs, etc.).
-if lambda_mode:
+
+def set_aws_credentials(options):
+    # AWS credentials should be set externally (disk, env, IAMs, etc.).
     # support AWS named profiles
-    aws_profile = options.get("lambda-profile", None)
+    aws_profile = options.get("lambda_profile", None)
     if aws_profile:
         lambda_session = boto3.session.Session(profile_name=aws_profile)
     else:
@@ -60,6 +54,16 @@ if lambda_mode:
 
     logs_config = botocore.config.Config(max_pool_connections=global_max_workers)
     logs_client = lambda_session.client('logs', config=logs_config)
+
+    return {
+        "aws_profile": aws_profile,
+        "lambda_session": lambda_session,
+        "invoke_config": invoke_config,
+        "invoke_client": invoke_client,
+        "logs_config": logs_config,
+        "logs_client": logs_client
+    }
+
 
 # Fields that will always get prefixed before scan-specific data.
 prefix_headers = ["Domain", "Base Domain"]
@@ -89,9 +93,10 @@ lambda_log_delay = 20
 # Entry point. `options` is a dict of CLI flags.
 ###
 
+
 def run(options=None):
 
-    if not options["_"]:
+    if not options["domains"]:
         logging.error("Provide a CSV file, or domain name.")
         exit(1)
 
@@ -99,14 +104,16 @@ def run(options=None):
         logging.error("--scan must be one or more scanners.")
         exit(1)
 
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+
     # `domains` can be either a path or a domain name.
     # It can also be a URL, and if it is we want to download it now,
     # and then adjust the value to be the path of the cached download.
-    domains = options["_"][0]
+    domains = options["domains"]
 
     if domains.startswith("http:") or domains.startswith("https:"):
 
-        domains_path = os.path.join(utils.cache_dir(), "domains.csv")
+        domains_path = os.path.join(cache_dir, "domains.csv")
 
         try:
             response = requests.get(domains)
@@ -148,7 +155,8 @@ def run(options=None):
 ###
 def scan_domains(scanners, domains, options):
     # Clear out existing result CSVs, to avoid inconsistent data.
-    for result in glob.glob("%s/*.csv" % utils.results_dir()):
+    results_dir = options["_"]["results_dir"]
+    for result in glob.glob("%s/*.csv" % results_dir):
         os.remove(result)
 
     # Store local errors/timing info, and if using Lambda, trigger the
@@ -159,9 +167,11 @@ def scan_domains(scanners, domains, options):
     handles = {}
     for scanner in scanners:
         name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
-        scanner_filename = "%s/%s.csv" % (utils.results_dir(), name)
+        scanner_filename = "%s/%s.csv" % (results_dir, name)
         scanner_file = open(scanner_filename, 'w', newline='')
         scanner_writer = csv.writer(scanner_file)
+
+        lambda_mode = options.get("lambda")
 
         use_lambda = lambda_mode and \
             hasattr(scanner, "lambda_support") and \
@@ -240,7 +250,9 @@ def scan_domains(scanners, domains, options):
         # Kick off workers in parallel. Returns when all are done.
         scan_start_time = utils.local_now()
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            tasks = ((scanner, domain, handles, environment, options) for domain in domains_from(domains))
+            tasks = ((scanner, domain, handles, environment, options)
+                     for domain in domains_from(
+                         domains, domain_suffix=options.get("suffix")))
             executor.map(perform_scan, tasks)
         scan_end_time = utils.local_now()
         duration = scan_end_time - scan_start_time
@@ -270,8 +282,8 @@ def scan_domains(scanners, domains, options):
             utils.sort_csv(handles[scanner]['filename'])
 
         if get_lambda_details:
-            add_lambda_details(handles[scanner]['filename'])
-
+            add_lambda_details(handles[scanner]['filename'],
+                               options["_"]["lambda_options"]["logs_client"])
 
     logging.warn("Results written to CSV.")
 
@@ -286,12 +298,14 @@ def scan_domains(scanners, domains, options):
         'command': start_command,
         'scan_uuid': scan_uuid
     }
-    utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
+    utils.write(utils.json_for(metadata), "%s/meta.json" % results_dir)
+
 
 ###
 # Core scan method. (Run once in each worker.)
 def perform_scan(params):
     scanner, domain, handles, environment, options = params
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
 
     meta = {'errors': []}
     rows = None
@@ -315,7 +329,10 @@ def perform_scan(params):
         scan_environment = {**environment, **scan_environment}
 
         # If --cache is on, read from this. Always write to it.
-        domain_cache = utils.cache_path(domain, handles[scanner]['name'], ext="json")
+        domain_cache = utils.cache_path(
+            domain, handles[scanner]['name'],
+            ext="json", cache_dir=cache_dir
+        )
 
         if (options.get("cache")) and (os.path.exists(domain_cache)):
             logging.warn("\tUsing cached scan response.")
@@ -323,8 +340,6 @@ def perform_scan(params):
             data = json.loads(raw)
             if (data.__class__ is dict) and data.get('invalid'):
                 data = None
-
-
         else:
             # Supported methods: local scans, and Lambda-based.
             if environment['scan_method'] == "lambda":
@@ -359,11 +374,15 @@ def perform_scan(params):
                 logging.warn("\t%s" % error)
 
         # If --meta wasn't requested, throw it all away.
-        if not options.get("meta", False): meta = None
+        if not options.get("meta", False):
+            meta = None
 
-        runner.write_rows(rows, domain, utils.base_domain_for(domain), scanner, handles[scanner]['writer'], meta=meta)
+        runner.write_rows(rows, domain,
+                          utils.base_domain_for(domain, cache_dir=cache_dir),
+                          scanner, handles[scanner]['writer'], meta=meta)
     except:
         logging.warn(utils.format_last_exception())
+
 
 ###
 # Local scan (default).
@@ -402,10 +421,11 @@ def perform_local_scan(scanner, domain, handles, environment, options, meta):
 def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting Lambda scan...")
 
+    invoke_client = options["_"]["lambda_options"]["invoke_client"]
     data = None
     meta['lambda'] = {}
 
-    task_prefix = "task_" # default, maybe make optional later
+    task_prefix = "task_"  # default, maybe make optional later
     task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
 
     # JSON payload that arrives as the 'event' object in Lambda.
@@ -466,7 +486,7 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
 
 # Yield domain names from a single string, or a CSV of them.
-def domains_from(arg):
+def domains_from(arg, domain_suffix=None):
     if arg.endswith(".csv"):
         with open(arg, encoding='utf-8', newline='') as csvfile:
             for row in csv.reader(csvfile):
@@ -480,18 +500,18 @@ def domains_from(arg):
     else:
         yield arg
 
+
 # Given just a CSV with some Lambda detail headers at the end,
 # fill in the remaining fields from CloudWatch logs. Try to keep
 # this function relatively stateless (only relying on info in the
 # Lambda detail fields) to make parallelization/refactoring easier.
-def add_lambda_details(input_filename):
+def add_lambda_details(input_filename, logs_client):
     logging.warn("Fetching more Lambda details for %s..." % input_filename)
 
     input_file = open(input_filename, encoding='utf-8', newline='')
     tmp_filename = "%s.tmp" % input_filename
     tmp_file = open(tmp_filename, 'w', newline='')
     tmp_writer = csv.writer(tmp_file)
-
 
     header = None
 
@@ -509,7 +529,7 @@ def add_lambda_details(input_filename):
             dict_row[header[i]] = cell
 
         logging.warn("[%s][%s] Fetching Lambda details from logs..." % (row[0], input_filename))
-        details = fetch_lambda_details(dict_row)
+        details = fetch_lambda_details(dict_row, logs_client)
 
         # Matches order of lambda_detail_headers
         row.append(details.get('reported_duration'))
@@ -533,7 +553,7 @@ def add_lambda_details(input_filename):
 
 
 # Get every field in the Lambda details headers.
-def fetch_lambda_details(dict_row):
+def fetch_lambda_details(dict_row, logs_client):
 
     lambda_fields = {'errors': None}
 
@@ -565,7 +585,6 @@ def fetch_lambda_details(dict_row):
         return lambda_fields
 
     if events and events.get('events'):
-        first_event = events['events'][0]
         last_event = events['events'][-1]
 
         # Track when the last log entry for this task was ingested.
@@ -586,5 +605,22 @@ def fetch_lambda_details(dict_row):
 
     return lambda_fields
 
+
 if __name__ == '__main__':
+    options = utils.options()
+    domain_suffix = options.get("suffix")
+    lambda_mode = options.get("lambda", False)
+
+    # basic setup - logs, output dirs
+    utils.configure_logging(options)
+    utils.mkdir_p(options["_"]["cache_dir"])
+    utils.mkdir_p(options["_"]["results_dir"])
+
+    if lambda_mode:
+        lambda_options = set_aws_credentials(options)
+        lo = options["_"].get("lambda_options", {})
+        lo.update(lambda_options)
+        lo["lambda_mode"] = True
+        options["_"]["lambda_options"] = lo
+
     run(options)
