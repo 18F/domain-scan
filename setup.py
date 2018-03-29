@@ -55,7 +55,7 @@ setup(
     # What does your project relate to?
     keywords='https best practices',
 
-    packages=['pshtt'],
+    packages=['domain_scan'],
 
     install_requires=[
         'strict-rfc3339',
