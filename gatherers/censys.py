@@ -2,6 +2,7 @@ import os
 import json
 import csv
 import logging
+from typing import List
 
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -59,8 +60,11 @@ def gather(suffixes, options, extra={}):
     query = query_for(suffixes)
     logging.debug("Censys query:\n%s\n" % query)
 
+    # Hardcode this for now:
+    cache_dir = "./cache"
     # Plan to store in cache/censys/export.csv.
-    download_path = utils.cache_path("export", "censys", ext="csv")
+    download_path = utils.cache_path("export", "censys", ext="csv",
+                                     cache_dir=cache_dir)
 
     # Reuse of cached data can be turned on with --cache.
     cache = options.get("cache", False)
@@ -127,44 +131,60 @@ def gather(suffixes, options, extra={}):
 #     OR sans LIKE "%.gov")
 #   OR (common_names LIKE "%.fed.us"
 #     OR sans LIKE "%.fed.us");
+def query_for(suffixes: List[str]) -> str:
 
-def query_for(suffixes):
+    select = "\n".join([
+        "    parsed.subject.common_name,",
+        "    parsed.extensions.subject_alt_name.dns_names",
+    ])
 
-    select = """
-    parsed.subject.common_name,
-    parsed.extensions.subject_alt_name.dns_names
-    """
-
-    from_clause = """
-    `censys-io.certificates_public.certificates`,
-    UNNEST(parsed.subject.common_name) AS common_names,
-    UNNEST(parsed.extensions.subject_alt_name.dns_names) AS sans
-    """
+    from_clause = "\n".join([
+        "    `censys-io.certificates_public.certificates`,",
+        "    UNNEST(parsed.subject.common_name) AS common_names,",
+        "    UNNEST(parsed.extensions.subject_alt_name.dns_names) AS sans",
+    ])
 
     # Returns query fragment for a specific suffix.
     def suffix_query(suffix):
-        return """
-        (common_names LIKE \"%%%s\" OR sans LIKE \"%%%s\")
-        """ % (suffix, suffix)
+        return "\n".join([
+            "(common_names LIKE \"%%%s\"" % suffix,
+            "      OR sans LIKE \"%%%s\")" % suffix,
+        ])
 
     # Join the individual suffix clauses into one WHERE clause.
-    where = str.join(" OR ", [suffix_query(suffix) for suffix in suffixes])
+    where = str.join("\n    OR ", [suffix_query(suffix) for suffix in suffixes])
 
-    query = "SELECT %s FROM %s WHERE %s" % (select, from_clause, where)
+    query = "\n".join([
+        "SELECT",
+        select,
+        "FROM",
+        from_clause,
+        "WHERE",
+        "    %s" % where
+    ])
 
     return query
+
+
+def get_credentials_from_env_var_or_file(env_var: str="",
+                                         env_file_var: str="") -> str:
+    creds = os.environ.get(env_var, None)
+
+    if creds is None:
+        path = os.environ.get(env_file_var, None)
+        if path is not None:
+            with open(path) as f:
+                creds = f.read()
+
+    return creds
 
 
 # Load BigQuery credentials from either a JSON string, or
 # a JSON file. Passed in via environment variables either way.
 def load_credentials():
-    creds = os.environ.get("BIGQUERY_CREDENTIALS", None)
-
-    if creds is None:
-        path = os.environ.get("BIGQUERY_CREDENTIALS_PATH", None)
-        if path is not None:
-            with open(path) as f:
-                creds = f.read()
+    creds = get_credentials_from_env_var_or_file(
+        env_var="BIGQUERY_CREDENTIALS",
+        env_file_var="BIGQUERY_CREDENTIALS_PATH")
 
     if creds is None:
         return None
