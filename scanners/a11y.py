@@ -17,6 +17,7 @@ config = ""
 def init(environment, options):
     global redirects
     global config
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
 
     redirects_file = options.get("a11y_redirects")
     config_file = options.get("a11y_config")
@@ -29,7 +30,7 @@ def init(environment, options):
 
         # if remote, try to download
         if redirects_file.startswith("http:") or redirects_file.startswith("https:"):
-            redirects_path = os.path.join(utils.cache_dir(), "a11y_redirects.yml")
+            redirects_path = os.path.join(cache_dir, "a11y_redirects.yml")
 
             try:
                 response = requests.get(redirects_file)
@@ -57,7 +58,7 @@ def init(environment, options):
 
         # if remote, try to download
         if config_file.startswith("http:") or config_file.startswith("https:"):
-            config_path = os.path.join(utils.cache_dir(), "a11y_config.json")
+            config_path = os.path.join(cache_dir, "a11y_config.json")
 
             try:
                 response = requests.get(config_file)
@@ -73,10 +74,11 @@ def init(environment, options):
 # If we have pshtt data, use it to skip some domains. If redirect
 # data says so, adjust scan URL for some domains.
 def init_domain(domain, environment, options):
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
     # If we've got pshtt data, use it to cut down work.
     if (
-        utils.domain_is_redirect(domain) or
-        utils.domain_not_live(domain)
+        utils.domain_is_redirect(domain, cache_dir=cache_dir) or
+        utils.domain_not_live(domain, cache_dir=cache_dir)
     ):
         logging.debug("\tSkipping a11y scan based on pshtt data.")
         return False

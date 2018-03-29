@@ -44,15 +44,16 @@ lambda_support = True
 # support STARTTLS so we can scan them.
 def init_domain(domain, environment, options):
     hosts_to_scan = []
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
 
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
-    if utils.domain_doesnt_support_https(domain):
+    if utils.domain_doesnt_support_https(domain, cache_dir=cache_dir):
         logging.warn('\tHTTPS not supported for {}'.format(domain))
     else:
         # If we have pshtt data and it says canonical endpoint uses
         # www and the given domain is bare, add www.
-        if utils.domain_uses_www(domain):
+        if utils.domain_uses_www(domain, cache_dir=cache_dir):
             hostname = "www.%s" % domain
         else:
             hostname = domain
@@ -65,7 +66,7 @@ def init_domain(domain, environment, options):
 
     # If we have trustymail data, see if there are any mail servers
     # that support STARTTLS that we should scan
-    mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain)
+    mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
     for mail_server in mail_servers_to_test:
         hostname_and_port = mail_server.split(':')
         hosts_to_scan.append({

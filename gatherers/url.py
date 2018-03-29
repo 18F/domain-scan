@@ -10,7 +10,7 @@ from utils import utils
 #        Will be parsed as a CSV.
 
 
-def gather(suffixes, options, extra={}):
+def gather(suffixes, options, extra={}, cache_dir="./cache"):
     # Defaults to --url, but can be overridden.
     name = extra.get("name", "url")
     url = options.get(name)
@@ -22,7 +22,7 @@ def gather(suffixes, options, extra={}):
     # remote URL
     if url.startswith("http:") or url.startswith("https:"):
         # Though it's saved in cache/, it will be downloaded every time.
-        remote_path = os.path.join(utils.cache_dir(), "url.csv")
+        remote_path = os.path.join(cache_dir, "url.csv")
 
         try:
             response = requests.get(url)
