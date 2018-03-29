@@ -2,6 +2,8 @@ import json
 import logging
 import re
 
+from typing import Generator, List, Pattern
+
 from gatherersabc.gathererabc import Gatherer
 
 # Reverse DNS
@@ -26,13 +28,12 @@ ip_filter = re.compile("^(\w+[\-\.]?)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
 number_filter = re.compile("^[\d\-]+\.")
 
 
-def Gatherer(Gatherer):
+class Gatherer(Gatherer):
 
     def __init__(self, suffixes: List[str], options: dict, extra: dict={}):
         self.suffixes = suffixes
         self.options = options
         self.extra = extra
-
 
     def gather(self):
         path = self.options.get("rdns")
@@ -51,7 +52,6 @@ def Gatherer(Gatherer):
 
             for record in process_lines(lines, ip_filter, number_filter):
                 yield record
-
 
 
 def process_lines(lines: List[str], ip_filter: Pattern,

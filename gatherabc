@@ -78,7 +78,7 @@ def run(options=None):
             # used as the --url option to the URL module.
             if options.get(source):
                 gatherer_module = importlib.import_module("gatherersabc.url")
-                gatherer = gatherer_module.Gatherer(suffixes, options) 
+                gatherer = gatherer_module.Gatherer(suffixes, options)
                 extra['name'] = source
             else:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -176,7 +176,6 @@ def run(options=None):
     utils.write(utils.json_for(metadata), "%s/meta.json" % utils.results_dir())
 
 
-
 # Read in parent domains from the first column of a given CSV.
 def get_parent_domains(options):
     parents = options.get("parents")
@@ -209,6 +208,6 @@ def get_parent_domains(options):
 
     return parent_domains
 
+
 if __name__ == '__main__':
     run(options)
-
