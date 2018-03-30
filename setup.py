@@ -8,13 +8,13 @@ Based on:
 - https://github.com/dhs-ncats/pshtt/blob/master/setup.py
 """
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='domain-scan',
 
     # Versions should comply with PEP440
-    version='0.1.0-dev',
+    version='0.1.0-dev1',
     description='lightweight scan pipeline for orchestrating third party tools, at scale and (optionally) using serverless infrastructure',
 
     # NCATS "homepage"
@@ -55,7 +55,7 @@ setup(
     # What does your project relate to?
     keywords='https best practices web-crawling domain scanning',
 
-    packages=['domain_scan'],
+    packages=find_packages(),
 
     install_requires=[
         'strict-rfc3339',
