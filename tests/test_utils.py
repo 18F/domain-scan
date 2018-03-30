@@ -2,7 +2,7 @@ import argparse
 import sys
 import pytest
 from .context import utils  # noqa
-from utils import utils as subutils
+from domain_scan.utils import utils as subutils
 
 
 def get_default_false_values(parser):

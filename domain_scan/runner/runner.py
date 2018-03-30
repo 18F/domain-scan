@@ -1,4 +1,4 @@
-from utils import utils
+from domain_scan.utils import utils
 
 
 def write_rows(rows, domain, base_domain, scanner, csv_writer, meta=None):

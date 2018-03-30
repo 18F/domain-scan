@@ -1,6 +1,6 @@
 import logging
 
-from utils import utils
+from domain_scan.utils import utils
 
 # Evaluate third party service usage using Chrome headless.
 

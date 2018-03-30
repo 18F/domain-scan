@@ -2,7 +2,7 @@ import os
 import requests
 import logging
 
-from utils import utils
+from domain_scan.utils import utils
 
 # Gathers hostnames from a CSV at a given URL.
 #

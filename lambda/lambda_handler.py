@@ -2,7 +2,7 @@ import importlib
 import sys
 import logging
 
-from utils import utils
+from domain_scan.utils import utils
 
 # Central handler for all Lambda events.
 def handler(event, context):
@@ -49,4 +49,3 @@ def handler(event, context):
     # date transform functions in one place, before Amazon's built-in
     # JSON serialization prepares the data for transport.
     return utils.from_json(utils.json_for(response))
-

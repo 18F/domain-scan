@@ -27,7 +27,7 @@ import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 
-from utils import utils
+from domain_scan.utils import utils
 
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.

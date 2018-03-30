@@ -8,7 +8,7 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 import google.api_core.exceptions
 
-from utils import utils
+from domain_scan.utils import utils
 
 # Options:
 #

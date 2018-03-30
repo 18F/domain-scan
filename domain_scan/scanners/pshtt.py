@@ -4,7 +4,7 @@ import os
 import re
 
 from pshtt import pshtt
-from utils import utils
+from domain_scan.utils import utils
 
 ###
 # Measure a site's HTTP behavior using DHS NCATS' pshtt tool.
