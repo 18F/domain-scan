@@ -17,13 +17,14 @@ user_agent = "github.com/18f/domain-scan, csp.py"
 
 
 def init_domain(domain, environment, options):
+    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
     # If we have data from pshtt, skip if it's not a live domain.
-    if utils.domain_not_live(domain):
+    if utils.domain_not_live(domain, cache_dir=cache_dir):
         logging.debug("\tSkipping, domain not reachable during inspection.")
         return False
 
     # If we have data from pshtt, skip if it's just a redirector.
-    if utils.domain_is_redirect(domain):
+    if utils.domain_is_redirect(domain, cache_dir=cache_dir):
         logging.debug("\tSkipping, domain seen as just an external redirector during inspection.")
         return False
 
@@ -32,8 +33,8 @@ def init_domain(domain, environment, options):
     if not (domain.startswith('http://') or domain.startswith('https://')):
 
         # If we have data from pshtt, use the canonical endpoint.
-        if utils.domain_canonical(domain):
-            url = utils.domain_canonical(domain)
+        if utils.domain_canonical(domain, cache_dir=cache_dir):
+            url = utils.domain_canonical(domain, cache_dir=cache_dir)
 
         # Otherwise, well, ssl should work.
         else:

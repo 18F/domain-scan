@@ -57,32 +57,14 @@ def download(url, destination):
     return filename
 
 
-# read options from the command line
-#   e.g. ./scan --since=2012-03-04 --debug whatever.com
-#     => {"since": "2012-03-04", "debug": True, "_": ["whatever.com"]}
-def options_for_scan():
-    # Parse options for the ``scan`` command.
-    options = {"_": []}
-    for arg in sys.argv[1:]:
-        if arg.startswith("--"):
-
-            if "=" in arg:
-                key, value = arg.split('=')
-            else:
-                key, value = arg, "True"
-
-            key = key.split("--")[1]
-            if value.lower() == 'true':
-                value = True
-            elif value.lower() == 'false':
-                value = False
-            options[key.lower()] = value
-        else:
-            options["_"].append(arg)
-    return options
-
-
 def options_endswith(end):
+    """
+    Returns a function that checks that an argument ends ``end``.
+
+    :arg str end: The string that is supposed to be at the end of the argument.
+
+    :rtype: function
+    """
     def func(arg):
         if arg.endswith(end):
             return arg
@@ -120,6 +102,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 def options():
+    """
+    Checks to see whether ``gather`` or ``scan`` was called and returns the
+    parsed options for the appropriate function call.
+
+    :rtype: dict
+    """
     if sys.argv[0].endswith("gather"):
         return options_for_gather()
     elif sys.argv[0].endswith("scan"):
@@ -127,47 +115,111 @@ def options():
 
 
 def build_gather_options_parser(services):
-    parser = ArgumentParser(prefix_chars="--")
+    """
+    Takes a list of services that should be added as required flags, then
+    builds the argparse parser object.
+
+    :arg list[str] services: services with required flags.
+
+    :rtype: ArgumentParser
+    """
+    usage_message = "".join([
+        "%(prog)s GATHERERS --suffix [SUFFIX] "
+        "--[GATHERER] [GATHERER OPTIONS] [options] ",
+        "(GATHERERS and SUFFIX are comma-separated lists)\n",
+        "For example:\n",
+        "./gather dap --suffix=.gov ",
+        "--dap=https://analytics.usa.gov/data/live/sites-extended.csv"
+    ])
+    parser = ArgumentParser(prefix_chars="--", usage=usage_message)
 
     for service in services:
         flag = "--%s" % service
         parser.add_argument(flag, nargs=1, required=True)
 
-    parser.add_argument("--cache", action="store_true")
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--ignore-www", action="store_true")
-    parser.add_argument("--include-parents", action="store_true")
-    parser.add_argument("--log", nargs="+")
-    parser.add_argument("--parents", nargs="+")
-    parser.add_argument("--rdns", nargs="+")
-    parser.add_argument("--sort", action="store_true")
-    parser.add_argument("--suffix", nargs="+", required=True)
-    parser.add_argument("--timeout", nargs="+")
+    parser.add_argument("--cache", action="store_true",
+                        help="Use local filesystem cache (censys only).")
+    parser.add_argument("--debug", action="store_true",
+                        help="Show debug information.")
+    parser.add_argument("--ignore-www", action="store_true",
+                        help="Ignore the www. prefixes of hostnames.")
+    parser.add_argument("--include-parents", action="store_true",
+                        help="Include second-level domains.")
+    parser.add_argument("--log", nargs=1)
+    parser.add_argument("--parents", nargs=1, help="".join([
+        "A path or URL to a CSV whose first column is second-level domains. ",
+        "Any subdomain not contained within these second-level domains will ",
+        "be excluded."
+    ]))
+    parser.add_argument("--sort", action="store_true", help="".join([
+        "Sort result CSVs by domain name, alphabetically. (Note: this causes ",
+        "the entire dataset to be read into memory.)",
+    ]))
+    parser.add_argument("--suffix", nargs=1, required=True, help="".join([
+        "Comma-separated list of suffixes, e.g '.gov' ",
+        "or '.fed.us' or '.gov,.gov.uk' (required)."
+    ]))
+    parser.add_argument("--timeout", nargs=1, help="".join([
+        "Override the 10 minute job timeout (specify in seconds) ",
+        "(censys only).",
+    ]))
     return parser
 
 
 def options_for_gather():
-    # Parse options for the ``gather`` command.
-    set_services = ("censys")
-    services = [s for s in sys.argv[1].split(",") if s not in set_services]
+    """
+    Parse options for the ``gather`` command.
+
+    :rtype: dict
+
+    Impure
+        Reads from sys.argv.
+
+    The gather command requires a comma-separated list of one or more
+    gatherers, and an argument (with a value) whose name corresponds to each
+    gatherer, as well as a mandatory suffix value.
+
+    ``./gather dap --suffix=.gov`` is insuffucient, because the present of the
+    ``dap`` gatherer means that ``--dap=<someurl>`` is therefore required as an
+    argument.
+
+    Hence we look for the first argument before building the parser, so that
+    the additional required arguments can be passed to it.
+
+    The ``set_services`` are those services, like ``censys``, that don't have a
+    matching argument, and the inclusion of the help flags is necessary here so
+    that they don't get added as services.
+    """
+    set_services = (
+        ",",
+        "--help",
+        "-h",
+        "censys",
+    )
+    services = [s.strip() for s in sys.argv[1].split(",")
+                if s not in set_services and s.strip()]
+    if services and services[0].startswith("--"):
+            raise argparse.ArgumentTypeError(
+                "First argument must be a list of gatherers.")
+
     parser = build_gather_options_parser(services)
     parsed, remaining = parser.parse_known_args()
+
     for remainder in remaining:
-        if remainder.startswith("--"):
+        if remainder.startswith("--") or remainder == ",":
             raise argparse.ArgumentTypeError(
                 "%s isn't a valid argument here." % remainder)
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
-    opts["_"] = remaining
 
     """
-    The following expect a single argument, but argparse returns multiple
-    values for them because that's how ``nargs='+'`` works, so we need to
-    extract the single values.
+    The following expect a single argument, but argparse returns lists for them
+    because that's how ``nargs=<n/'*'/'+'>`` works, so we need to extract the
+    single values.
     """
     should_be_singles = [
         "parents",
-        "suffix"
+        "suffix",
     ]
     for service in services:
         should_be_singles.append(service)
@@ -175,6 +227,136 @@ def options_for_gather():
     for kwd in should_be_singles:
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
+
+    opts["gatherers"] = [g.strip() for g in
+                         remaining[0].split(",") if g.strip()]
+    if not opts["gatherers"]:
+        raise argparse.ArgumentTypeError(
+            "First argument must be a comma-separated list of gatherers")
+
+    # Some of the flags should only be present if a given gatherer is present.
+    matching_args = (
+        {"args": ["cache", "timeout"], "gatherer": "censys"},
+    )
+    candidates = (ma for ma in matching_args
+                  if ma["gatherer"] not in opts["gatherers"])
+
+    for ma in candidates:
+        for arg in ma["args"]:
+            if arg in opts and opts[arg]:
+                raise argparse.ArgumentTypeError(
+                    "%s doesn't apply with the specified gatherers" % arg)
+
+    # Some of the arguments expect single values on the command line, but those
+    # values may contain comma-separated multiple values, so create the
+    # necessary lists here.
+
+    def fix_suffix(suffix: str) -> str:
+        return suffix if suffix.startswith(".") else ".%s" % suffix
+
+    opts["suffix"] = [fix_suffix(s.strip()) for s in opts["suffix"].split(",")
+                      if s.strip()]
+    return opts
+
+
+def build_scan_options_parser():
+    """
+    Builds the argparse parser object.
+
+    :rtype: ArgumentParser
+    """
+    parser = ArgumentParser(prefix_chars="--")
+    parser.add_argument("domains", help="".join([
+        "Either a comma-separated list of domains or the path to a local CSV ",
+        "file containing the domains to be scanned. The CSV's header row ",
+        "will be ignored if the first cell starts with \"Domain\" ",
+        "(case-insensitive).",
+    ]))
+    parser.add_argument("--cache", action="store_true", help="".join([
+        "Use previously cached scan data to avoid scans hitting the network ",
+        "where possible.",
+    ]))
+    parser.add_argument("--debug", action="store_true",
+                        help="Print out more stuff. Useful with '--serial'")
+    parser.add_argument("--lambda", action="store_true", help="".join([
+        "Run certain scanners inside Amazon Lambda instead of locally.",
+    ]))
+    parser.add_argument("--lambda-profile", nargs=1, help="".join([
+        "When running Lambda-related commands, use a specified AWS named ",
+        "profile. Credentials/config for this named profile should already ",
+        "be configured separately in the execution environment.",
+    ]))
+    parser.add_argument("--meta", action="store_true", help="".join([
+        "Append some additional columns to each row with information about ",
+        "the scan itself. This includes start/end times and durations, as ",
+        "well as any encountered errors. When also using '--lambda', ",
+        "additional, Lambda-specific information will be appended.",
+    ]))
+    parser.add_argument("--scan", nargs=1, required=True,
+                        help="Comma-separated list of scanners (required).")
+    parser.add_argument("--sort", action="store_true", help="".join([
+        "Sort result CSVs by domain name, alphabetically. (Note: this causes ",
+        "the entire dataset to be read into memory.)",
+    ]))
+    parser.add_argument("--serial", action="store_true", help="".join([
+        "Disable parallelization, force each task to be done simultaneously. ",
+        "Helpful for testing and debugging.",
+    ]))
+
+    parser.add_argument("--suffix", nargs=1, help="".join([
+        "Add a suffix to all input domains. For example, a --suffix of ",
+        "'virginia.gov' will add '.virginia.gov' to the end of all ",
+        "input domains."
+    ]))
+    parser.add_argument("--output", nargs=1, default=["./"], help="".join([
+        "Where to output the 'cache/' and 'results/' directories. ",
+        "Defaults to './'.",
+    ]))
+    parser.add_argument("--workers", nargs=1,
+                        help="Limit parallel threads per-scanner to a number.")
+    # TODO: Should workers have a default value?
+
+    return parser
+
+
+def options_for_scan():
+    """
+    Parse options for the ``scan`` command.
+
+    :rtype: dict
+
+    Impure
+        Reads from sys.argv.
+
+    """
+    parser = build_scan_options_parser()
+    parsed = parser.parse_args()
+
+    opts = parsed.__dict__
+    opts = {k: opts[k] for k in opts if opts[k] is not None}
+
+    if opts.get("lambda_profile") and not opts.get("lambda"):
+            raise argparse.ArgumentTypeError(
+                "Can't set lambda profile unless lambda flag is set.")
+
+    # We know we want one value, but the ``nargs`` flag means we get a list.
+    should_be_singles = [
+        "lambda_profile",
+        "output",
+        "scan",
+        "suffix",
+        "workers",
+    ]
+    for kwd in should_be_singles:
+        if kwd in opts:
+            opts[kwd] = opts[kwd][0]
+
+    # Derive some options not set directly at CLI:
+    opts["_"] = {
+        "cache_dir": os.path.join(opts.get("output", "./"), "cache"),
+        "report_dir": opts.get("output", "./"),
+        "results_dir": os.path.join(opts.get("output", "./"), "results"),
+    }
 
     return opts
 
@@ -241,16 +423,16 @@ def read(source):
     return contents
 
 
-def report_dir():
-    return options().get("output", "./")
+def report_dir(options):
+    return options.get("output", "./")
 
 
-def cache_dir():
-    return os.path.join(report_dir(), "cache")
+def cache_dir(options):
+    return os.path.join(report_dir(options), "cache")
 
 
-def results_dir():
-    return os.path.join(report_dir(), "results")
+def results_dir(options):
+    return os.path.join(report_dir(options), "results")
 
 
 # Read in JSON file of known third party services.
@@ -320,18 +502,18 @@ def unsafe_execute(command):
 # Predictable cache path for a domain and operation.
 
 
-def cache_path(domain, operation, ext="json"):
-    return os.path.join(cache_dir(), operation, ("%s.%s" % (domain, ext)))
+def cache_path(domain, operation, ext="json", cache_dir="./cache"):
+    return os.path.join(cache_dir, operation, ("%s.%s" % (domain, ext)))
 
 
 # cache a single one-off file, not associated with a domain or operation
-def cache_single(filename):
-    return os.path.join(cache_dir(), filename)
+def cache_single(filename, cache_dir="./cache"):
+    return os.path.join(cache_dir, filename)
 
 
 # Used to quickly get cached data for a domain.
-def data_for(domain, operation):
-    path = cache_path(domain, operation)
+def data_for(domain, operation, cache_dir="./cache"):
+    path = cache_path(domain, operation, cache_dir=cache_dir)
     if os.path.exists(path):
         raw = read(path)
         data = json.loads(raw)
@@ -379,7 +561,7 @@ def just_microseconds(duration):
 
 
 # Return base domain for a subdomain, factoring in the Public Suffix List.
-def base_domain_for(subdomain):
+def base_domain_for(subdomain, cache_dir="./cache"):
     global suffix_list
 
     """
@@ -388,7 +570,7 @@ def base_domain_for(subdomain):
     If suffix_list is None, the caches have not been initialized, so do that.
     """
     if suffix_list is None:
-        suffix_list, discard = load_suffix_list()
+        suffix_list, discard = load_suffix_list(cache_dir=cache_dir)
 
     if suffix_list is None:
         logging.warn("Error downloading the PSL.")
@@ -399,9 +581,9 @@ def base_domain_for(subdomain):
 
 # Returns an instantiated PublicSuffixList object, and the
 # list of lines read from the file.
-def load_suffix_list():
+def load_suffix_list(cache_dir="./cache"):
 
-    cached_psl = cache_single("public-suffix-list.txt")
+    cached_psl = cache_single("public-suffix-list.txt", cache_dir=cache_dir)
 
     if os.path.exists(cached_psl):
         logging.debug("Using cached Public Suffix List...")
@@ -430,9 +612,9 @@ def load_suffix_list():
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it doesn't support HTTPS.
 # Useful for saving time on TLS-related scanning.
-def domain_doesnt_support_https(domain):
+def domain_doesnt_support_https(domain, cache_dir="./cache"):
     # Make sure we have the cached data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -450,13 +632,13 @@ def domain_doesnt_support_https(domain):
 
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it canonically prepends 'www'.
-def domain_uses_www(domain):
+def domain_uses_www(domain, cache_dir="./cache"):
     # Don't prepend www to www.
     if domain.startswith("www."):
         return False
 
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
 
     if not inspection:
         return False
@@ -471,9 +653,9 @@ def domain_uses_www(domain):
     )
 
 
-def domain_mail_servers_that_support_starttls(domain):
+def domain_mail_servers_that_support_starttls(domain, cache_dir="./cache"):
     retVal = []
-    data = data_for(domain, 'trustymail')
+    data = data_for(domain, 'trustymail', cache_dir=cache_dir)
     if data:
         starttls_results = data.get('Domain Supports STARTTLS Results')
         if starttls_results:
@@ -485,9 +667,9 @@ def domain_mail_servers_that_support_starttls(domain):
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it's not live.
 # Useful for skipping scans on non-live domains.
-def domain_not_live(domain):
+def domain_not_live(domain, cache_dir="./cache"):
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -497,9 +679,9 @@ def domain_not_live(domain):
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know it redirects.
 # Useful for skipping scans on redirect domains.
-def domain_is_redirect(domain):
+def domain_is_redirect(domain, cache_dir="./cache"):
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -509,9 +691,9 @@ def domain_is_redirect(domain):
 # Check whether we have HTTP behavior data cached for a domain.
 # If so, check if we know its canonical URL.
 # Useful for focusing scans on the right endpoint.
-def domain_canonical(domain):
+def domain_canonical(domain, cache_dir="./cache"):
     # Make sure we have the data.
-    inspection = data_for(domain, "pshtt")
+    inspection = data_for(domain, "pshtt", cache_dir=cache_dir)
     if not inspection:
         return False
 
@@ -583,22 +765,6 @@ def sort_csv(input_filename):
 
     # replace the original
     shutil.move(tmp_filename, input_filename)
-
-
-# Given a user-input domain suffix, normalize it.
-def normalize_suffixes(given):
-    if (given is None) or (type(given) is not str):
-        return None
-
-    suffixes = []
-    for suffix in given.split(","):
-        suffix = suffix.strip()
-
-        if not suffix.startswith("."):
-            suffix = (".%s" % suffix)
-        suffixes.append(suffix)
-
-    return suffixes
 
 
 # Given a domain suffix, provide a compiled regex.
