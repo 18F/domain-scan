@@ -3,6 +3,8 @@ import logging
 import re
 from typing import Generator, List, Pattern
 
+from gatherers.gathererabc import Gatherer
+
 # Reverse DNS
 #
 # Given a path to a (local) "JSON Lines" formatted file,
@@ -25,23 +27,25 @@ ip_filter = re.compile("^(\w+[\-\.]?)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
 number_filter = re.compile("^[\d\-]+\.")
 
 
-def gather(suffixes, options, extra={}):
-    path = options.get("rdns")
+class Gatherer(Gatherer):
 
-    if path is None:
-        logging.warn("--rdns is required to be a path to a local file.")
-        exit(1)
+    def gather(self):
+        path = self.options.get("rdns")
 
-    # May become useful to allow URLs in future.
-    if path.startswith("http:") or path.startswith("https:"):
-        logging.warn("--rdns is required to be a path to a local file.")
-        exit(1)
+        if path is None:
+            logging.warn("--rdns is required to be a path to a local file.")
+            exit(1)
 
-    with open(path) as lines:
-        logging.debug("\tReading %s..." % path)
+        # May become useful to allow URLs in future.
+        if path.startswith("http:") or path.startswith("https:"):
+            logging.warn("--rdns is required to be a path to a local file.")
+            exit(1)
 
-        for record in process_lines(lines, ip_filter, number_filter):
-            yield record
+        with open(path) as lines:
+            logging.debug("\tReading %s..." % path)
+
+            for record in process_lines(lines, ip_filter, number_filter):
+                yield record
 
 
 def process_lines(lines: List[str], ip_filter: Pattern,
