@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-
 from typing import Generator, List, Pattern
 
 from gatherers.gathererabc import Gatherer
