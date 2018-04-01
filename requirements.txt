@@ -1,33 +1,13 @@
-##########################
-# Common (Local + Lambda)
-##########################
-#
-# These are the only dependencies which must get packaged
-# into every (Python-based) Lambda container build.
 
+########
+# NOTE: Any requirements which are needed for Python-based Lambda function
+# packaging should also be listed in lambda/requirements-lambda.txt.
+# Those are in the bottom section below.
+
+# Used by parts of domain-scan, but not used inside of Lambda function
+# invocation.
+boto3
+
+# Used in Lanbda functions. Also copied to lambda/requirements-lambda.txt.
 strict-rfc3339
 publicsuffix
-
-
-#################
-# Common (Local)
-#################
-
-boto3
-ipython
-
-
-############
-# Gatherers
-############
-
-# censys
-google-cloud-bigquery
-google-auth-oauthlib
-
-
-############
-# Tests
-############
-
-pytest

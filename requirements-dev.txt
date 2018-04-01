@@ -1,0 +1,5 @@
+# These requirements are useful or needed when developing
+# domain-scan itself.
+
+ipython
+pytest

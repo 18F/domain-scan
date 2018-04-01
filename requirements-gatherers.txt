@@ -1,0 +1,3 @@
+# censys
+google-cloud-bigquery
+google-auth-oauthlib
