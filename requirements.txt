@@ -8,6 +8,6 @@
 # invocation.
 boto3
 
-# Used in Lanbda functions. Also copied to lambda/requirements-lambda.txt.
+# Used in Lambda functions. Also copied to lambda/requirements-lambda.txt.
 strict-rfc3339
 publicsuffix

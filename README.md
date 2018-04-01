@@ -21,23 +21,26 @@ There is also built-in support for using **headless Chrome** to efficiently meas
 
 ### Requirements
 
-`domain-scan` requires **Python 3.5 and up**. To install dependencies:
+`domain-scan` requires **Python 3.5 and up**.
+
+To install **core dependencies**:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-This will automatically allow the use of two scanners:
+You can install scanner- or gatherer-specific dependencies yourself. Or, you can "quick start" by just **installing all dependencies for all scanners and/or all gatherers**:
 
-* `pshtt` - A scanner that uses the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats).
-* `sslyze` - A scanner that uses the [`sslyze`](https://github.com/nabla-c0d3/sslyze) Python package maintained by Alban Diquet.
+```bash
+pip install -r requirements-scanners.txt
+pip install -r requirements-gatherers.txt
+```
 
-Other individual scanners will require additional externally installed dependencies:
+If you plan on **developing/testing domain-scan itself**, install development requirements:
 
-* `trustymail`: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats). (Override path by setting the `TRUSTYMAIL_PATH` environment variable.)
-* `a11y`: The `pa11y` command, available from the [`pa11y`](https://www.npmjs.com/package/pa11y) Node package. (Override path by setting the `PA11Y_PATH` environment variable.)
-* `third_parties`: The `phantomas` command, available from the [`phantomas`](https://www.npmjs.com/package/phantomas) Node package. (Override path by setting the `PHANTOMAS_PATH` environment variable.)
-
+```bash
+pip install -r requirements-dev.txt
+```
 
 ### Usage
 
@@ -65,7 +68,16 @@ Append columns to each row with metadata about the scan itself, such as how long
 ./scan example.com --scan=pshtt --meta
 ```
 
-##### Parallelization
+### Scanners
+
+* `pshtt` - A scanner that uses the [`pshtt`](https://github.com/dhs-ncats/pshtt) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats).
+* `sslyze` - A scanner that uses the [`sslyze`](https://github.com/nabla-c0d3/sslyze) Python package maintained by Alban Diquet.
+* `trustymail`: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats). (Override path by setting the `TRUSTYMAIL_PATH` environment variable.)
+* `third_parties` - What third party web services are in use, using [headless Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) to trap outgoing requests. (See documentation for [using](#headless-chrome) or [writing](#developing-chrome-scanners) Chrome-based scanners.)
+* `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
+* `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
+
+### Parallelization
 
 It's important to understand that **scans run in parallel by default**, and **data is streamed to disk immediately** after each scan is done.
 
@@ -116,15 +128,6 @@ See below for [how to structure a Chrome-based scanner](README.md#developing-chr
 See [`docs/lambda.md`](`docs/lambda.md`) for how to build and deploy Lambda-based scanners.
 
 ### Options
-
-**Scanners:**
-
-* `pshtt` - HTTP/HTTPS/HSTS configuration, using [`pshtt`](https://github.com/dhs-ncats/pshtt).
-* `trustymail` - MX/SPF/STARTTLS/DMARC configuration, using [`trustymail`](https://github.com/dhs-ncats/trustymail).
-* `sslyze` - TLS/SSL configuration, using [`sslyze`](https://github.com/nabla-c0d3/sslyze).
-* `third_parties` - What third party web services are in use, using [headless Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) to trap outgoing requests. (See documentation for [using](#headless-chrome) or [writing](#developing-chrome-scanners) Chrome-based scanners.)
-* `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
-* `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
 
 **General options:**
 

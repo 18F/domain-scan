@@ -42,7 +42,7 @@ pip install .
 cd ..
 
 cd domain-scan
-pip install -r requirements.txt
+pip install -r lambda/requirements-lambda.txt
 cd ..
 
 deactivate
