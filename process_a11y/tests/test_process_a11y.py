@@ -1,8 +1,8 @@
 import unittest
 
-from .context import utils  # noqa
+from .context import a11y  # noqa
 
-from utils.a11y.process_a11y import A11yProcessor
+from a11y.process_a11y import A11yProcessor
 
 
 class ProcessA11yTestCase(unittest.TestCase):
