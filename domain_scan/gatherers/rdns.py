@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Generator, List, Pattern
 
-from gatherers.gathererabc import Gatherer
+from domain_scan.gatherers.gathererabc import Gatherer
 
 # Reverse DNS
 #

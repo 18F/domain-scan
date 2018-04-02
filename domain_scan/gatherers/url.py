@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-from gatherers.gathererabc import Gatherer
+from domain_scan.gatherers.gathererabc import Gatherer
 from domain_scan.utils import utils
 
 
