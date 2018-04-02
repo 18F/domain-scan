@@ -4,6 +4,9 @@
 # packaging should also be listed in lambda/requirements-lambda.txt.
 # Those are in the bottom section below.
 
+# Used in scan script
+requests
+
 # Used by parts of domain-scan, but not used inside of Lambda function
 # invocation.
 boto3
