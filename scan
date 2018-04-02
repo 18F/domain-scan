@@ -16,9 +16,9 @@ import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
 
-from scanners.headless.local_bridge import headless_scan
-from utils import utils
-from runner import runner
+from domain_scan.scanners.headless.local_bridge import headless_scan
+from domain_scan.utils import utils
+from domain_scan.runner import runner
 
 
 # Default and maximum for local workers (threads) per-scanner.

@@ -1,7 +1,7 @@
 import logging
 import json
 
-from utils import utils
+from domain_scan.utils import utils
 
 ###
 # Local Python bridge to the JS bridge to the JS scanner.

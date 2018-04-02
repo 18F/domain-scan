@@ -4,7 +4,7 @@ import os
 import requests
 import yaml
 
-from utils import utils
+from domain_scan.utils import utils
 
 
 workers = 3

@@ -9,7 +9,7 @@ import requests
 import logging
 import importlib
 
-from utils import utils
+from domain_scan.utils import utils
 
 # some metadata about the scan itself
 start_time = utils.local_now()

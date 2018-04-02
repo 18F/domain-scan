@@ -1,6 +1,6 @@
 import logging
 import requests
-from scanners import utils
+from domain_scan.scanners import utils
 
 ###
 # CSP Scanner - check the presence of CSP headers

@@ -4,7 +4,7 @@ import logging
 import requests
 
 from gatherers.gathererabc import Gatherer
-from utils import utils
+from domain_scan.utils import utils
 
 
 class Gatherer(Gatherer):

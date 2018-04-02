@@ -1,7 +1,7 @@
 import logging
 import os
 
-from utils import utils
+from domain_scan.utils import utils
 
 # Check whether a domain is present in a CSV, set in --analytics.
 
