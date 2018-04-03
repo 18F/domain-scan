@@ -15,7 +15,7 @@ def handler(event, context):
 
     # Log all sent events, for the record.
     utils.configure_logging(options)
-    logging.warn(event)
+    logging.info(event)
 
     # Might be acceptable to let this crash the module, in Lambda.
     try:
