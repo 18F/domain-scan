@@ -21,7 +21,7 @@ suffix_list = None
 
 # In Lambda, we package a snapshot of the PSL with the environment.
 lambda_support = True
-lambda_suffix_path = "./public-suffix-list.txt"
+lambda_suffix_path = "./cache/public-suffix-list.txt"
 
 
 # Download third party data once, at the top of the scan.
