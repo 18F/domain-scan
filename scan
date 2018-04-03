@@ -16,7 +16,7 @@ import boto3
 import botocore
 from concurrent.futures import ThreadPoolExecutor
 from scanners.scannerabc import ScannerABC
-from typing import List
+from typing import Any, List, Tuple
 
 from scanners.headless.local_bridge import headless_scan
 from utils import scan_utils
@@ -127,14 +127,31 @@ def run(options=None):
         domains = domains_path
 
     # Which scanners to run the domain through.
+
+    if len(scans) > 0:
+        scan_domains(scans, domains, options)
+    if len(scanner_classes) > 0:
+        scanobject_domains(scanner_classes, domains, options)
+
+
+def build_scan_lists(names: List[str]) -> Tuple[List[Any], List[Any]]:
+    """
+    Given a list of names, sort them into old (scans) and new (scanner_classes)
+    while also raising errors if we run into problems.
+
+    First looks for a new-style scanner, that is, a Python file with the given
+    name in the ``scanners` directory that has a ``Scanner`` class defined in
+    it, and if that fails, it looks for just a file with that name.
+    """
     scans = []
     scanner_classes = []
 
-    for name in options.get("scan").split(","):
+    for name in names:
         try:
             scanner_module = importlib.import_module(
                 "scanners.%s" % name)
-            scanner_class = scanner_module.Scanner
+            # mypy complains about the module not having a Scanner property:
+            scanner_class = scanner_module.Scanner  # type: ignore
             scanner_classes.append(scanner_class)
             continue
         except AttributeError:
@@ -145,18 +162,15 @@ def run(options=None):
             exit(1)
 
         # If the scanner has a canonical command, make sure it exists.
-        if hasattr(scanner, "command") and scanner.command and (not scan_utils.try_command(scanner.command)):
+        # mypy doesn't handle optional properties well, it seems.
+        if hasattr(scanner, "command") and scanner.command and (not scan_utils.try_command(scanner.command)):  # type: ignore
             logging.error("[%s] Command not found: %s" %
-                          (name, scanner.command))
+                          (name, scanner.command))  # type: ignore
             exit(1)
 
         scans.append(scanner)
 
-    if len(scans) > 0:
-        scan_domains(scans, domains, options)
-    if len(scanner_classes) > 0:
-        scanobject_domains(scanner_classes, domains, options)
-
+    return (scanner_classes, scans)
 
 ###
 # Given the selected scanners, and input domains, run each domain
@@ -690,13 +704,16 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
         elif hasattr(scan_class, "workers"):
             workers = scan_class.workers  # type: ignore # The subclass objects set this sometimes.
         else:
-            workers = int(options.get("workers", default_workers))
+            # mypy has trouble with this, presumably because we're using a dict
+            workers = int(options.get("workers", default_workers))  # type: ignore
 
         # Enforce a local worker maximum as a safety valve.
-        environment['workers'] = min(workers, global_max_workers)
+        # mypy has trouble with this, presumably because we're using a dict
+        environment['workers'] = min(workers, global_max_workers)  # type: ignore
 
         # pass in 'environment' dict by reference, mutate in-place
-        scanner = scan_class(environment, options)
+        # mypy complains about the scan_class not being callable in the next line:
+        scanner = scan_class(environment, options)  # type: ignore
         init = scanner.initialized_opts
 
         # If a scanner's init() function returns false, stop entirely.
@@ -715,7 +732,8 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
         # Scan environment, passed to all scanners (local or cloud).
         environment = handles[name]['environment']
 
-        workers = environment['workers']
+        # Again, mypy thinks this is a string via the dict:
+        workers = environment['workers']  # type: ignore
 
         # Kick off workers in parallel. Returns when all are done.
         scan_start_time = scan_utils.local_now()

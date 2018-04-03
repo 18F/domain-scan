@@ -113,6 +113,19 @@ def scan(command: List[str], env: dict=None,
             logging.warn("Error running %s." % (str(exc.output)))
             logging.warn(format_last_exception())
             return None
+
+
+# test if a command exists, don't print output
+def try_command(command):
+    try:
+        subprocess.check_call(["which", command], shell=False,
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+        return True
+    except subprocess.CalledProcessError:
+        logging.warn(format_last_exception())
+        logging.warn("No command found: %s" % (str(command)))
+        return False
 # /Command Line Conveniences #
 
 
