@@ -1,7 +1,7 @@
 import logging
 import json
 
-from utils import utils
+from utils import scan_utils
 
 ###
 # Local Python bridge to the JS bridge to the JS scanner.
@@ -12,11 +12,11 @@ from utils import utils
 
 
 def headless_scan(scanner_name, domain, environment, options):
-    raw = utils.scan(
+    raw = scan_utils.scan(
         [
             "./scanners/headless/local_bridge.js",
             scanner_name,
-            utils.json_for({
+            scan_utils.json_for({
                 'domain': domain,
                 'environment': environment,
                 'options': options
@@ -29,7 +29,7 @@ def headless_scan(scanner_name, domain, environment, options):
         return None
 
     try:
-        data = utils.from_json(raw)
+        data = scan_utils.from_json(raw)
     except json.decoder.JSONDecodeError:
         logging.warn("\tError inside %s.js, skipping. Error below:\n\n%s" % (scanner_name, raw))
         return None

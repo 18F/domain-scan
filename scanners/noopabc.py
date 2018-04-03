@@ -1,7 +1,7 @@
 import logging
-from typing import List, Type
+from typing import List
 
-from scanners.scannerabc import ScannerABC, ScannerABCT
+from scanners.scannerabc import ScannerABC
 
 
 ###
@@ -15,22 +15,23 @@ class Scanner(ScannerABC):
     # Overridden by a --workers flag.
     workers = 2  # type: int
 
-    def __init__(self, domain: str, handles: dict, environment: dict,
-                 options: dict, extra: dict={}) -> None:
-        # Optional one-time initialization per-scan. If defined, any data
-        # will be stored in the instance's ``extra_environment`` property.
+    def __init__(self, environment: dict, options: dict) -> None:
+        # The overall scanner options are set here.
+        # Per-domain arguments should be passed to ``.scan()``.
         #
         # Run locally.
-        logging.debug("Subclass (noopabc) __init__ method for %s." % domain)
-        self.extra_environment = {"variable": domain}
-        super().__init__(domain, handles, environment, options, extra)
+        logging.debug("Subclass (%s) __init__ method." % self.__module__)
+        logging.debug("Initialize environment method.")
+        self.initialized_opts = environment
+        self.initialized_opts["constant"] = 12345
+        super().__init__(environment, options)
 
-    def scan(self) -> dict:
+    def scan(self, domain: str) -> dict:
         # Required scan function. This is the meat of the scanner, where things
         # that use the network or are otherwise expensive would go.
         #
         # Runs locally or in the cloud (Lambda).
-        domain = self.domain  # noqa
+        print(self.initialized_opts)
         logging.debug("Scan function called with options: %s" % self.options)
 
         # Perform the "task".
@@ -49,15 +50,3 @@ class Scanner(ScannerABC):
         return [
             [data['complete'], data['constant'], data['variable']]
         ]
-
-    @classmethod
-    def initialize_environment(cls: Type[ScannerABCT], environment: dict,
-                               options: dict) -> dict:
-        # Optional one-time initialization for all scans.
-        # If defined, any data returned will be passed to every scan instance.
-        #
-        # Run locally.
-        logging.debug("Initialize environment method.")
-        new_environment = {**environment}
-        new_environment["constant"] = 12345
-        return new_environment

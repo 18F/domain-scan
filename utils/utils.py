@@ -18,8 +18,37 @@ from itertools import chain
 from urllib.error import URLError
 
 import publicsuffix
+from utils.scan_utils import options as options_for_scan
 # global in-memory cache
 suffix_list = None
+
+
+# /Time Conveniences #
+# RFC 3339 timestamp for a given UTC time.
+# seconds can be a float, down to microseconds.
+# A given time needs to be passed in *as* UTC already.
+def utc_timestamp(seconds):
+    if not seconds:
+        return None
+    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
+
+
+# Cut off floating point errors, always output duration down to
+# microseconds.
+def just_microseconds(duration: float) -> str:
+    if duration is None:
+        return None
+    return "%.6f" % duration
+
+
+def format_datetime(obj):
+    if isinstance(obj, datetime.date):
+        return obj.isoformat()
+    elif isinstance(obj, str):
+        return obj
+    else:
+        return None
+# /Time Conveniences #
 
 
 # Wrapper to a run() method to catch exceptions.
@@ -259,108 +288,6 @@ def options_for_gather():
     return opts
 
 
-def build_scan_options_parser():
-    """
-    Builds the argparse parser object.
-
-    :rtype: ArgumentParser
-    """
-    parser = ArgumentParser(prefix_chars="--")
-    parser.add_argument("domains", help="".join([
-        "Either a comma-separated list of domains or the path to a local CSV ",
-        "file containing the domains to be scanned. The CSV's header row ",
-        "will be ignored if the first cell starts with \"Domain\" ",
-        "(case-insensitive).",
-    ]))
-    parser.add_argument("--cache", action="store_true", help="".join([
-        "Use previously cached scan data to avoid scans hitting the network ",
-        "where possible.",
-    ]))
-    parser.add_argument("--debug", action="store_true",
-                        help="Print out more stuff. Useful with '--serial'")
-    parser.add_argument("--lambda", action="store_true", help="".join([
-        "Run certain scanners inside Amazon Lambda instead of locally.",
-    ]))
-    parser.add_argument("--lambda-profile", nargs=1, help="".join([
-        "When running Lambda-related commands, use a specified AWS named ",
-        "profile. Credentials/config for this named profile should already ",
-        "be configured separately in the execution environment.",
-    ]))
-    parser.add_argument("--meta", action="store_true", help="".join([
-        "Append some additional columns to each row with information about ",
-        "the scan itself. This includes start/end times and durations, as ",
-        "well as any encountered errors. When also using '--lambda', ",
-        "additional, Lambda-specific information will be appended.",
-    ]))
-    parser.add_argument("--scan", nargs=1, required=True,
-                        help="Comma-separated list of scanners (required).")
-    parser.add_argument("--sort", action="store_true", help="".join([
-        "Sort result CSVs by domain name, alphabetically. (Note: this causes ",
-        "the entire dataset to be read into memory.)",
-    ]))
-    parser.add_argument("--serial", action="store_true", help="".join([
-        "Disable parallelization, force each task to be done simultaneously. ",
-        "Helpful for testing and debugging.",
-    ]))
-
-    parser.add_argument("--suffix", nargs=1, help="".join([
-        "Add a suffix to all input domains. For example, a --suffix of ",
-        "'virginia.gov' will add '.virginia.gov' to the end of all ",
-        "input domains."
-    ]))
-    parser.add_argument("--output", nargs=1, default=["./"], help="".join([
-        "Where to output the 'cache/' and 'results/' directories. ",
-        "Defaults to './'.",
-    ]))
-    parser.add_argument("--workers", nargs=1,
-                        help="Limit parallel threads per-scanner to a number.")
-    # TODO: Should workers have a default value?
-
-    return parser
-
-
-def options_for_scan():
-    """
-    Parse options for the ``scan`` command.
-
-    :rtype: dict
-
-    Impure
-        Reads from sys.argv.
-
-    """
-    parser = build_scan_options_parser()
-    parsed = parser.parse_args()
-
-    opts = parsed.__dict__
-    opts = {k: opts[k] for k in opts if opts[k] is not None}
-
-    if opts.get("lambda_profile") and not opts.get("lambda"):
-            raise argparse.ArgumentTypeError(
-                "Can't set lambda profile unless lambda flag is set.")
-
-    # We know we want one value, but the ``nargs`` flag means we get a list.
-    should_be_singles = [
-        "lambda_profile",
-        "output",
-        "scan",
-        "suffix",
-        "workers",
-    ]
-    for kwd in should_be_singles:
-        if kwd in opts:
-            opts[kwd] = opts[kwd][0]
-
-    # Derive some options not set directly at CLI:
-    opts["_"] = {
-        "cache_dir": os.path.join(opts.get("output", "./"), "cache"),
-        "report_dir": opts.get("output", "./"),
-        "results_dir": os.path.join(opts.get("output", "./"), "results"),
-    }
-
-    return opts
-
-
 def configure_logging(options=None):
     options = {} if not options else options
     if options.get('debug', False):
@@ -387,6 +314,7 @@ def mkdir_p(path):
             raise
 
 
+# JSON Conveniences #
 # Format datetimes, sort keys, pretty-print.
 def json_for(object):
     return json.dumps(object, sort_keys=True, indent=2, default=format_datetime)
@@ -395,15 +323,7 @@ def json_for(object):
 # Mirror image of json_for.
 def from_json(string):
     return json.loads(string)
-
-
-def format_datetime(obj):
-    if isinstance(obj, datetime.date):
-        return obj.isoformat()
-    elif isinstance(obj, str):
-        return obj
-    else:
-        return None
+# /JSON Conveniences #
 
 
 def write(content, destination, binary=False):
@@ -533,15 +453,6 @@ def invalid(data=None):
     return json_for(data)
 
 
-# RFC 3339 timestamp for a given UTC time.
-# seconds can be a float, down to microseconds.
-# A given time needs to be passed in *as* UTC already.
-def utc_timestamp(seconds):
-    if not seconds:
-        return None
-    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(seconds)
-
-
 # Convert a RFC 3339 timestamp back into a local number of seconds.
 def utc_timestamp_to_local_now(timestamp):
     return strict_rfc3339.rfc3339_to_timestamp(timestamp)
@@ -550,14 +461,6 @@ def utc_timestamp_to_local_now(timestamp):
 # Now, in UTC, in seconds (with decimal microseconds).
 def local_now():
     return datetime.datetime.now().timestamp()
-
-
-# Cut off floating point errors, always output duration down to
-# microseconds.
-def just_microseconds(duration):
-    if duration is None:
-        return None
-    return "%.6f" % duration
 
 
 # Return base domain for a subdomain, factoring in the Public Suffix List.
