@@ -737,8 +737,7 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
     # Close up all the files, --sort if requested (memory-expensive).
     # Also fetch Lambda info if requested (time-expensive).
 
-    lambda_used = any(handles[
-        scan_class.__module__.split(".")[-1]]['use_lambda'] for scan_class in scanners)
+    lambda_used = any(handles[k]['use_lambda'] for k in handles)
     get_lambda_details = meta and lambda_used and options.get("lambda-details", False)
 
     # Sleeping's not ideal, but no better idea right now.
@@ -746,15 +745,14 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
         logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
         time.sleep(lambda_log_delay)
 
-    for scan_class in scanners:
-        name = scan_class.__module__.split(".")[-1]
-        handles[name]['file'].close()
+    for handle in handles.values():
+        handle['file'].close()
 
         if options.get("sort"):
-            scan_utils.sort_csv(handles[name]['filename'])
+            scan_utils.sort_csv(handle['filename'])
 
         if get_lambda_details:
-            add_lambda_details(handles[name]['filename'],
+            add_lambda_details(handle['filename'],
                                options["_"]["lambda_options"]["logs_client"])
 
     logging.warn("Results written to CSV.")
