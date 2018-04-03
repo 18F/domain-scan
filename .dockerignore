@@ -2,6 +2,7 @@
 .gitignore
 cache
 lambda
+!lambda/requirements-lambda.txt
 public_suffix_list.dat
 results
 venv
