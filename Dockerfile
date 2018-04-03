@@ -126,13 +126,6 @@ RUN pip install --upgrade pip setuptools
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
 ###
-# pshtt and trustymail
-###
-RUN pip install --upgrade \
-    git+https://github.com/dhs-ncats/pshtt.git@develop \
-    git+https://github.com/dhs-ncats/trustymail.git@develop
-
-###
 # Create unprivileged User
 ###
 ENV SCANNER_HOME /home/scanner
