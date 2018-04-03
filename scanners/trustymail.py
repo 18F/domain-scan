@@ -57,16 +57,10 @@ def scan(domain, environment, options):
     }
 
     import trustymail
-    if environment['scan_method'] == 'local':
-        # Local scanning
-        #
-        # Monkey patching trustymail to make it cache the PSL where we want
-        trustymail.PublicSuffixListFilename = 'cache/public-suffix-list.txt'
-    else:
-        # Lambda scanning
-        #
-        # Monkey patching trustymail to make it cache the PSL where we want
-        trustymail.PublicSuffixListFilename = './public-suffix-list.txt'
+    # Monkey patching trustymail to make it cache the PSL where we
+    # want
+    trustymail.PublicSuffixListFilename = 'cache/public-suffix-list.txt'
+    if environment['scan_method'] == 'lambda':
         # Monkey patching trustymail to make the PSL cache read-only
         trustymail.PublicSuffixListReadOnly = True
     import trustymail.trustymail as tmail
