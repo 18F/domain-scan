@@ -4,10 +4,12 @@
 # packaging should also be listed in lambda/requirements-lambda.txt.
 # Those are in the bottom section below.
 
+# Used in scan script
+requests
+
 # Used by parts of domain-scan, but not used inside of Lambda function
 # invocation.
 boto3
 
-# Used in Lambda functions. Also copied to lambda/requirements-lambda.txt.
-strict-rfc3339
-publicsuffix
+# Used in Lambda functions
+-r lambda/requirements-lambda.txt

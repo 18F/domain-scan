@@ -13,4 +13,3 @@ cryptography
 
 # a11y / csp
 pyyaml
-requests

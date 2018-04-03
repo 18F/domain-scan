@@ -121,12 +121,6 @@ RUN echo 'eval "$(pyenv init -)"' >> /etc/profile \
 RUN pip install --upgrade pip setuptools
 
 ###
-# domain-scan
-###
-COPY requirements.txt requirements.txt
-RUN pip install --upgrade -r requirements.txt
-
-###
 # Node
 ###
 RUN ln -s /usr/bin/nodejs /usr/bin/node
@@ -155,9 +149,17 @@ WORKDIR $SCANNER_HOME
 # Volume mount for use with the 'data' option.
 VOLUME /data
 
-ENTRYPOINT ["./scan_wrap.sh"]
+COPY . $SCANNER_HOME
+
+###
+# domain-scan
+###
+RUN pip install --upgrade \
+    -r requirements.txt \
+    -r requirements-gatherers.txt \
+    -r requirements-scanners.txt
 
 # Clean up aptitude stuff we no longer need
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY . $SCANNER_HOME
+ENTRYPOINT ["./scan_wrap.sh"]
