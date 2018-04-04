@@ -191,6 +191,10 @@ def build_gather_options_parser(services):
         "Override the 10 minute job timeout (specify in seconds) ",
         "(censys only).",
     ]))
+    parser.add_argument("--output", nargs=1, default=["./"], help="".join([
+        "Where to output the 'cache/' and 'results/' directories. ",
+        "Defaults to './'.",
+    ]))
     return parser
 
 
