@@ -163,8 +163,7 @@ def build_gather_options_parser(services):
     parser = ArgumentParser(prefix_chars="--", usage=usage_message)
 
     for service in services:
-        flag = "--%s" % service
-        parser.add_argument(flag, nargs=1, required=True)
+        parser.add_argument("--%s" % service, nargs=1, required=True)
 
     parser.add_argument("--cache", action="store_true",
                         help="Use local filesystem cache (censys only).")
@@ -236,8 +235,7 @@ def options_for_gather():
 
     for remainder in remaining:
         if remainder.startswith("--") or remainder == ",":
-            raise argparse.ArgumentTypeError(
-                "%s isn't a valid argument here." % remainder)
+            raise argparse.ArgumentTypeError("%s isn't a valid argument here." % remainder)
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
 
@@ -257,24 +255,22 @@ def options_for_gather():
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
 
-    opts["gatherers"] = [g.strip() for g in
-                         remaining[0].split(",") if g.strip()]
+    opts["gatherers"] = [g.strip() for g in remaining[0].split(",") if g.strip()]
+
     if not opts["gatherers"]:
         raise argparse.ArgumentTypeError(
             "First argument must be a comma-separated list of gatherers")
 
-    # Some of the flags should only be present if a given gatherer is present.
-    matching_args = (
-        {"args": ["cache", "timeout"], "gatherer": "censys"},
-    )
-    candidates = (ma for ma in matching_args
-                  if ma["gatherer"] not in opts["gatherers"])
-
-    for ma in candidates:
-        for arg in ma["args"]:
-            if arg in opts and opts[arg]:
-                raise argparse.ArgumentTypeError(
-                    "%s doesn't apply with the specified gatherers" % arg)
+    # If any hyphenated gatherers got sent in, override the hyphen-to-underscore
+    # conversion that argparse does by default.
+    # Also turn the array into a single one, since nargs=1 won't have been set.
+    print(opts)
+    for gatherer in opts["gatherers"]:
+        if "-" in gatherer:
+            scored = gatherer.replace("-", "_")
+            if opts.get(scored):
+                opts[gatherer] = opts[scored][0]
+                del opts[scored]
 
     # Some of the arguments expect single values on the command line, but those
     # values may contain comma-separated multiple values, so create the
