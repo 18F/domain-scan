@@ -32,8 +32,7 @@ def test_build_scan_lists_import_error(names):
         ["whatever"]
     ),
     (
-        # Path(Path(__file__).parent, "data", "domains.csv"),
-        Path(os.path.curdir, "tests/data/domains.csv"),
+        Path(Path(__file__).parent, "data", "domains.csv"),
         None,
         ["achp.gov", "acus.gov"]
     ),
