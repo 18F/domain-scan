@@ -7,16 +7,15 @@ import glob
 import time
 import copy
 import logging
-import requests
-import importlib
 import shutil
 import csv
 import json
 import boto3
 import botocore
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from scanners.scannerabc import ScannerABC
-from typing import Any, List, Tuple
+from typing import List
 
 from scanners.headless.local_bridge import headless_scan
 from utils import scan_utils
@@ -67,21 +66,21 @@ def set_aws_credentials(options):
 
 
 # Fields that will always get prefixed before scan-specific data.
-prefix_headers = ["Domain", "Base Domain"]
+PREFIX_HEADERS = ["Domain", "Base Domain"]
 
 # Local scan info. Requested with --meta.
-local_headers = ["Local Errors", "Local Start Time", "Local End Time", "Local Duration"]
+LOCAL_HEADERS = ["Local Errors", "Local Start Time", "Local End Time", "Local Duration"]
 
 # Lambda-specific scan info. Requested with --meta.
 # 1) Known or retrieved upon task completion.
-lambda_headers = [
+LAMBDA_HEADERS = [
     "Lambda Request ID",
     "Lambda Log Group Name", "Lambda Log Stream Name",
     "Lambda Start Time", "Lambda End Time",
     "Lambda Memory Limit", "Lambda Measured Duration"
 ]
 # 2) Retrieved by subsequent log requests, after task completion.
-lambda_detail_headers = [
+LAMBDA_DETAIL_HEADERS = [
     "Lambda Reported Duration", "Lambda Log Delay",
     "Lambda Memory Used", "Lambda Fetching Errors"
 ]
@@ -95,7 +94,7 @@ lambda_log_delay = 20
 ###
 
 
-def run(options=None):
+def run(options=None, cache_dir=None, results_dir=None):
 
     if not options["domains"]:
         logging.error("Provide a CSV file, or domain name.")
@@ -105,72 +104,21 @@ def run(options=None):
         logging.error("--scan must be one or more scanners.")
         exit(1)
 
-    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+    if cache_dir is None:
+        cache_dir = Path(
+            options.get("_", {}).get("cache_dir", "./cache")).resolve(strict=True)
+    domains = scan_utils.handle_domains_argument(options["domains"], cache_dir)
 
-    # `domains` can be either a path or a domain name.
-    # It can also be a URL, and if it is we want to download it now,
-    # and then adjust the value to be the path of the cached download.
-    domains = options["domains"]
-
-    if domains.startswith("http:") or domains.startswith("https:"):
-
-        domains_path = os.path.join(cache_dir, "domains.csv")
-
-        try:
-            response = requests.get(domains)
-            scan_utils.write(response.text, domains_path)
-        except:
-            logging.error("Domains URL not downloaded successfully.")
-            print(scan_utils.format_last_exception())
-            exit(1)
-
-        domains = domains_path
+    # Split the scans into new-style OO scanners and old-style scan modules:
+    scanner_classes, scans = scan_utils.build_scan_lists(
+        options["scan"].split(","))
 
     # Which scanners to run the domain through.
-
     if len(scans) > 0:
         scan_domains(scans, domains, options)
     if len(scanner_classes) > 0:
         scanobject_domains(scanner_classes, domains, options)
 
-
-def build_scan_lists(names: List[str]) -> Tuple[List[Any], List[Any]]:
-    """
-    Given a list of names, sort them into old (scans) and new (scanner_classes)
-    while also raising errors if we run into problems.
-
-    First looks for a new-style scanner, that is, a Python file with the given
-    name in the ``scanners` directory that has a ``Scanner`` class defined in
-    it, and if that fails, it looks for just a file with that name.
-    """
-    scans = []
-    scanner_classes = []
-
-    for name in names:
-        try:
-            scanner_module = importlib.import_module(
-                "scanners.%s" % name)
-            # mypy complains about the module not having a Scanner property:
-            scanner_class = scanner_module.Scanner  # type: ignore
-            scanner_classes.append(scanner_class)
-            continue
-        except AttributeError:
-            scanner = importlib.import_module("scanners.%s" % name)
-        except ImportError:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            logging.error("[%s] Scanner not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (name, exc_type, exc_value))
-            exit(1)
-
-        # If the scanner has a canonical command, make sure it exists.
-        # mypy doesn't handle optional properties well, it seems.
-        if hasattr(scanner, "command") and scanner.command and (not scan_utils.try_command(scanner.command)):  # type: ignore
-            logging.error("[%s] Command not found: %s" %
-                          (name, scanner.command))  # type: ignore
-            exit(1)
-
-        scans.append(scanner)
-
-    return (scanner_classes, scans)
 
 ###
 # Given the selected scanners, and input domains, run each domain
@@ -187,6 +135,8 @@ def scan_domains(scanners, domains, options):
     # Store local errors/timing info, and if using Lambda, trigger the
     # Lambda post-processing pipeline to get Lambda timing/usage info.
     meta = options.get("meta", False)
+    # Generate a random UUID for the entire scan.
+    scan_uuid = str(uuid.uuid4())
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
@@ -203,15 +153,15 @@ def scan_domains(scanners, domains, options):
             scanner.lambda_support
 
         # Write the header row, factoring in Lambda detail if needed.
-        headers = prefix_headers + scanner.headers
+        headers = PREFIX_HEADERS + scanner.headers
 
         # Local scan timing/errors.
         if meta:
-            headers += local_headers
+            headers += LOCAL_HEADERS
 
         # Lambda scan timing/errors. (At this step, only partial fields.)
         if meta and use_lambda:
-            headers += lambda_headers
+            headers += LAMBDA_HEADERS
 
         scanner_writer.writerow(headers)
 
@@ -276,7 +226,7 @@ def scan_domains(scanners, domains, options):
         scan_start_time = scan_utils.local_now()
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, handles, environment, options)
-                     for domain in domains_from(
+                     for domain in scan_utils.domains_from(
                          domains, domain_suffix=options.get("suffix")))
             executor.map(perform_scan, tasks)
         scan_end_time = scan_utils.local_now()
@@ -509,22 +459,6 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
     return data
 
 
-# Yield domain names from a single string, or a CSV of them.
-def domains_from(arg, domain_suffix=None):
-    if arg.endswith(".csv"):
-        with open(arg, encoding='utf-8', newline='') as csvfile:
-            for row in csv.reader(csvfile):
-                if (not row[0]) or (row[0].lower().startswith("domain")):
-                    continue
-                domain = row[0].lower()
-                if domain_suffix:
-                    yield "%s.%s" % (domain, domain_suffix)
-                else:
-                    yield domain
-    else:
-        yield arg
-
-
 # Given just a CSV with some Lambda detail headers at the end,
 # fill in the remaining fields from CloudWatch logs. Try to keep
 # this function relatively stateless (only relying on info in the
@@ -555,7 +489,7 @@ def add_lambda_details(input_filename, logs_client):
         logging.warn("[%s][%s] Fetching Lambda details from logs..." % (row[0], input_filename))
         details = fetch_lambda_details(dict_row, logs_client)
 
-        # Matches order of lambda_detail_headers
+        # Matches order of LAMBDA_DETAIL_HEADERS
         row.append(details.get('reported_duration'))
         row.append(scan_utils.just_microseconds(details.get('log_delay')))
         row.append(details.get('memory_used'))
@@ -564,7 +498,7 @@ def add_lambda_details(input_filename, logs_client):
         rows.append(row)
 
     # Write out headers, adding new fields.
-    tmp_writer.writerow(header + lambda_detail_headers)
+    tmp_writer.writerow(header + LAMBDA_DETAIL_HEADERS)
     for row in rows:
         tmp_writer.writerow(row)
 
@@ -636,12 +570,12 @@ def fetch_lambda_details(dict_row, logs_client):
 #
 # Produces a CSV for each scan, with each domain and results.
 ###
-def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
+def scanobject_domains(scanners: List[ScannerABC], domains: Path,
                        options: dict) -> None:
     # Clear out existing result CSVs, to avoid inconsistent data.
     results_dir = options["_"]["results_dir"]
-    # TODO: prefer to have scan objects deal with this.
-    for result in glob.glob("%s/*.csv" % results_dir):
+    # TODO: prefer to have scan objects deal with this:
+    for result in Path(os.path.curdir, results_dir).glob("*.csv"):
         os.remove(result)
 
     # Store local errors/timing info, and if using Lambda, trigger the
@@ -667,15 +601,15 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
             scan_class.lambda_support
 
         # Write the header row, factoring in Lambda detail if needed.
-        headers = prefix_headers + scan_class.headers
+        headers = PREFIX_HEADERS + scan_class.headers
 
         # Local scan timing/errors.
         if meta:
-            headers += local_headers
+            headers += LOCAL_HEADERS
 
         # Lambda scan timing/errors. (At this step, only partial fields.)
         if meta and use_lambda:
-            headers += lambda_headers
+            headers += LAMBDA_HEADERS
 
         scanner_writer.writerow(headers)
 
@@ -726,11 +660,9 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
             environment = {**environment, **init}
         handles[name]['environment'] = environment
 
-
         # Run each scanner (unique process pool) over each domain.
         # User can force --serial, and scanners can override default of 10.
         # Scan environment, passed to all scanners (local or cloud).
-        environment = handles[name]['environment']
 
         # Again, mypy thinks this is a string via the dict:
         workers = environment['workers']  # type: ignore
@@ -739,7 +671,7 @@ def scanobject_domains(scanners: List[ScannerABC], domains: List[str],
         scan_start_time = scan_utils.local_now()
         with ThreadPoolExecutor(max_workers=workers) as executor:
             tasks = ((scanner, domain, handles, environment, options)
-                     for domain in domains_from(
+                     for domain in scan_utils.domains_from(
                          domains, domain_suffix=options.get("suffix")))
             executor.map(scanobject_perform_scan, tasks)
         scan_end_time = scan_utils.local_now()
@@ -975,7 +907,9 @@ if __name__ == '__main__':
     # basic setup - logs, output dirs
     scan_utils.configure_logging(options)
     scan_utils.mkdir_p(options["_"]["cache_dir"])
+    cache_dir = Path(options["_"]["cache_dir"]).resolve(strict=True)
     scan_utils.mkdir_p(options["_"]["results_dir"])
+    results_dir = Path(options["_"]["results_dir"]).resolve(strict=True)
 
     if lambda_mode:
         lambda_options = set_aws_credentials(options)
@@ -984,4 +918,4 @@ if __name__ == '__main__':
         lo["lambda_mode"] = True
         options["_"]["lambda_options"] = lo
 
-    run(options)
+    run(options, cache_dir, results_dir)

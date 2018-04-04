@@ -3,6 +3,7 @@ import codecs
 import csv
 import datetime
 import errno
+import importlib
 import json
 import logging
 import os
@@ -10,10 +11,20 @@ import shutil
 import subprocess
 import sys
 import traceback
-from typing import cast, List, Union
+from functools import singledispatch
+from pathlib import Path
+from typing import (
+    Any,
+    Iterable,
+    List,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.error import URLError
 
 import publicsuffix
+import requests
 import strict_rfc3339
 
 # global in-memory cache
@@ -356,10 +367,10 @@ def build_scan_options_parser() -> ArgumentParser:
     """ Builds the argparse parser object. """
     parser = ArgumentParser(prefix_chars="--")
     parser.add_argument("domains", help="".join([
-        "Either a comma-separated list of domains or the path to a local CSV ",
-        "file containing the domains to be scanned. The CSV's header row ",
-        "will be ignored if the first cell starts with \"Domain\" ",
-        "(case-insensitive).",
+        "Either a comma-separated list of domains or the url of a CSV ",
+        "file/path to a local CSV file containing the domains to be ",
+        "domains to be scanned. The CSV's header row will be ignored ",
+        "if the first cell starts with \"Domain\" (case-insensitive).",
     ]))
     parser.add_argument("--cache", action="store_true", help="".join([
         "Use previously cached scan data to avoid scans hitting the network ",
@@ -446,3 +457,133 @@ def options() -> dict:
 
     return opts
 # /Argument Parsing #
+
+
+def build_scan_lists(names: List[str]) -> Tuple[List[Any], List[Any]]:
+    """
+    Given a list of names, sort them into old (scans) and new (scanner_classes)
+    while also raising errors if we run into problems.
+
+    First looks for a new-style scanner, that is, a Python file with the given
+    name in the ``scanners` directory that has a ``Scanner`` class defined in
+    it, and if that fails, it looks for just a file with that name.
+    """
+    scans = []
+    scanner_classes = []
+
+    for name in names:
+        try:
+            scanner_module = importlib.import_module(
+                "scanners.%s" % name)
+            # mypy complains about the module not having a Scanner property:
+            scanner_class = scanner_module.Scanner  # type: ignore
+            scanner_classes.append(scanner_class)
+            continue
+        except AttributeError:
+            scanner = importlib.import_module("scanners.%s" % name)
+        except ImportError:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            errmsg = "\n".join([
+                "[%s] Scanner not found, or had an error during loading." % name,
+                "\tERROR: %s" % exc_type,
+                "\t%s" % exc_value,
+            ])
+            logging.error(errmsg)
+            raise ImportError(errmsg)
+
+        # If the scanner has a canonical command, make sure it exists.
+        # mypy doesn't handle optional properties well, it seems.
+        if hasattr(scanner, "command") and scanner.command and (not try_command(scanner.command)):  # type: ignore
+            errmsg = "[%s] Command not found: %s" % (name, scanner.command)  # type: ignore
+            logging.error(errmsg)
+            raise ImportError(errmsg)
+
+        scans.append(scanner)
+
+    return (scanner_classes, scans)
+
+
+# Yield domain names from a single string, or a CSV of them.
+@singledispatch
+def domains_from(arg: Any, domain_suffix=None) -> Iterable[str]:
+    raise TypeError("'%s' is not a recognized source for domains." % arg)
+
+
+@domains_from.register(str)
+def _df_str(arg: str, domain_suffix: Union[str, None]=None) -> Iterable[str]:
+    # TODO: how do we handle domain_suffix here?
+    if domain_suffix is not None:
+        errmsg = "Passing in domains at CLI not compatible with --suffix."
+        raise argparse.ArgumentError(errmsg)
+
+    for x in arg.split(","):
+        yield x
+
+
+@domains_from.register(Path)
+def _df_path(arg: Path, domain_suffix: Union[str, None]=None) -> Iterable[str]:
+    if arg.suffix == ".csv":
+        with open(arg, encoding='utf-8', newline='') as csvfile:
+            for row in csv.reader(csvfile):
+                if (not row[0]) or (row[0].lower().startswith("domain")):
+                    continue
+                domain = row[0].lower()
+                if domain_suffix:
+                    sep = "."
+                    if domain_suffix.startswith("."):
+                        sep = ""
+                    yield "%s%s%s" % (domain, sep, domain_suffix)
+                else:
+                    yield domain
+    else:
+        # Note: the path referred to below will be the path to the local cached
+        # download and not to the original URL. It shouldn't be possible to get
+        # here with that being a problem, but noting it anyway.
+        msg = "\n".join([
+            "Domains should be specified as a comma-separated list ",
+            "or as the URL or path to a .csv file. ",
+            "%s does not appear to be any of those." % arg
+        ])
+        raise TypeError(msg)
+
+
+def handle_domains_argument(domains: str, cache_dir: Path) -> Union[Path, str]:
+    # `domains` can be either a path or a domain name.
+    # It can also be a URL, and if it is we want to download it now,
+    # and then adjust the value to be the path of the cached download.
+    # Note that the cache_dir is basically guaranteed to exist by the time
+    # we reach this point in the execution path.
+    if domains.startswith("http:") or domains.startswith("https:"):
+        domains_path = Path(cache_dir, "domains.csv")
+        try:
+            response = requests.get(domains)
+            write(response.text, str(domains_path))
+        except requests.exceptions.RequestException as err:
+            msg = "\n".join([
+                "Domains URL not downloaded successfully; RequestException",
+                str(err),
+            ])
+            logging.error(msg)
+            raise IOError(msg)
+
+        return domains_path
+    elif domains.endswith(".csv"):
+        # Assume file is either absolute or relative from current dir.
+        try:
+            domains_path = Path(os.path.curdir, domains).resolve(strict=True)
+            return domains_path
+        except FileNotFoundError as err:
+            msg = "\n".join([
+                "Domains CSV file not found.",
+                "(Curdir: %s CSV file: %s)" % (os.path.curdir, domains),
+                str(err),
+            ])
+            logging.error(msg)
+            raise FileNotFoundError(msg)
+    return domains
+
+
+def build_output_headers(meta: bool, prefix_hdrs: List[str], scan_hdrs: List[str],
+                         local_hdrs: List[str], lmda_hdrs: List[str],
+                         lmda_detail_hdrs: List[str]) -> List[str]:
+    pass

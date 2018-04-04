@@ -31,7 +31,6 @@ class Scanner(ScannerABC):
         # that use the network or are otherwise expensive would go.
         #
         # Runs locally or in the cloud (Lambda).
-        print(self.initialized_opts)
         logging.debug("Scan function called with options: %s" % self.options)
 
         # Perform the "task".
