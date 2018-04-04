@@ -106,7 +106,9 @@ def run(options=None, cache_dir=None, results_dir=None):
 
     if cache_dir is None:
         cache_dir = Path(
-            options.get("_", {}).get("cache_dir", "./cache")).resolve(strict=True)
+            options.get("_", {}).get("cache_dir", "./cache")).resolve()
+        if not cache_dir.exists():
+            raise FileNotFoundError
     domains = scan_utils.handle_domains_argument(options["domains"], cache_dir)
 
     # Split the scans into new-style OO scanners and old-style scan modules:
@@ -907,9 +909,13 @@ if __name__ == '__main__':
     # basic setup - logs, output dirs
     scan_utils.configure_logging(options)
     scan_utils.mkdir_p(options["_"]["cache_dir"])
-    cache_dir = Path(options["_"]["cache_dir"]).resolve(strict=True)
+    cache_dir = Path(options["_"]["cache_dir"]).resolve()
+    if not cache_dir.exists():
+        raise FileNotFoundError
     scan_utils.mkdir_p(options["_"]["results_dir"])
-    results_dir = Path(options["_"]["results_dir"]).resolve(strict=True)
+    results_dir = Path(options["_"]["results_dir"]).resolve()
+    if not results_dir.exists():
+        raise FileNotFoundError
 
     if lambda_mode:
         lambda_options = set_aws_credentials(options)

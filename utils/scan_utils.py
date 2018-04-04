@@ -570,7 +570,9 @@ def handle_domains_argument(domains: str, cache_dir: Path) -> Union[Path, str]:
     elif domains.endswith(".csv"):
         # Assume file is either absolute or relative from current dir.
         try:
-            domains_path = Path(os.path.curdir, domains).resolve(strict=True)
+            domains_path = Path(os.path.curdir, domains).resolve()
+            if not domains_path.exists():
+                raise FileNotFoundError
             return domains_path
         except FileNotFoundError as err:
             msg = "\n".join([
