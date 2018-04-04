@@ -3,6 +3,7 @@ import sys
 import pytest
 from .context import utils  # noqa
 from utils import utils as subutils
+from utils import scan_utils
 
 
 def get_default_false_values(parser):
@@ -30,9 +31,9 @@ gather_default_false_values = get_default_false_values(
 gather_args_with_mandatory_values = get_args_with_mandatory_values(
     subutils.build_gather_options_parser([]))
 scan_default_false_values = get_default_false_values(
-    subutils.build_scan_options_parser())
+    scan_utils.build_scan_options_parser())
 scan_args_with_mandatory_values = get_args_with_mandatory_values(
-    subutils.build_scan_options_parser())
+    scan_utils.build_scan_options_parser())
 default_underscore_both = {
     "cache_dir": "./cache",
     "report_dir": "./",
@@ -280,7 +281,7 @@ def test_options_for_scan_no_target(monkeypatch, capsys):
     command = "./scan --scan=a11y"
     monkeypatch.setattr(sys, "argv", command.split(" "))
     with pytest.raises(SystemExit) as exc:
-        subutils.options_for_scan()
+        scan_utils.options()
     assert exc.typename == "SystemExit"
     out, err = capsys.readouterr()
     assert err.endswith("arguments are required: domains\n")
@@ -289,7 +290,7 @@ def test_options_for_scan_no_target(monkeypatch, capsys):
 def test_options_for_scan_basic(monkeypatch):
     command = "./scan example.org --scan=a11y"
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    result = subutils.options_for_scan()
+    result = scan_utils.options()
     assert result == {
         "_": default_underscore_scan,
         "domains": "example.org",
@@ -308,7 +309,7 @@ def test_options_for_scan_help(monkeypatch, capsys, args):
     # Handling exception here instead of with decorator because we want to
     # examine the console output.
     with pytest.raises(SystemExit) as exc:
-        subutils.options_for_scan()
+        scan_utils.options()
     assert exc.typename == "SystemExit"
     out, err = capsys.readouterr()
     assert out.startswith("usage: scan [-h]")
@@ -319,17 +320,17 @@ def test_options_for_scan_help(monkeypatch, capsys, args):
 def test_options_for_scan_missing_mandatory(monkeypatch, arg):
     command = "./scan example.org --scan=a11y --%s" % arg.replace("_", "-")
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    subutils.options_for_scan()
+    scan_utils.options()
     command = "./scan example.org --scan=a11y --%s=" % arg.replace("_", "-")
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    subutils.options_for_scan()
+    scan_utils.options()
 
 
 @pytest.mark.xfail(raises=argparse.ArgumentTypeError)
 def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
     command = "./scan example.org --scan=a11y --lambda-profile=something"
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    subutils.options_for_scan()
+    scan_utils.options()
 
 
 @pytest.mark.parametrize("command,expected", [
@@ -361,5 +362,5 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
 ])
 def test_options_for_scan_check_for_single_args(monkeypatch, command, expected):
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    result = subutils.options_for_scan()
+    result = scan_utils.options()
     assert result == expected
