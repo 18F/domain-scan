@@ -191,7 +191,7 @@ def build_gather_options_parser(services):
         "Override the 10 minute job timeout (specify in seconds) ",
         "(censys only).",
     ]))
-    parser.add_argument("--output", nargs=1, default="./", help="".join([
+    parser.add_argument("--output", nargs=1, default=["./"], help="".join([
         "Where to output the 'cache/' and 'results/' directories. ",
         "Defaults to './'.",
     ]))
@@ -276,6 +276,14 @@ def options_for_gather():
             if opts.get(scored):
                 opts[gatherer] = opts[scored][0]
                 del opts[scored]
+
+
+    # Derive some options not set directly at CLI:
+    opts["_"] = {
+        "cache_dir": os.path.join(opts.get("output", "./"), "cache"),
+        "report_dir": opts.get("output", "./"),
+        "results_dir": os.path.join(opts.get("output", "./"), "results"),
+    }
 
     # Some of the arguments expect single values on the command line, but those
     # values may contain comma-separated multiple values, so create the
