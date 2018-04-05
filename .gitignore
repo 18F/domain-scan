@@ -1,3 +1,4 @@
+.pytest_cache
 /lambda/build
 /lambda/envs
 /lambda/*.txt
