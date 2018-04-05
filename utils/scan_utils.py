@@ -416,8 +416,11 @@ def build_scan_options_parser() -> ArgumentParser:
                         help="Limit parallel threads per-scanner to a number.")
     # TODO: Should workers have a default value?
 
-    parser.add_argument("--analytics",
-                        help="Location of CSV file with participating analytics sites.")
+    parser.add_argument("--a11y_config",
+                        help="Location of pa11y config file (used with a11y scanner.")
+
+    parser.add_argument("--a11y_redirects",
+                        help="Location of YAML file with redirects to inform the a11y scanner.")
 
     return parser
 
