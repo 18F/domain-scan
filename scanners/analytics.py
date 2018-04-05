@@ -18,7 +18,7 @@ def init(environment, options):
     # It's a URL, download it first.
     if analytics_file.startswith("http:") or analytics_file.startswith("https:"):
 
-        analytics_path = os.path.join(utils.cache_dir(options), "analytics.csv")
+        analytics_path = os.path.join(options["_"]["cache_dir"], "analytics.csv")
 
         try:
             logging.debug("Downloading analytics file at %s ..." % analytics_file)
