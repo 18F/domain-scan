@@ -277,7 +277,6 @@ def options_for_gather():
                 opts[gatherer] = opts[scored][0]
                 del opts[scored]
 
-
     # Derive some options not set directly at CLI:
     opts["_"] = {
         "cache_dir": os.path.join(opts.get("output", "./"), "cache"),
