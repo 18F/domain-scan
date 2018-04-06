@@ -21,12 +21,19 @@ from typing import (
     Union,
     cast,
 )
+from types import ModuleType
 from urllib.error import URLError
 
 import publicsuffix
 import requests
 import strict_rfc3339
 
+
+MANDATORY_SCANNER_PROPERTIES = (
+    "headers",
+    "scan",
+    "to_rows"
+)
 # global in-memory cache
 suffix_list = None
 
@@ -215,7 +222,7 @@ def sort_csv(input_filename):
     shutil.move(tmp_filename, input_filename)
 
 
-def write_rows(rows, domain, base_domain, scanner, csv_writer, meta=None):
+def write_rows(rows, domain, base_domain, scanner, csv_writer, meta={}):
 
     # If we didn't get any info, we'll still output information about why the scan failed.
     if rows is None:
@@ -230,7 +237,7 @@ def write_rows(rows, domain, base_domain, scanner, csv_writer, meta=None):
 
     # If requested, add local and Lambda scan data.
     meta_fields = []
-    if meta:
+    if bool(meta):
         meta_fields.append(" ".join(meta.get('errors', [])))
         meta_fields.append(utc_timestamp(meta.get("start_time")))
         meta_fields.append(utc_timestamp(meta.get("end_time")))
@@ -419,7 +426,7 @@ def build_scan_options_parser() -> ArgumentParser:
     return parser
 
 
-def options() -> dict:
+def options() -> Tuple[dict, list]:
     """
     Parse options for the ``scan`` command.
 
@@ -427,7 +434,7 @@ def options() -> dict:
         Reads from sys.argv.
     """
     parser = build_scan_options_parser()
-    parsed = parser.parse_args()
+    parsed, unknown = parser.parse_known_args()
 
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
@@ -455,32 +462,31 @@ def options() -> dict:
         "results_dir": os.path.join(opts.get("output", "./"), "results"),
     }
 
-    return opts
+    return (opts, unknown)
+
+
+def handle_scanner_arguments(scans: List[ModuleType], opts: dict, unknown: List[str]):
+    for scan in scans:
+        if hasattr(scan, "handle_scanner_args"):
+            scan_opts, unknown = scan.handle_scanner_args(unknown, opts)  # type: ignore
+            opts.update(scan_opts)
+    return (opts, unknown)
 # /Argument Parsing #
 
 
-def build_scan_lists(names: List[str]) -> Tuple[List[Any], List[Any]]:
+def build_scanner_list(names: List[str],
+                       mod: str="scanners") -> List[ModuleType]:
     """
-    Given a list of names, sort them into old (scans) and new (scanner_classes)
-    while also raising errors if we run into problems.
-
-    First looks for a new-style scanner, that is, a Python file with the given
-    name in the ``scanners` directory that has a ``Scanner`` class defined in
-    it, and if that fails, it looks for just a file with that name.
+    Given a list of names, load modules corresponding to those names from the
+    scanners directory. Also verify that they have the required properties.
     """
     scans = []
-    scanner_classes = []
 
     for name in names:
         try:
-            scanner_module = importlib.import_module(
-                "scanners.%s" % name)
-            # mypy complains about the module not having a Scanner property:
-            scanner_class = scanner_module.Scanner  # type: ignore
-            scanner_classes.append(scanner_class)
-            continue
-        except AttributeError:
-            scanner = importlib.import_module("scanners.%s" % name)
+            scan = importlib.import_module(
+                "%s.%s" % (mod, name))
+            verify_scanner_properties(scan)
         except ImportError:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             errmsg = "\n".join([
@@ -491,16 +497,84 @@ def build_scan_lists(names: List[str]) -> Tuple[List[Any], List[Any]]:
             logging.error(errmsg)
             raise ImportError(errmsg)
 
-        # If the scanner has a canonical command, make sure it exists.
-        # mypy doesn't handle optional properties well, it seems.
-        if hasattr(scanner, "command") and scanner.command and (not try_command(scanner.command)):  # type: ignore
-            errmsg = "[%s] Command not found: %s" % (name, scanner.command)  # type: ignore
-            logging.error(errmsg)
-            raise ImportError(errmsg)
+        scans.append(scan)
 
-        scans.append(scanner)
+    return scans
 
-    return (scanner_classes, scans)
+
+def verify_scanner_properties(scanner: ModuleType) -> None:
+    name = scanner.__name__
+    for prop in MANDATORY_SCANNER_PROPERTIES:
+        if not hasattr(scanner, prop):
+            raise ImportError("%s lacks required %s property" % (name, prop))
+
+    # If the scan has a canonical command, make sure it exists.
+    # mypy doesn't handle optional properties well, it seems.
+    if hasattr(scan, "command") and scan.command and (not try_command(scan.command)):  # type: ignore
+        errmsg = "[%s] Command not found: %s" % (name, scan.command)  # type: ignore
+        logging.error(errmsg)
+        raise ImportError(errmsg)
+
+
+def begin_csv_writing(scanner: ModuleType, options: dict,
+                      base_hdrs: Tuple[List[str], List[str], List[str]]) -> dict:
+    """
+    Determine the CSV output file path for the scanner, open the file at that
+    path, instantiate a CSV writer for it, determine whether or not to use
+    lambda, determine what the headers are, write the headers to the CSV.
+
+    Return a dict containing the above.
+    """
+    PREFIX_HEADERS, LOCAL_HEADERS, LAMBDA_HEADERS = base_hdrs
+    name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
+    results_dir = options["_"]["results_dir"]
+    meta = options.get("meta")
+    lambda_mode = options.get("lambda")
+    use_lambda = lambda_mode and \
+        hasattr(scanner, "lambda_support") and \
+        scanner.lambda_support  # type: ignore  # it's an optional variable.
+
+    # Write the header row, factoring in Lambda detail if needed.
+    headers = PREFIX_HEADERS + scanner.headers  # type: ignore  # optional again
+    # Local scan timing/errors.
+    if meta:
+        headers += LOCAL_HEADERS
+    # Lambda scan timing/errors. (At this step, only partial fields.)
+    if meta and use_lambda:
+        headers += LAMBDA_HEADERS
+
+    scanner_csv_path = Path(results_dir, name).resolve()
+    scanner_file = scanner_csv_path.open('w', newline='')
+    scanner_writer = csv.writer(scanner_file)
+
+    scanner_writer.writerow(headers)
+
+    return {
+        'name': name,
+        'file': scanner_file,
+        'filename': str(scanner_csv_path),
+        'writer': scanner_writer,
+        'headers': headers,
+        'use_lambda': use_lambda,
+    }
+
+
+def determine_scan_workers(scanner: ModuleType, options: dict, w_default: int,
+                           w_max: int) -> int:
+    """
+    Given a number of inputs, determines the right number of workers to set
+    when running scans.
+    """
+    if options.get("serial"):
+        workers = 1
+    elif hasattr(scanner, "workers"):
+        workers = scanner.workers  # type: ignore # The subclass objects set this sometimes.
+    else:
+        # mypy has trouble with this, presumably because we're using a dict
+        workers = int(options.get("workers", w_default))  # type: ignore
+
+    # Enforce a local worker maximum as a safety valve.
+    return min(workers, w_max)
 
 
 # Yield domain names from a single string, or a CSV of them.
@@ -583,9 +657,3 @@ def handle_domains_argument(domains: str, cache_dir: Path) -> Union[Path, str]:
             logging.error(msg)
             raise FileNotFoundError(msg)
     return domains
-
-
-def build_output_headers(meta: bool, prefix_hdrs: List[str], scan_hdrs: List[str],
-                         local_hdrs: List[str], lmda_hdrs: List[str],
-                         lmda_detail_hdrs: List[str]) -> List[str]:
-    pass

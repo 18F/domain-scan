@@ -1,19 +1,23 @@
 import os
 import pytest
+from collections import namedtuple
 from pathlib import Path
 from .context import utils, scanners  # noqa
 from utils import scan_utils
-from scanners import noop, noopabc
+from scanners import analytics, noop
+
+
+MockScanner = namedtuple("MockScanner", ["workers"])
 
 
 @pytest.mark.parametrize("names,expected", [
     (
-        ["noop", "noopabc"],
-        ([noopabc.Scanner], [noop])
+        ["noop"],
+        ([noop])
     )
 ])
-def test_build_scan_lists(names, expected):
-    assert scan_utils.build_scan_lists(names) == expected
+def test_build_scanner_list(names, expected):
+    assert scan_utils.build_scanner_list(names) == expected
 
 
 @pytest.mark.xfail(raises=ImportError)
@@ -22,7 +26,7 @@ def test_build_scan_lists(names, expected):
     ["missing_scanner"],
 ])
 def test_build_scan_lists_import_error(names):
-    scan_utils.build_scan_lists(names)
+    scan_utils.build_scanner_list(names)
 
 
 @pytest.mark.parametrize("arg,suffix,expected", [
@@ -92,3 +96,68 @@ def test_handle_domains_argument_io_error():
 @pytest.mark.xfail(raises=FileNotFoundError)
 def test_handle_domains_argument_fnf_error():
     scan_utils.handle_domains_argument("notarealfile.csv", "./cache")
+
+
+@pytest.mark.parametrize("scans,opts,args,correct_opts, correct_unknown", [
+    (
+        [noop],
+        {},
+        ["--noop-delay", "4"],
+        {"noop_delay": 4},
+        [],
+    ),
+    (
+        [noop, analytics],
+        {"something": "else"},
+        ["--noop-delay", "4", "--analytics", "tests/data/domains.csv"],
+        {
+            "analytics_domains": ["achp.gov", "acus.gov"],
+            "noop_delay": 4,
+            "something": "else"
+        },
+        [],
+    ),
+])
+def test_handle_scanner_arguments(scans, opts, args, correct_opts, correct_unknown):
+    # This only handles a basic case and makes sure it's handed off correctly;
+    # tests for the scanner argument parsers themselves should be in the tests
+    # for those scanners.
+    opts, unknown = scan_utils.handle_scanner_arguments(scans, opts, args)
+    assert opts == correct_opts
+    assert unknown == correct_unknown
+
+
+@pytest.mark.parametrize("scanner,options,w_default,w_max,expected", [
+    (
+        MockScanner(workers=23),
+        {},
+        5,
+        100,
+        23,
+    ),
+    (
+        MockScanner(workers=23),
+        {"serial": True},
+        5,
+        100,
+        1,
+    ),
+    (
+        (1, 2),
+        {"serial": False},
+        5,
+        4,
+        4,
+    ),
+    (
+        (1, 2),
+        {"serial": False},
+        3,
+        4,
+        3,
+    ),
+])
+def test_determine_scan_workers(scanner, options, w_default, w_max, expected):
+    result = scan_utils.determine_scan_workers(scanner, options, w_default,
+                                               w_max)
+    assert result == expected
