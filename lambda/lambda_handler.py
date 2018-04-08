@@ -19,7 +19,7 @@ def handler(event, context):
 
     # Might be acceptable to let this crash the module, in Lambda.
     try:
-        scanner = importlib.import_module("scanners.%s" % name)
+        scanner = importlib.import_module("domain_scan.scanners.%s" % name)
     except ImportError:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logging.error("[%s] Scanner not found, or had an error during loading.\n\tERROR: %s\n\t%s" % (name, exc_type, exc_value))

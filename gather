@@ -55,14 +55,14 @@ def run(options=None, cache_dir="./cache", results_dir="./results"):
 
         try:
             gatherer_module = importlib.import_module(
-                "gatherers.%s" % source)
+                "domain_scan.gatherers.%s" % source)
             gatherer = gatherer_module.Gatherer(suffixes, options, extra)
         except ImportError:
             # If it's not a registered module, allow it to be "hot registered"
             # as long as the user gave us a flag with that name that can be
             # used as the --url option to the URL module.
             if options.get(source):
-                gatherer_module = importlib.import_module("gatherers.url")
+                gatherer_module = importlib.import_module("domain_scan.gatherers.url")
                 extra['name'] = source
                 gatherer = gatherer_module.Gatherer(suffixes, options, extra)
             else:
