@@ -6,14 +6,16 @@ from utils import utils as subutils
 from utils import scan_utils
 
 
-def get_default_false_values(parser):
+def get_default_values(parser):
     # Get these from the parser rather than having to keep a manual list.
     optional_actions = parser._get_optional_actions()
-    default_false_values = {}
+    default_values = {}
     for oa in optional_actions:
-        if oa.nargs == 0 and oa.const is True and oa.default is False:
-            default_false_values.update(**{oa.dest: False})
-    return default_false_values
+        if oa.nargs == 0 and oa.const is True and oa.default is not None:
+            default_values.update(**{oa.dest: oa.default})
+        elif oa.nargs == 1 and oa.default is not None:
+            default_values.update(**{oa.dest: oa.default[0]})
+    return default_values
 
 
 def get_args_with_mandatory_values(parser):
@@ -26,11 +28,11 @@ def get_args_with_mandatory_values(parser):
     return mandatory_value_args
 
 
-gather_default_false_values = get_default_false_values(
+gather_default_values = get_default_values(
     subutils.build_gather_options_parser([]))
 gather_args_with_mandatory_values = get_args_with_mandatory_values(
     subutils.build_gather_options_parser([]))
-scan_default_false_values = get_default_false_values(
+scan_default_values = get_default_values(
     scan_utils.build_scan_options_parser())
 scan_args_with_mandatory_values = get_args_with_mandatory_values(
     scan_utils.build_scan_options_parser())
@@ -43,7 +45,7 @@ default_underscore_scan = {
     **default_underscore_both
 }
 default_underscore_gather = {
-    **default_underscore_both
+    **default_underscore_both,
 }
 
 
@@ -54,7 +56,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -63,7 +66,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -72,7 +76,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -81,7 +86,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -90,7 +96,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov", ".gov.uk"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -99,7 +106,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov", ".gov.uk"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -108,7 +116,8 @@ default_underscore_gather = {
             "gatherers": ["dap"],
             "dap": "someurl",
             "suffix": [".gov", ".gov.uk"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
         }
     ),
     (
@@ -117,7 +126,8 @@ default_underscore_gather = {
             "https://analytics.usa.gov/data/live/sites-extended.csv"]),
         {
             "gatherers": ["dap"],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             "suffix": [".gov"],
             "dap": "https://analytics.usa.gov/data/live/sites-extended.csv",
         }
@@ -131,7 +141,8 @@ default_underscore_gather = {
         ]),
         {
             'gatherers': ['censys', 'dap', 'private'],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'private': '/path/to/private-research.csv',
@@ -147,7 +158,8 @@ default_underscore_gather = {
         ]),
         {
             'gatherers': ['censys', 'dap', 'private'],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'private': '/path/to/private-research.csv',
@@ -162,7 +174,8 @@ default_underscore_gather = {
         ]),
         {
             'gatherers': ['dap'],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'ignore_www': True,
@@ -176,7 +189,8 @@ default_underscore_gather = {
         ]),
         {
             'gatherers': ['dap'],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'include_parents': True,
@@ -189,7 +203,8 @@ default_underscore_gather = {
         ]),
         {
             'gatherers': ['dap'],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
         }
@@ -202,7 +217,8 @@ default_underscore_gather = {
         ]),
         {
             'gatherers': ['dap'],
-            **gather_default_false_values,
+            **gather_default_values,
+            "_": {**default_underscore_gather},
             'suffix': ['.gov'],
             'dap': 'https://analytics.usa.gov/data/live/sites-extended.csv',
             'debug': True,
@@ -295,8 +311,8 @@ def test_options_for_scan_basic(monkeypatch):
         "_": default_underscore_scan,
         "domains": "example.org",
         "scan": "a11y",
+        **scan_default_values,
         "output": "./",
-        **scan_default_false_values,
     }
 
 
@@ -342,12 +358,13 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
             "scan": "a11y",
             "workers": "1",
             "output": "./",
-            **scan_default_false_values,
+            **scan_default_values,
         }
     ),
     (
         "./scan example.org --scan=a11y --output=..",
         {
+            **scan_default_values,
             "_": {
                 "cache_dir": "../cache",
                 "report_dir": "..",
@@ -356,7 +373,6 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
             "domains": "example.org",
             "scan": "a11y",
             "output": "..",
-            **scan_default_false_values,
         }
     ),
 ])

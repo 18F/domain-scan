@@ -31,11 +31,11 @@ def scan(domain, environment, options):
 
     timeout = int(options.get('timeout', default_timeout))
 
-    smtp_timeout = int(options.get('smtp-timeout', default_smtp_timeout))
+    smtp_timeout = int(options.get('smtp_timeout', default_smtp_timeout))
 
-    smtp_localhost = options.get('smtp-localhost', None)
+    smtp_localhost = options.get('smtp_localhost', None)
 
-    smtp_ports = {int(port) for port in options.get('smtp-ports', default_smtp_ports).split(',')}
+    smtp_ports = {int(port) for port in options.get('smtp_ports', default_smtp_ports).split(',')}
 
     dns_hostnames = options.get('dns', default_dns).split(',')
 
@@ -46,7 +46,7 @@ def scan(domain, environment, options):
     # Whether or not to use an in-memory SMTP cache.  For runs against
     # a single domain this will not make any difference, unless an MX
     # record is duplicated.
-    smtp_cache = not options.get('no-smtp-cache', False)
+    smtp_cache = not options.get('no_smtp_cache', False)
 
     # User might not want every scan performed.
     scan_types = {
