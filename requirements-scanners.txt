@@ -9,7 +9,6 @@ trustymail>=0.5.5
 
 # sslyze
 sslyze>=1.4.1
-cryptography
 
 # a11y / csp
 pyyaml
