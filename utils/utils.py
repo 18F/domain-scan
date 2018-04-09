@@ -74,7 +74,6 @@ def download(url, destination):
 
     # If it's a gzipped file, ungzip it and replace it
     if headers.get("Content-Encoding") == "gzip":
-        print("hey")
         unzipped_file = filename + ".unzipped"
 
         with gzip.GzipFile(filename, 'rb') as inf:
@@ -269,7 +268,6 @@ def options_for_gather():
     # If any hyphenated gatherers got sent in, override the hyphen-to-underscore
     # conversion that argparse does by default.
     # Also turn the array into a single one, since nargs=1 won't have been set.
-    print(opts)
     for gatherer in opts["gatherers"]:
         if "-" in gatherer:
             scored = gatherer.replace("-", "_")
