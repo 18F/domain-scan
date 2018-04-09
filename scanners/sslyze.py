@@ -206,7 +206,7 @@ def run_sslyze(data, environment, options):
     if scan_method == "lambda":
         sync = True
     else:
-        sync = options.get("sslyze-serial", True)
+        sync = options.get("sslyze_serial", True)
 
     # Initialize either a synchronous or concurrent scanner.
     server_info, scanner = init_sslyze(data['hostname'], data['port'], data['starttls_smtp'], options, sync=sync)
@@ -491,7 +491,7 @@ def scan_serial(scanner, server_info, data, options):
     tlsv1_3 = scanner.run_scan_command(server_info, Tlsv13ScanCommand())
 
     certs = None
-    if options.get("sslyze-certs", True) is True:
+    if options.get("sslyze_certs", True) is True:
 
         try:
             logging.debug("\t\tCertificate information scan.")
