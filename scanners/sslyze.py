@@ -408,7 +408,7 @@ def analyze_certs(certs):
 
     # Is this cert issued by Symantec?
     distrust_timeline = certs.symantec_distrust_timeline
-    is_symantec_cert = (distrust_timeline != None)
+    is_symantec_cert = (distrust_timeline is not None)
     data['certs']['is_symantec_cert'] = is_symantec_cert
     if is_symantec_cert:
         data['certs']['symantec_distrust_date'] = distrust_timeline.name
