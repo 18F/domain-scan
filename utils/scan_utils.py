@@ -422,6 +422,33 @@ def build_scan_options_parser() -> ArgumentParser:
     parser.add_argument("--workers", nargs=1,
                         help="Limit parallel threads per-scanner to a number.")
     # TODO: Should workers have a default value?
+    # TODO: Move the scanner-specific argument parsing to each scanner's code.
+
+    # a11y:
+    parser.add_argument("--a11y-config",
+                        help="a11y: Location of pa11y config file (used with a11y scanner.")
+
+    parser.add_argument("--a11y-redirects",
+                        help="a11y: Location of YAML file with redirects to inform the a11y scanner.")
+    # analytics:
+    parser.add_argument("--analytics",
+                        help="analytics: Location of CSV file with participating analytics sites.")
+    # sslyze:
+    parser.add_argument("--sslyze-serial",
+                        help="sslyze: If set, will use a synchronous (single-threaded in-process) scanner. Defaults to true.")
+    parser.add_argument("--sslyze-certs",
+                        help="sslyze: If set, will use the CertificateInfoScanner and return certificate info. Defaults to true.")
+    # trustymail:
+    parser.add_argument("--starttls", help="trustymail: ?")
+    parser.add_argument("--timeout", help="trustymail: ?")
+    parser.add_argument("--smtp-timeout", help="trustymail: ?")
+    parser.add_argument("--smtp-localhost", help="trustymail: ?")
+    parser.add_argument("--smtp-ports", help="trustymail: ?")
+    parser.add_argument("--dns", help="trustymail: ?")
+    parser.add_argument("--no-smtp-cache", help="trustymail: ?")
+    parser.add_argument("--mx", help="trustymail: ?")
+    parser.add_argument("--spf", help="trustymail: ?")
+    parser.add_argument("--dmarc", help="trustymail: ?")
 
     return parser
 

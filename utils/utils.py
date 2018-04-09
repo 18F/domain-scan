@@ -74,7 +74,6 @@ def download(url, destination):
 
     # If it's a gzipped file, ungzip it and replace it
     if headers.get("Content-Encoding") == "gzip":
-        print("hey")
         unzipped_file = filename + ".unzipped"
 
         with gzip.GzipFile(filename, 'rb') as inf:
@@ -163,8 +162,7 @@ def build_gather_options_parser(services):
     parser = ArgumentParser(prefix_chars="--", usage=usage_message)
 
     for service in services:
-        flag = "--%s" % service
-        parser.add_argument(flag, nargs=1, required=True)
+        parser.add_argument("--%s" % service, nargs=1, required=True)
 
     parser.add_argument("--cache", action="store_true",
                         help="Use local filesystem cache (censys only).")
@@ -191,6 +189,10 @@ def build_gather_options_parser(services):
     parser.add_argument("--timeout", nargs=1, help="".join([
         "Override the 10 minute job timeout (specify in seconds) ",
         "(censys only).",
+    ]))
+    parser.add_argument("--output", nargs=1, default=["./"], help="".join([
+        "Where to output the 'cache/' and 'results/' directories. ",
+        "Defaults to './'.",
     ]))
     return parser
 
@@ -236,8 +238,7 @@ def options_for_gather():
 
     for remainder in remaining:
         if remainder.startswith("--") or remainder == ",":
-            raise argparse.ArgumentTypeError(
-                "%s isn't a valid argument here." % remainder)
+            raise argparse.ArgumentTypeError("%s isn't a valid argument here." % remainder)
     opts = parsed.__dict__
     opts = {k: opts[k] for k in opts if opts[k] is not None}
 
@@ -249,6 +250,7 @@ def options_for_gather():
     should_be_singles = [
         "parents",
         "suffix",
+        "output",
     ]
     for service in services:
         should_be_singles.append(service)
@@ -257,24 +259,28 @@ def options_for_gather():
         if kwd in opts:
             opts[kwd] = opts[kwd][0]
 
-    opts["gatherers"] = [g.strip() for g in
-                         remaining[0].split(",") if g.strip()]
+    opts["gatherers"] = [g.strip() for g in remaining[0].split(",") if g.strip()]
+
     if not opts["gatherers"]:
         raise argparse.ArgumentTypeError(
             "First argument must be a comma-separated list of gatherers")
 
-    # Some of the flags should only be present if a given gatherer is present.
-    matching_args = (
-        {"args": ["cache", "timeout"], "gatherer": "censys"},
-    )
-    candidates = (ma for ma in matching_args
-                  if ma["gatherer"] not in opts["gatherers"])
+    # If any hyphenated gatherers got sent in, override the hyphen-to-underscore
+    # conversion that argparse does by default.
+    # Also turn the array into a single one, since nargs=1 won't have been set.
+    for gatherer in opts["gatherers"]:
+        if "-" in gatherer:
+            scored = gatherer.replace("-", "_")
+            if opts.get(scored):
+                opts[gatherer] = opts[scored][0]
+                del opts[scored]
 
-    for ma in candidates:
-        for arg in ma["args"]:
-            if arg in opts and opts[arg]:
-                raise argparse.ArgumentTypeError(
-                    "%s doesn't apply with the specified gatherers" % arg)
+    # Derive some options not set directly at CLI:
+    opts["_"] = {
+        "cache_dir": os.path.join(opts.get("output", "./"), "cache"),
+        "report_dir": opts.get("output", "./"),
+        "results_dir": os.path.join(opts.get("output", "./"), "results"),
+    }
 
     # Some of the arguments expect single values on the command line, but those
     # values may contain comma-separated multiple values, so create the

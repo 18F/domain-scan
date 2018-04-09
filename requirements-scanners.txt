@@ -2,14 +2,13 @@
 # Requirements used by specific scanners.
 
 # pshtt
-git+https://github.com/dhs-ncats/pshtt.git#egg=pshtt
+pshtt>=0.4.1
 
 # trustymail
-git+https://github.com/dhs-ncats/trustymail.git#egg=trustymail
+trustymail>=0.5.5
 
 # sslyze
 sslyze>=1.4.1
-cryptography
 
 # a11y / csp
 pyyaml
