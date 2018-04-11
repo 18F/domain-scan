@@ -152,6 +152,9 @@ def to_rows(data):
             str.join(", ", ev.get('trusted_oids', [])),
             str.join(", ", ev.get('trusted_browsers', [])),
 
+            row['certs'].get('is_symantec_cert'),
+            row['certs'].get('symantec_distrust_date'),
+
             row.get('errors')
         ])
 
@@ -178,6 +181,8 @@ headers = [
 
     "Asserts EV", "Trusted for EV",
     "EV Trusted OIDs", "EV Trusted Browsers",
+
+    "Is Symantec Cert", "Symantec Distrust Date",
 
     "Errors"
 ]
@@ -400,6 +405,15 @@ def analyze_certs(certs):
             for browser in browsers:
                 if browser not in data['certs']['ev']['trusted_browsers']:
                     data['certs']['ev']['trusted_browsers'].append(browser)
+
+    # Is this cert issued by Symantec?
+    distrust_timeline = certs.symantec_distrust_timeline
+    is_symantec_cert = (distrust_timeline is not None)
+    data['certs']['is_symantec_cert'] = is_symantec_cert
+    if is_symantec_cert:
+        data['certs']['symantec_distrust_date'] = distrust_timeline.name
+    else:
+        data['certs']['symantec_distrust_date'] = None
 
     return data['certs']
 

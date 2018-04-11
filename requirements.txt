@@ -1,11 +1,9 @@
 
 ########
-# NOTE: Any requirements which are needed for Python-based Lambda function
-# packaging should also be listed in lambda/requirements-lambda.txt.
-# Those are in the bottom section below.
-
-# Used in scan script
-requests
+# NOTE: Any requirements which are needed for Python-based Lambda
+# function packaging should instead be listed in
+# lambda/requirements-lambda.txt.  This file is imported in the bottom
+# section below.
 
 # Used by parts of domain-scan, but not used inside of Lambda function
 # invocation.
