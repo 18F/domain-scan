@@ -468,16 +468,14 @@ def options() -> Tuple[dict, list]:
                 "Can't set lambda profile unless lambda flag is set.")
 
     # We know we want one value, but the ``nargs`` flag means we get a list.
-    should_be_singles = [
+    should_be_singles = (
         "lambda_profile",
         "output",
         "scan",
         "suffix",
         "workers",
-    ]
-    for kwd in should_be_singles:
-        if kwd in opts:
-            opts[kwd] = opts[kwd][0]
+    )
+    opts = make_values_single(opts, should_be_singles)
 
     # Derive some options not set directly at CLI:
     opts["_"] = {
@@ -487,6 +485,14 @@ def options() -> Tuple[dict, list]:
     }
 
     return (opts, unknown)
+
+
+def make_values_single(dct: dict,
+                       should_be_singles: Union[Tuple[str, ...], List[str]]) -> dict:
+    for key in should_be_singles:
+        if key in dct:
+            dct[key] = dct[key][0]
+    return dct
 
 
 def handle_scanner_arguments(scans: List[ModuleType], opts: dict, unknown: List[str]):

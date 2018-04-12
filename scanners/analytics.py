@@ -41,9 +41,7 @@ def handle_scanner_args(args, opts) -> Tuple[dict, list]:
     parsed, unknown = parser.parse_known_args(args)
     dicted = parsed.__dict__
     should_be_single = ["analytics"]
-    for opt in dicted:
-        if opt in should_be_single and dicted[opt] is not None:
-            dicted[opt] = dicted[opt][0]
+    dicted = scan_utils.make_values_single(dicted, should_be_single)
     resource = dicted.get("analytics")
     if not resource.endswith(".csv"):
         no_csv = "".join([

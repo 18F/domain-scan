@@ -44,7 +44,6 @@ def test_handle_scanner_args_notcsv(args, opts, correct_opts, correct_unknown):
     # tests for the scanner argument parsers themselves should be in the tests
     # for those scanners.
     opts, unknown = analytics.handle_scanner_args(opts, args)
-    # pytest.set_trace()
     assert opts == correct_opts
     assert unknown == correct_unknown
 
@@ -65,6 +64,5 @@ def test_handle_scanner_args_fnf(args, opts, correct_opts, correct_unknown):
     # tests for the scanner argument parsers themselves should be in the tests
     # for those scanners.
     opts, unknown = analytics.handle_scanner_args(opts, args)
-    # pytest.set_trace()
     assert opts == correct_opts
     assert unknown == correct_unknown

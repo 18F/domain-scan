@@ -1,6 +1,6 @@
 import logging
 from typing import Tuple
-from utils.scan_utils import ArgumentParser
+from utils.scan_utils import ArgumentParser, make_values_single
 
 ###
 # Testing scan function. Does nothing time consuming or destructive,
@@ -77,8 +77,6 @@ def handle_scanner_args(args, opts) -> Tuple[dict, list]:
     parsed, unknown = parser.parse_known_args(args)
     dicted = parsed.__dict__
     should_be_single = ["noop_delay"]
-    for opt in dicted:
-        if opt in should_be_single and dicted[opt] is not None:
-            dicted[opt] = dicted[opt][0]
+    dicted = make_values_single(dicted, should_be_single)
     dicted["noop_delay"] = int(dicted["noop_delay"], 10)
     return dicted, unknown

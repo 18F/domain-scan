@@ -1,11 +1,12 @@
 import os
-import pytest
+import sys
 from collections import namedtuple
 from pathlib import Path
 from .context import utils, scanners  # noqa
 from utils import scan_utils
 from scanners import analytics, noop
 
+import pytest
 
 MockScanner = namedtuple("MockScanner", ["workers"])
 
@@ -160,4 +161,56 @@ def test_handle_scanner_arguments(scans, opts, args, correct_opts, correct_unkno
 def test_determine_scan_workers(scanner, options, w_default, w_max, expected):
     result = scan_utils.determine_scan_workers(scanner, options, w_default,
                                                w_max)
+    assert result == expected
+
+
+@pytest.mark.parametrize("args,expected", [
+    (
+        "./scan 18f.gsa.gov --scan=analytics --analytics=http://us.ie/de.csv",
+        (
+            {
+                "domains": "18f.gsa.gov",
+                "cache": False,
+                "debug": False,
+                "lambda": False,
+                "meta": False,
+                "scan": "analytics",
+                "serial": False,
+                "sort": False,
+                "output": "./",
+                "_": {
+                    "cache_dir": "./cache",
+                    "report_dir": "./",
+                    "results_dir": "./results"
+                }
+            },
+            ["--analytics=http://us.ie/de.csv"]
+        )
+    ),
+    (
+        "./scan tests/data/domains.csv --scan=noopabc",
+        (
+            {
+                "domains": "tests/data/domains.csv",
+                "cache": False,
+                "debug": False,
+                "lambda": False,
+                "meta": False,
+                "scan": "noopabc",
+                "serial": False,
+                "sort": False,
+                "output": "./",
+                "_": {
+                    "cache_dir": "./cache",
+                    "report_dir": "./",
+                    "results_dir": "./results"
+                }
+            },
+            []
+        )
+    ),
+])
+def test_options(monkeypatch, args, expected):
+    monkeypatch.setattr(sys, "argv", args.split(" "))
+    result = scan_utils.options()
     assert result == expected
