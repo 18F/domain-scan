@@ -306,7 +306,7 @@ def test_options_for_scan_no_target(monkeypatch, capsys):
 def test_options_for_scan_basic(monkeypatch):
     command = "./scan example.org --scan=a11y"
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    result = scan_utils.options()
+    result, _ = scan_utils.options()
     assert result == {
         "_": default_underscore_scan,
         "domains": "example.org",
@@ -378,5 +378,7 @@ def test_options_for_scan_lambda_profile_no_lambda(monkeypatch):
 ])
 def test_options_for_scan_check_for_single_args(monkeypatch, command, expected):
     monkeypatch.setattr(sys, "argv", command.split(" "))
-    result = scan_utils.options()
+    result, _ = scan_utils.options()
+    if not result == expected:
+        pytest.set_trace()
     assert result == expected

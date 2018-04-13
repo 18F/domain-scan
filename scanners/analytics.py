@@ -1,51 +1,19 @@
+import argparse
 import logging
 import os
+from pathlib import Path
+from typing import Tuple
+from urllib.parse import urlparse
 
-from utils import utils
+from utils import utils, scan_utils
 
 # Check whether a domain is present in a CSV, set in --analytics.
 
 
-def init(environment, options):
-    global analytics_domains
-
-    analytics_file = options.get("analytics")
-    if (not analytics_file) or (not analytics_file.endswith(".csv")):
-        no_csv = "--analytics should point to the file path or URL to a CSV of participating domains."
-        logging.error(no_csv)
-        return False
-
-    # It's a URL, download it first.
-    if analytics_file.startswith("http:") or analytics_file.startswith("https:"):
-
-        analytics_path = os.path.join(options["_"]["cache_dir"], "analytics.csv")
-
-        try:
-            logging.debug("Downloading analytics file at %s ..." % analytics_file)
-            utils.download(analytics_file, analytics_path)
-        except:
-            logging.error(utils.format_last_exception())
-            no_csv = "--analytics URL not downloaded successfully."
-            logging.error(no_csv)
-            return False
-
-    # Otherwise, read it off the disk
-    else:
-        analytics_path = analytics_file
-
-        if (not os.path.exists(analytics_path)):
-            no_csv = "--analytics file not found."
-            logging.error(no_csv)
-            return False
-
-    analytics_domains = utils.load_domains(analytics_path)
-
-    return {'analytics_domains': analytics_domains}
-
-
 # The domains in --analytics will have been downloaded and
-# loaded in environment['analytics_domains'].
-def scan(domain, environment, options):
+# loaded in options['analytics_domains'].
+def scan(domain: str, environment: dict, options: dict):
+    analytics_domains = options["analytics_domains"]
     return {
         'participating': (domain in analytics_domains)
     }
@@ -58,3 +26,53 @@ def to_rows(data):
 
 
 headers = ["Participates in Analytics"]
+
+
+def handle_scanner_args(args, opts) -> Tuple[dict, list]:
+    """
+    --analytics: file path or URL to a CSV of participating domains.
+
+    This function also handles checking for the existence of the file,
+    downloading it succesfully, and reading the file in order to populate the
+    list of analytics domains.
+    """
+    parser = scan_utils.ArgumentParser(prefix_chars="--")
+    parser.add_argument("--analytics", nargs=1, required=True)
+    parsed, unknown = parser.parse_known_args(args)
+    dicted = parsed.__dict__
+    should_be_single = ["analytics"]
+    dicted = scan_utils.make_values_single(dicted, should_be_single)
+    resource = dicted.get("analytics")
+    if not resource.endswith(".csv"):
+        no_csv = "".join([
+            "--analytics should be the file path or URL to a CSV of participating",
+            " domains and end with .csv, which '%s' does not" % resource
+        ])
+        logging.error(no_csv)
+        raise argparse.ArgumentTypeError(no_csv)
+    try:
+        parsed_url = urlparse(resource)
+    except:
+        raise
+    if parsed_url.scheme and parsed_url.scheme in ("http", "https"):
+        analytics_path = Path(opts["_"]["cache_dir"], "analytics.csv").resolve()
+        try:
+            utils.download(resource, str(analytics_path))
+        except:
+            logging.error(utils.format_last_exception())
+            no_csv = "--analytics URL %s not downloaded successfully." % resource
+            logging.error(no_csv)
+            raise argparse.ArgumentTypeError(no_csv)
+    else:
+        if not os.path.exists(resource):
+            no_csv = "--analytics file %s not found." % resource
+            logging.error(no_csv)
+            raise FileNotFoundError(no_csv)
+        else:
+            analytics_path = resource
+
+    analytics_domains = utils.load_domains(analytics_path)
+    dicted["analytics_domains"] = analytics_domains
+    del dicted["analytics"]
+
+    return (dicted, unknown)
