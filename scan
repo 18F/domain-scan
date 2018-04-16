@@ -3,9 +3,7 @@
 import os
 import uuid
 import sys
-import glob
 import time
-import copy
 import logging
 import shutil
 import csv
@@ -14,8 +12,8 @@ import boto3
 import botocore
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from scanners.scannerabc import ScannerABC
-from typing import List
+from typing import Any, List, Tuple
+from types import ModuleType
 
 from scanners.headless.local_bridge import headless_scan
 from utils import scan_utils
@@ -87,14 +85,14 @@ LAMBDA_DETAIL_HEADERS = [
 
 # A best-effort delay to sleep while waiting for CloudWatch Logs
 # about Lambda executions to show up after task completion.
-lambda_log_delay = 20
+LAMBDA_LOG_DELAY = 20
 
 ###
 # Entry point. `options` is a dict of CLI flags.
 ###
 
 
-def run(options=None, cache_dir=None, results_dir=None):
+def run(options=None, unknown=[], cache_dir=None, results_dir=None):
 
     if not options["domains"]:
         logging.error("Provide a CSV file, or domain name.")
@@ -111,118 +109,77 @@ def run(options=None, cache_dir=None, results_dir=None):
             raise FileNotFoundError
     domains = scan_utils.handle_domains_argument(options["domains"], cache_dir)
 
-    # Split the scans into new-style OO scanners and old-style scan modules:
-    scanner_classes, scans = scan_utils.build_scan_lists(
-        options["scan"].split(","))
+    # Import the scanners:
+    scans = scan_utils.build_scanner_list(options["scan"].split(","))
 
-    # Which scanners to run the domain through.
-    if len(scans) > 0:
-        scan_domains(scans, domains, options)
-    if len(scanner_classes) > 0:
-        scanobject_domains(scanner_classes, domains, options)
+    # Now that we've loaded the modules, we can process args with them:
+    options, unknown = scan_utils.handle_scanner_arguments(scans, options, unknown)
+
+    # Kick off the scanning:
+    scan_domains(scans, domains, options)
 
 
 ###
-# Given the selected scanners, and input domains, run each domain
+# Given the selected scanner modules, and input domains, run each domain
 # through each scanner.
 #
 # Produces a CSV for each scan, with each domain and results.
 ###
-def scan_domains(scanners, domains, options):
+def scan_domains(scanners: List[ModuleType], domains: Path,
+                 options: dict) -> None:
     # Clear out existing result CSVs, to avoid inconsistent data.
     results_dir = options["_"]["results_dir"]
-    for result in glob.glob("%s/*.csv" % results_dir):
+    for result in Path(os.path.curdir, results_dir).glob("*.csv"):
         os.remove(result)
 
     # Store local errors/timing info, and if using Lambda, trigger the
     # Lambda post-processing pipeline to get Lambda timing/usage info.
     meta = options.get("meta", False)
-    # Generate a random UUID for the entire scan.
-    scan_uuid = str(uuid.uuid4())
 
     # Run through each scanner and open a file and CSV for each.
     handles = {}
+    durations = {}
+    scan_uuid = str(uuid.uuid4())
+    # Store scan UUID.
+    logging.debug("[%s] Scan UUID." % scan_uuid)
     for scanner in scanners:
         name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
-        scanner_filename = "%s/%s.csv" % (results_dir, name)
-        scanner_file = open(scanner_filename, 'w', newline='')
-        scanner_writer = csv.writer(scanner_file)
 
-        lambda_mode = options.get("lambda")
+        handles[name] = scan_utils.begin_csv_writing(
+            scanner, options, (PREFIX_HEADERS, LOCAL_HEADERS, LAMBDA_HEADERS))
 
-        use_lambda = lambda_mode and \
-            hasattr(scanner, "lambda_support") and \
-            scanner.lambda_support
-
-        # Write the header row, factoring in Lambda detail if needed.
-        headers = PREFIX_HEADERS + scanner.headers
-
-        # Local scan timing/errors.
-        if meta:
-            headers += LOCAL_HEADERS
-
-        # Lambda scan timing/errors. (At this step, only partial fields.)
-        if meta and use_lambda:
-            headers += LAMBDA_HEADERS
-
-        scanner_writer.writerow(headers)
-
-        handles[scanner] = {
-            'name': name,
-            'file': scanner_file,
-            'filename': scanner_filename,
-            'writer': scanner_writer,
-            'headers': headers,
-            'use_lambda': use_lambda,
-        }
-
-    # Initialize all scanner-specific environments.
-    # Useful for data that should be cached/passed to each instance,
-    # such as data from third-party network sources.
-    # Checked now, so that failure can immediately halt the whole scan.
-    for scanner in scanners:
+        # Initialize all scanner-specific environments.
+        # Useful for data that should be cached/passed to each instance,
+        # such as data from third-party network sources.
+        # Checked now, so that failure can immediately halt the whole scan.
         environment = {
-            'scan_method': 'lambda' if handles[scanner]['use_lambda'] else 'local',
+            'scan_method': 'lambda' if handles[name]['use_lambda'] else 'local',
             'scan_uuid': scan_uuid,
         }
 
         # Select workers here, so that it can be passed to the
         # init function.
-        if options.get("serial"):
-            workers = 1
-        elif hasattr(scanner, "workers"):
-            workers = scanner.workers
-        else:
-            workers = int(options.get("workers", default_workers))
+        workers = scan_utils.determine_scan_workers(
+            scanner, options, default_workers, global_max_workers)
+        environment['workers'] = workers  # type: ignore  # mypy dict issues.
 
-        # Enforce a local worker maximum as a safety valve.
-        environment['workers'] = min(workers, global_max_workers)
-
+        # Initialize the scanner:
         if hasattr(scanner, "init"):
-            # pass in 'environment' dict by reference, mutate in-place
-            init = scanner.init(environment, options)
-
+            init = scanner.init(environment, options)  # type: ignore
             # If a scanner's init() function returns false, stop entirely.
             if init is False:
-                logging.warn("[%s] Scanner init function returned false! Bailing." % handles[scanner]['name'])
+                logging.warn("[%s] Scanner init function returned false!  Bailing."
+                             % handles[name]['name'])
                 exit(1)
 
             if type(init) is dict:
                 environment = {**environment, **init}
-        handles[scanner]['environment'] = environment
 
-    # Store scan UUID.
-    logging.debug("[%s] Scan UUID." % scan_uuid)
+        handles[name]['environment'] = environment
 
-    # Run each scanner (unique process pool) over each domain.
-    # User can force --serial, and scanners can override default of 10.
-    durations = {}
-    for scanner in scanners:
-
+        # Run each scanner (unique process pool) over each domain.
+        # User can force --serial, and scanners can override default of 10.
         # Scan environment, passed to all scanners (local or cloud).
-        environment = handles[scanner]['environment']
-
-        workers = environment['workers']
 
         # Kick off workers in parallel. Returns when all are done.
         scan_start_time = scan_utils.local_now()
@@ -235,7 +192,7 @@ def scan_domains(scanners, domains, options):
         duration = scan_end_time - scan_start_time
 
         # Store scan-specific time information.
-        durations[handles[scanner]['name']] = {
+        durations[handles[name]['name']] = {
             'start_time': scan_utils.utc_timestamp(scan_start_time),
             'end_time': scan_utils.utc_timestamp(scan_end_time),
             'duration': scan_utils.just_microseconds(duration)
@@ -244,22 +201,23 @@ def scan_domains(scanners, domains, options):
     # Close up all the files, --sort if requested (memory-expensive).
     # Also fetch Lambda info if requested (time-expensive).
 
-    lambda_used = any(handles[scanner]['use_lambda'] for scanner in scanners)
-    get_lambda_details = meta and lambda_used and options.get("lambda-details", False)
+    lambda_used = any(handles[k]['use_lambda'] for k in handles)
+    get_lambda_details = meta and lambda_used and options.get("lambda-details")
 
     # Sleeping's not ideal, but no better idea right now.
     if get_lambda_details:
-        logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
-        time.sleep(lambda_log_delay)
+        logging.warn("\tWaiting %is for logs to show up in CloudWatch..." %
+                     LAMBDA_LOG_DELAY)
+        time.sleep(LAMBDA_LOG_DELAY)
 
-    for scanner in scanners:
-        handles[scanner]['file'].close()
+    for handle in handles.values():
+        handle['file'].close()
 
         if options.get("sort"):
-            scan_utils.sort_csv(handles[scanner]['filename'])
+            scan_utils.sort_csv(handle['filename'])
 
         if get_lambda_details:
-            add_lambda_details(handles[scanner]['filename'],
+            add_lambda_details(handle['filename'],
                                options["_"]["lambda_options"]["logs_client"])
 
     logging.warn("Results written to CSV.")
@@ -279,36 +237,40 @@ def scan_domains(scanners, domains, options):
 
 
 ###
-# Core scan method. (Run once in each worker.)
-def perform_scan(params):
+# Core scan method for scanners. (Run once in each worker.)
+def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
     scanner, domain, handles, environment, options = params
-    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+
+    # If the scanner needs to add extra variables in the way that used to be
+    # handled by init_domain, it now needs to deal with those in its __init__
+    # function and then to call
+    cache_dir = options["_"]["cache_dir"]
 
     meta = {'errors': []}
     rows = None
+    name = scanner.__name__.split(".")[-1]
+    assert name == handles[name]['name']  # Sanity check
 
     try:
-        logging.warn("[%s][%s] Running scan..." % (domain, handles[scanner]['name']))
+        logging.warn("[%s][%s] Running scan..." % (domain, name))
 
         data = None
 
         # Init function per-domain (always run locally).
         scan_environment = {}
         if hasattr(scanner, "init_domain"):
-            # pass in copy of 'environment' dict, any changes should be per-domain
-            environment_copy = copy.deepcopy(environment)
-            scan_environment = scanner.init_domain(domain, environment_copy, options)
+            scan_environment = scanner.init_domain(domain, environment, options)
 
         # Rely on scanner to say why.
         if scan_environment is False:
+            # TODO: should we be raising an error here?
             return
 
         scan_environment = {**environment, **scan_environment}
 
         # If --cache is on, read from this. Always write to it.
         domain_cache = scan_utils.cache_path(
-            domain, handles[scanner]['name'],
-            ext="json", cache_dir=cache_dir
+            domain, name, ext="json", cache_dir=cache_dir
         )
 
         if (options.get("cache")) and (os.path.exists(domain_cache)):
@@ -352,10 +314,11 @@ def perform_scan(params):
 
         # If --meta wasn't requested, throw it all away.
         if not options.get("meta", False):
-            meta = None
+            meta = {}
 
         scan_utils.write_rows(
-            rows, domain, scan_utils.base_domain_for(domain, cache_dir=cache_dir), scanner, handles[scanner]['writer'], meta=meta)
+            rows, domain, scan_utils.base_domain_for(domain, cache_dir=cache_dir),
+            scanner, handles[name]['writer'], meta=meta)
     except:
         logging.warn(scan_utils.format_last_exception())
 
@@ -566,344 +529,8 @@ def fetch_lambda_details(dict_row, logs_client):
     return lambda_fields
 
 
-###
-# Given the selected scan classes, and input domains, run each domain
-# through each scan class.
-#
-# Produces a CSV for each scan, with each domain and results.
-###
-def scanobject_domains(scanners: List[ScannerABC], domains: Path,
-                       options: dict) -> None:
-    # Clear out existing result CSVs, to avoid inconsistent data.
-    results_dir = options["_"]["results_dir"]
-    # TODO: prefer to have scan objects deal with this:
-    for result in Path(os.path.curdir, results_dir).glob("*.csv"):
-        os.remove(result)
-
-    # Store local errors/timing info, and if using Lambda, trigger the
-    # Lambda post-processing pipeline to get Lambda timing/usage info.
-    meta = options.get("meta", False)
-
-    # Run through each scanner and open a file and CSV for each.
-    handles = {}
-    durations = {}
-    scan_uuid = str(uuid.uuid4())
-    # Store scan UUID.
-    logging.debug("[%s] Scan UUID." % scan_uuid)
-    for scan_class in scanners:
-        name = scan_class.__module__.split(".")[-1]  # e.g. 'pshtt'
-        scanner_filename = "%s/%s.csv" % (results_dir, name)
-        scanner_file = open(scanner_filename, 'w', newline='')
-        scanner_writer = csv.writer(scanner_file)
-
-        lambda_mode = options.get("lambda")
-
-        use_lambda = lambda_mode and \
-            hasattr(scan_class, "lambda_support") and \
-            scan_class.lambda_support
-
-        # Write the header row, factoring in Lambda detail if needed.
-        headers = PREFIX_HEADERS + scan_class.headers
-
-        # Local scan timing/errors.
-        if meta:
-            headers += LOCAL_HEADERS
-
-        # Lambda scan timing/errors. (At this step, only partial fields.)
-        if meta and use_lambda:
-            headers += LAMBDA_HEADERS
-
-        scanner_writer.writerow(headers)
-
-        handles[name] = {
-            'name': name,
-            'file': scanner_file,
-            'filename': scanner_filename,
-            'writer': scanner_writer,
-            'headers': headers,
-            'use_lambda': use_lambda,
-        }
-
-        # Initialize all scanner-specific environments.
-        # Useful for data that should be cached/passed to each instance,
-        # such as data from third-party network sources.
-        # Checked now, so that failure can immediately halt the whole scan.
-        environment = {
-            'scan_method': 'lambda' if handles[name]['use_lambda'] else 'local',
-            'scan_uuid': scan_uuid,
-        }
-
-        # Select workers here, so that it can be passed to the
-        # init function.
-        if options.get("serial"):
-            workers = 1
-        elif hasattr(scan_class, "workers"):
-            workers = scan_class.workers  # type: ignore # The subclass objects set this sometimes.
-        else:
-            # mypy has trouble with this, presumably because we're using a dict
-            workers = int(options.get("workers", default_workers))  # type: ignore
-
-        # Enforce a local worker maximum as a safety valve.
-        # mypy has trouble with this, presumably because we're using a dict
-        environment['workers'] = min(workers, global_max_workers)  # type: ignore
-
-        # pass in 'environment' dict by reference, mutate in-place
-        # mypy complains about the scan_class not being callable in the next line:
-        scanner = scan_class(environment, options)  # type: ignore
-        init = scanner.initialized_opts
-
-        # If a scanner's init() function returns false, stop entirely.
-        if init is False:
-            logging.warn("[%s] Scanner init function returned false!  Bailing."
-                         % handles[name]['name'])
-            exit(1)
-
-        if type(init) is dict:
-            environment = {**environment, **init}
-        handles[name]['environment'] = environment
-
-        # Run each scanner (unique process pool) over each domain.
-        # User can force --serial, and scanners can override default of 10.
-        # Scan environment, passed to all scanners (local or cloud).
-
-        # Again, mypy thinks this is a string via the dict:
-        workers = environment['workers']  # type: ignore
-
-        # Kick off workers in parallel. Returns when all are done.
-        scan_start_time = scan_utils.local_now()
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            tasks = ((scanner, domain, handles, environment, options)
-                     for domain in scan_utils.domains_from(
-                         domains, domain_suffix=options.get("suffix")))
-            executor.map(scanobject_perform_scan, tasks)
-        scan_end_time = scan_utils.local_now()
-        duration = scan_end_time - scan_start_time
-
-        # Store scan-specific time information.
-        durations[handles[name]['name']] = {
-            'start_time': scan_utils.utc_timestamp(scan_start_time),
-            'end_time': scan_utils.utc_timestamp(scan_end_time),
-            'duration': scan_utils.just_microseconds(duration)
-        }
-
-    # Close up all the files, --sort if requested (memory-expensive).
-    # Also fetch Lambda info if requested (time-expensive).
-
-    lambda_used = any(handles[k]['use_lambda'] for k in handles)
-    get_lambda_details = meta and lambda_used and options.get("lambda-details", False)
-
-    # Sleeping's not ideal, but no better idea right now.
-    if get_lambda_details:
-        logging.warn("\tWaiting %is for logs to show up in CloudWatch..." % lambda_log_delay)
-        time.sleep(lambda_log_delay)
-
-    for handle in handles.values():
-        handle['file'].close()
-
-        if options.get("sort"):
-            scan_utils.sort_csv(handle['filename'])
-
-        if get_lambda_details:
-            add_lambda_details(handle['filename'],
-                               options["_"]["lambda_options"]["logs_client"])
-
-    logging.warn("Results written to CSV.")
-
-    # Save metadata.
-    end_time = scan_utils.local_now()
-    duration = end_time - start_time
-    metadata = {
-        'start_time': scan_utils.utc_timestamp(start_time),
-        'end_time': scan_utils.utc_timestamp(end_time),
-        'duration': scan_utils.just_microseconds(duration),
-        'durations': durations,
-        'command': start_command,
-        'scan_uuid': scan_uuid
-    }
-    scan_utils.write(scan_utils.json_for(metadata), "%s/meta.json" % results_dir)
-
-
-###
-# Core scan method for scanner objects. (Run once in each worker.)
-def scanobject_perform_scan(params):
-    scanner, domain, handles, environment, options = params
-
-    # If the scanner needs to add extra variables in the way that used to be
-    # handled by init_domain, it now needs to deal with those in its __init__
-    # function and then to call
-    # super()__init__(domain, handles, environment, options, extra)
-    cache_dir = scanner.cache_dir
-
-    meta = {'errors': []}
-    rows = None
-
-    try:
-        logging.warn("[%s][%s] Running scan..." % (domain, handles[scanner.name]['name']))
-
-        data = None
-
-        scan_environment = environment
-
-        # If --cache is on, read from this. Always write to it.
-        domain_cache = scan_utils.cache_path(
-            domain, handles[scanner.name]['name'],
-            ext="json", cache_dir=cache_dir
-        )
-
-        if (options.get("cache")) and (os.path.exists(domain_cache)):
-            logging.warn("\tUsing cached scan response.")
-            raw = scan_utils.read(domain_cache)
-            data = json.loads(raw)
-            if (data.__class__ is dict) and data.get('invalid'):
-                data = None
-        else:
-            # Supported methods: local scans, and Lambda-based.
-            if environment['scan_method'] == "lambda":
-                scan_method = scanobject_perform_lambda_scan
-            else:
-                scan_method = scanobject_perform_local_scan
-
-            # Capture local start and end times around scan.
-            meta['start_time'] = scan_utils.local_now()
-            data = scan_method(scanner, domain, handles, scan_environment, options, meta)
-            meta['end_time'] = scan_utils.local_now()
-            meta['duration'] = meta['end_time'] - meta['start_time']
-
-        if data:
-            # Cache locally.
-            scan_utils.write(scan_utils.json_for(data), domain_cache)
-
-            # Convert to rows for CSV.
-            rows = scanner.to_rows(data)
-        else:
-            scan_utils.write(scan_utils.invalid(), domain_cache)
-            meta['errors'].append("Scan returned nothing.")
-
-    except:
-        exception = scan_utils.format_last_exception()
-        meta['errors'].append("Unknown exception: %s" % exception)
-
-    try:
-        # Always print errors.
-        if len(meta['errors']) > 0:
-            for error in meta['errors']:
-                logging.warn("\t%s" % error)
-
-        # If --meta wasn't requested, throw it all away.
-        if not options.get("meta", False):
-            meta = None
-
-        scan_utils.write_rows(
-            rows, domain, scan_utils.base_domain_for(domain, cache_dir=cache_dir),
-            scanner, handles[scanner.name]['writer'], meta=meta)
-    except:
-        logging.warn(scan_utils.format_last_exception())
-
-
-###
-# Local scan (default).
-#
-# Run the scan using local CPU, within this worker.
-#
-# Let all errors bubble up to perform_scan.
-def scanobject_perform_local_scan(scanner, domain, handles, environment, options, meta):
-    logging.warn("\tExecuting local scan...")
-
-    # Special Python->JS shim for local use of headless Chrome.
-    if hasattr(scanner, "scan_headless") and (scanner.scan_headless is True):
-        response = headless_scan(handles[scanner]['name'], domain, environment, options)
-
-    # Otherwise, just call out and expect the scan to run in Python.
-    else:
-        response = scanner.scan(domain)
-
-    # Serialize and re-parse data as JSON, to normalize dates
-    # using explicit formatting regardless of local Python environment.
-    #
-    # This is also done for Lambda scans, but performed server-side
-    # by the Lambda handler so that it's done before Amazon's own
-    # JSON serialization is used for data transport to the client.
-    return scan_utils.from_json(scan_utils.json_for(response))
-
-
-###
-# Lambda-based scan.
-#
-# Run the scan using a Lambda function. This worker will wait
-# for the Lambda task to complete synchronously.
-#
-# Catch some Lambda-specific exceptions around the invoke call,
-# but otherwise allow exceptions to bubble up to perform_scan.
-def scanobject_perform_lambda_scan(scanner, domain, handles, environment, options, meta):
-    logging.warn("\tExecuting Lambda scan...")
-
-    invoke_client = options["_"]["lambda_options"]["invoke_client"]
-    data = None
-    meta['lambda'] = {}
-
-    task_prefix = "task_"  # default, maybe make optional later
-    task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
-
-    # JSON payload that arrives as the 'event' object in Lambda.
-    payload = {
-        'domain': domain,
-        'options': options,
-        'scanner': handles[scanner]['name'],
-        'environment': environment
-    }
-    bytes_payload = bytes(scan_utils.json_for(payload), encoding='utf-8')
-
-    try:
-        # For now, do synchronous Lambda requests, essentially just
-        # farming out the hard work to Lambda. This increases max workers
-        # somewhat, since waiting on responses is much, much cheaper than
-        # performing active scanning.
-
-        api_response = invoke_client.invoke(
-            FunctionName=task_name,
-            InvocationType='RequestResponse',
-            LogType='None',
-            Payload=bytes_payload
-        )
-
-        # Store Lambda request ID for reference in Lambda logs.
-        meta['lambda']['request_id'] = api_response['ResponseMetadata']['RequestId']
-
-        # Read payload from Lambda task.
-        raw = str(api_response['Payload'].read(), encoding='utf-8')
-
-        response = json.loads(raw)
-
-        if response is None:
-            meta['errors'].append("Response came back empty. Raw payload response:\n%s\nFull api_response:\n%s" % (raw, api_response))
-
-        # An errorMessage field implies a Lambda-level error.
-        elif response.get("errorMessage") is None:
-            # Payload has some per-task Lambda-specific info.
-            meta['lambda'] = {**meta['lambda'], **response['lambda']}
-
-            if 'data' in response:
-                # Payload has the actual scan response data.
-                data = response['data']
-            else:
-                meta['errors'].append("Response object lacked 'data' field. Raw response: %s" % raw)
-
-            # An error field implies an exception during the scan.
-            if 'error' in response:
-                meta['errors'].append("Error or exception during scan: %s" % response['error'])
-
-        else:
-            meta['errors'].append("Lambda error: %s" % raw)
-
-    except botocore.vendored.requests.exceptions.ReadTimeout:
-        meta['errors'].append("Connection timeout while talking to Lambda.")
-
-    return data
-
-
 if __name__ == '__main__':
-    options = scan_utils.options()
-    domain_suffix = options.get("suffix")
+    options, unknown = scan_utils.options()
     lambda_mode = options.get("lambda", False)
 
     # basic setup - logs, output dirs
@@ -924,4 +551,4 @@ if __name__ == '__main__':
         lo["lambda_mode"] = True
         options["_"]["lambda_options"] = lo
 
-    run(options, cache_dir, results_dir)
+    run(options, unknown, cache_dir, results_dir)

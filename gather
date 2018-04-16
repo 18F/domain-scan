@@ -197,9 +197,10 @@ def get_parent_domains(options, cache_dir="./cache"):
 if __name__ == '__main__':
     options = utils.options_for_gather()
     utils.configure_logging(options)
-    # If we need to add a way to change these, we can add an option to gather.
-    cache_dir = "./cache"
-    results_dir = "./results"
+
+    # Support --output flag for changing where cache/ and results/ go.
+    cache_dir = utils.cache_dir(options)
+    results_dir = utils.results_dir(options)
     utils.mkdir_p(cache_dir)
     utils.mkdir_p(results_dir)
 
