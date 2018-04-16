@@ -75,7 +75,7 @@ def handle_scanner_args(args, opts) -> Tuple[dict, list]:
     parser = ArgumentParser(prefix_chars="--")
     parser.add_argument("--noop-delay", nargs=1)
     parsed, unknown = parser.parse_known_args(args)
-    dicted = parsed.__dict__
+    dicted = vars(parsed)
     should_be_single = ["noop_delay"]
     dicted = make_values_single(dicted, should_be_single)
     dicted["noop_delay"] = int(dicted["noop_delay"], 10)

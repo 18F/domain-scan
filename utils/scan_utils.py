@@ -460,8 +460,7 @@ def options() -> Tuple[dict, list]:
     parser = build_scan_options_parser()
     parsed, unknown = parser.parse_known_args()
 
-    opts = parsed.__dict__
-    opts = {k: opts[k] for k in opts if opts[k] is not None}
+    opts = {k: v for k, v in vars(parsed).items() if v is not None}
 
     if opts.get("lambda_profile") and not opts.get("lambda"):
             raise argparse.ArgumentTypeError(
@@ -489,9 +488,8 @@ def options() -> Tuple[dict, list]:
 
 def make_values_single(dct: dict,
                        should_be_singles: Union[Tuple[str, ...], List[str]]) -> dict:
-    for key in should_be_singles:
-        if key in dct:
-            dct[key] = dct[key][0]
+    for key in (k for k in should_be_singles if k in dct):
+        dct[key] = dct[key][0]
     return dct
 
 
