@@ -31,7 +31,6 @@ import strict_rfc3339
 
 MANDATORY_SCANNER_PROPERTIES = (
     "headers",
-    "scan",
     "to_rows"
 )
 # global in-memory cache
