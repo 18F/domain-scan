@@ -75,6 +75,9 @@ class Gatherer(Gatherer):
         # But by default, fetch new data from the BigQuery API,
         # and write it to the expected download location.
         else:
+            # Ensure cache destination exists.
+            utils.mkdir_p(os.path.dirname(download_path))
+
             logging.warn("Kicking off SQL query job.")
 
             rows = None
