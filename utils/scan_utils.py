@@ -486,8 +486,7 @@ def options() -> Tuple[dict, list]:
     return (opts, unknown)
 
 
-def make_values_single(dct: dict,
-                       should_be_singles: Union[Tuple[str, ...], List[str]]) -> dict:
+def make_values_single(dct: dict, should_be_singles: Iterable[str]) -> dict:
     for key in (k for k in should_be_singles if k in dct):
         dct[key] = dct[key][0]
     return dct
