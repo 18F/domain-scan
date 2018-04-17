@@ -239,8 +239,8 @@ def options_for_gather():
     for remainder in remaining:
         if remainder.startswith("--") or remainder == ",":
             raise argparse.ArgumentTypeError("%s isn't a valid argument here." % remainder)
-    opts = parsed.__dict__
-    opts = {k: opts[k] for k in opts if opts[k] is not None}
+
+    opts = {k: v for k, v in vars(parsed).items() if v is not None}
 
     """
     The following expect a single argument, but argparse returns lists for them

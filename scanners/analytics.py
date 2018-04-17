@@ -39,7 +39,7 @@ def handle_scanner_args(args, opts) -> Tuple[dict, list]:
     parser = scan_utils.ArgumentParser(prefix_chars="--")
     parser.add_argument("--analytics", nargs=1, required=True)
     parsed, unknown = parser.parse_known_args(args)
-    dicted = parsed.__dict__
+    dicted = vars(parsed)
     should_be_single = ["analytics"]
     dicted = scan_utils.make_values_single(dicted, should_be_single)
     resource = dicted.get("analytics")
