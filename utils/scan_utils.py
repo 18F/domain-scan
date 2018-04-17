@@ -31,7 +31,6 @@ import strict_rfc3339
 
 MANDATORY_SCANNER_PROPERTIES = (
     "headers",
-    "scan",
     "to_rows"
 )
 # global in-memory cache
@@ -573,7 +572,7 @@ def begin_csv_writing(scanner: ModuleType, options: dict,
     if meta and use_lambda:
         headers += LAMBDA_HEADERS
 
-    scanner_csv_path = Path(results_dir, name).resolve()
+    scanner_csv_path = Path(results_dir, "%s.csv" % name).resolve()
     scanner_file = scanner_csv_path.open('w', newline='')
     scanner_writer = csv.writer(scanner_file)
 

@@ -332,9 +332,11 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
 def perform_local_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting local scan...")
 
+    scanner_name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
+
     # Special Python->JS shim for local use of headless Chrome.
     if hasattr(scanner, "scan_headless") and (scanner.scan_headless is True):
-        response = headless_scan(handles[scanner]['name'], domain, environment, options)
+        response = headless_scan(scanner_name, domain, environment, options)
 
     # Otherwise, just call out and expect the scan to run in Python.
     else:
@@ -360,18 +362,20 @@ def perform_local_scan(scanner, domain, handles, environment, options, meta):
 def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
     logging.warn("\tExecuting Lambda scan...")
 
+    scanner_name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
+
     invoke_client = options["_"]["lambda_options"]["invoke_client"]
     data = None
     meta['lambda'] = {}
 
     task_prefix = "task_"  # default, maybe make optional later
-    task_name = "%s%s" % (task_prefix, handles[scanner]['name'])
+    task_name = "%s%s" % (task_prefix, scanner_name)
 
     # JSON payload that arrives as the 'event' object in Lambda.
     payload = {
         'domain': domain,
         'options': options,
-        'scanner': handles[scanner]['name'],
+        'scanner': scanner_name,
         'environment': environment
     }
     bytes_payload = bytes(scan_utils.json_for(payload), encoding='utf-8')
