@@ -305,6 +305,25 @@ def configure_logging(options=None):
         print("Invalid log level (specify: debug, info, warn, error).")
         sys.exit(1)
 
+    # In the case of AWS Lambda, the root logger is used BEFORE our
+    # Lambda handler runs, and this creates a default handler that
+    # goes to the console.  Once logging has been configured, calling
+    # logging.basicConfig() has no effect.  We can get around this by
+    # removing any root handlers (if present) before calling
+    # logging.basicConfig().  This unconfigures logging and allows
+    # --debug to affect the logging level that appears in the
+    # CloudWatch logs.
+    #
+    # See
+    # https://stackoverflow.com/questions/1943747/python-logging-before-you-run-logging-basicconfig
+    # and
+    # https://stackoverflow.com/questions/37703609/using-python-logging-with-aws-lambda
+    # for more details.
+    root = logging.getLogger()
+    if root.handlers:
+        for handler in root.handlers:
+            root.removeHandler(handler)
+
     logging.basicConfig(format='%(message)s', level=log_level.upper())
 
 
