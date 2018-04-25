@@ -8,6 +8,7 @@ import logging
 import shutil
 import csv
 import json
+import copy
 import boto3
 import botocore
 from pathlib import Path
@@ -259,7 +260,8 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
         # Init function per-domain (always run locally).
         scan_environment = {}
         if hasattr(scanner, "init_domain"):
-            scan_environment = scanner.init_domain(domain, environment, options)
+            environment_copy = copy.deepcopy(environment)
+            scan_environment = scanner.init_domain(domain, environment_copy, options)
 
         # Rely on scanner to say why.
         if scan_environment is False:
