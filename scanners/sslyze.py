@@ -17,7 +17,7 @@ import logging
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
-from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
+from sslyze.plugins.openssl_cipher_suites_plugin import OpenSslCipherSuitesPlugin, Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
 from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
@@ -214,6 +214,12 @@ def run_sslyze(data, environment, options):
     if server_info is None:
         data['errors'].append("Connectivity not established.")
         return data
+    
+    # If we're testing an SMTP server, monkey patch OpenSslCipherSuitesPlugin
+    # so that it only uses a single thread.  This is because a lot of SMTP
+    # servers start rejecting connections if you connect too frequently.
+    if data['starttls_smtp']:
+        OpenSslCipherSuitesPlugin.MAX_THREADS = 1
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
