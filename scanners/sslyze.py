@@ -219,7 +219,7 @@ def run_sslyze(data, environment, options):
     # so that it only uses a single thread.  This is because a lot of SMTP
     # servers start rejecting connections if you connect too frequently.
     if data['starttls_smtp']:
-        OpenSslCipherSuitesPlugin.MAX_THREADS = 1
+        OpenSslCipherSuitesPlugin.MAX_THREADS = 4
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
