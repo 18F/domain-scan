@@ -216,10 +216,12 @@ def run_sslyze(data, environment, options):
         return data
     
     # If we're testing an SMTP server, monkey patch OpenSslCipherSuitesPlugin
-    # so that it only uses a single thread.  This is because a lot of SMTP
-    # servers start rejecting connections if you connect too frequently.
+    # so that it uses four threads instead of ten.  This is because a lot of
+    # SMTP servers start rejecting connections if you connect too frequently.
     if data['starttls_smtp']:
         OpenSslCipherSuitesPlugin.MAX_THREADS = 4
+    else:
+        OpenSslCipherSuitesPlugin.MAX_THREADS = 10
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
