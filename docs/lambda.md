@@ -16,7 +16,7 @@ Before you can execute a Lambda function, you'll need to create the functions in
 
 Lambda functions need to be uploaded as a zip file containing all necessary dependencies. Native dependencies (including Python modules that use C) need to have been compiled on an architecture compatible with Amazon Linux. Occasionally, there are Lambda-specific issues that require tweaks to how dependencies are installed. It can be annoying!
 
-However, **this dependency compilation work is already done for you** by default. The [dhs-ncats/lambda_functions](https://github.com/dhs-ncats/lambda_functions) repository is a tool for bundling the set of dependencies needed to deploy the scanners to Lambda functions in a zip file. When creating a function, the contents of this zip file are mixed into a new zip files specific to each scanner.
+However, **this dependency compilation work is already done for you** by default. The [dhs-ncats/lambda_functions](https://github.com/dhs-ncats/lambda_functions) repository is a tool for bundling the set of dependencies needed to deploy the scanners to Lambda functions in a zip file. When creating a function, the contents of this zip file are mixed into a new zip file specific to each scanner.
 
 Once you have an AWS account, and permissions to use Lambda, you'll be able to run the commands below and execute scans in Lambda right away.
 
