@@ -448,7 +448,7 @@ def add_lambda_details(input_filename, logs_client):
 
     for row in csv.reader(input_file):
         # keep header and add the Lambda detail headers
-        if (row[0].lower().startswith("domain")):
+        if (row[0].lower() == "domain"):
             header = row
             continue
 
