@@ -625,7 +625,7 @@ def _df_path(arg: Path, domain_suffix: Union[str, None]=None) -> Iterable[str]:
     if arg.suffix == ".csv":
         with arg.open(encoding='utf-8', newline='') as csvfile:
             for row in csv.reader(csvfile):
-                if (not row[0]) or (row[0].lower().startswith("domain")):
+                if (not row[0]) or (row[0].lower() == "domain") or (row[0].lower() == "domain name"):
                     continue
                 domain = row[0].lower()
                 if domain_suffix:
