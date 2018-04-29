@@ -14,6 +14,7 @@ import logging
 import datetime
 import strict_rfc3339
 import codecs
+from glob import iglob
 from itertools import chain
 from urllib.error import URLError
 
@@ -590,6 +591,25 @@ def domain_mail_servers_that_support_starttls(domain, cache_dir="./cache"):
             retVal = starttls_results.split(', ')
 
     return retVal
+
+
+def find_data_in_sslyze_cache(hostname, port, cache_dir="./cache"):
+    """Finds data for the specified hostname and port in the sslyze cache.
+
+    Searches the sslyze cache for existing data about the specified
+hostname and port.  If such data is found then it is returned;
+otherwise, None is returned."""
+    filename_iter = iglob('{}/sslyze/*.json'.format(cache_dir))
+    for filename in filename_iter:
+        # Extract the domain from the filename
+        domain = os.path.splitext(os.path.basename(filename))[0]
+        
+        data = data_for(domain, 'sslyze', cache_dir)
+        for host_data in data:
+            if host_data['hostname'] == hostname and host_data['port'] == str(port):
+                return host_data
+
+    return None
 
 
 # Check whether we have HTTP behavior data cached for a domain.
