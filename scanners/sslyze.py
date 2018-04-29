@@ -137,7 +137,8 @@ def scan(domain, environment, options):
 
     # Return the scan results together with the already-cached results (if
     # there were any)
-    return retVal.extend(environment['cached_data'])
+    retVal.extend(environment['cached_data'])
+    return retVal
 
 
 # Given a response dict, turn it into CSV rows.
