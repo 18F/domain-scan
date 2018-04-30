@@ -605,9 +605,10 @@ otherwise, None is returned."""
         domain = os.path.splitext(os.path.basename(filename))[0]
         
         data = data_for(domain, 'sslyze', cache_dir)
-        for host_data in data:
-            if host_data['hostname'] == hostname and host_data['port'] == str(port):
-                return host_data
+        if data is not None:
+            for host_data in data:
+                if host_data['hostname'] == hostname and host_data['port'] == str(port):
+                    return host_data
 
     return None
 
