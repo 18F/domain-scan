@@ -81,6 +81,10 @@ def init_domain(domain, environment, options):
         # multiple government domains often use the same SMTP servers, so if
         # the user specified the --cache flag then it makes sense to check if
         # we have already hit this mail server when testing a different domain.
+        #
+        # Note that as the sslyze cache grows in size sslyze SMTP scans run
+        # slower because reading all the JSON files in the cache takes time.
+        # There are considerably fewer errors in the scans, though.
         cache = None
         if options.get('cache'):
             cache = utils.find_data_in_sslyze_cache(hostname, port, cache_dir=cache_dir)
