@@ -241,10 +241,14 @@ def run_sslyze(data, environment, options):
         return data
     
     # If we're testing an SMTP server, monkey patch OpenSslCipherSuitesPlugin
-    # so that it uses four threads instead of ten.  This is because a lot of
+    # so that it uses eight threads instead of ten.  This is because a lot of
     # SMTP servers start rejecting connections if you connect too frequently.
+    #
+    # A balance has to be achieved between not connecting too often and
+    # actually completing the scan within the five minute window allowed by AWS
+    # Lambda.
     if data['starttls_smtp']:
-        OpenSslCipherSuitesPlugin.MAX_THREADS = 4
+        OpenSslCipherSuitesPlugin.MAX_THREADS = 8
     else:
         OpenSslCipherSuitesPlugin.MAX_THREADS = 10
 
