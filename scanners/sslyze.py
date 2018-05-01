@@ -17,7 +17,7 @@ import logging
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
-from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
+from sslyze.plugins.openssl_cipher_suites_plugin import OpenSslCipherSuitesPlugin, Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
 from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
@@ -44,7 +44,8 @@ lambda_support = True
 # support STARTTLS so we can scan them.
 def init_domain(domain, environment, options):
     hosts_to_scan = []
-    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+    cached_data = []
+    cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
@@ -54,7 +55,7 @@ def init_domain(domain, environment, options):
         # If we have pshtt data and it says canonical endpoint uses
         # www and the given domain is bare, add www.
         if utils.domain_uses_www(domain, cache_dir=cache_dir):
-            hostname = "www.%s" % domain
+            hostname = 'www.%s' % domain
         else:
             hostname = domain
 
@@ -69,16 +70,37 @@ def init_domain(domain, environment, options):
     mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
     for mail_server in mail_servers_to_test:
         hostname_and_port = mail_server.split(':')
-        hosts_to_scan.append({
-            'hostname': hostname_and_port[0],
-            'port': hostname_and_port[1],
-            'starttls_smtp': True
-        })
+        hostname = hostname_and_port[0]
+        port = hostname_and_port[1]
+        # Check if we already have results for this mail server, possibly from
+        # a different domain.
+        #
+        # I have found that SMTP servers (as compared to HTTP/HTTPS servers)
+        # are MUCH more sensitive to having multiple connections made to them.
+        # In testing the various cyphers we make a lot of connections, and
+        # multiple government domains often use the same SMTP servers, so if
+        # the user specified the --cache flag then it makes sense to check if
+        # we have already hit this mail server when testing a different domain.
+        #
+        # Note that as the sslyze cache grows in size sslyze SMTP scans run
+        # slower because reading all the JSON files in the cache takes time.
+        # There are considerably fewer errors in the scans, though.
+        cache = None
+        if options.get('cache'):
+            cache = utils.find_data_in_sslyze_cache(hostname, port, cache_dir=cache_dir)
+        if cache is None:
+            hosts_to_scan.append({
+                'hostname': hostname,
+                'port': port,
+                'starttls_smtp': True
+            })
+        else:
+            cached_data.append(cache)
 
     if not hosts_to_scan:
         logging.warn('\tNo hosts to scan for {}'.format(domain))
 
-    return {'hosts_to_scan': hosts_to_scan}
+    return {'hosts_to_scan': hosts_to_scan, 'cached_data': cached_data}
 
 
 # Run sslyze on the given domain.
@@ -117,6 +139,9 @@ def scan(domain, environment, options):
 
         retVal.append(data)
 
+    # Return the scan results together with the already-cached results (if
+    # there were any)
+    retVal.extend(environment['cached_data'])
     return retVal
 
 
@@ -214,6 +239,18 @@ def run_sslyze(data, environment, options):
     if server_info is None:
         data['errors'].append("Connectivity not established.")
         return data
+    
+    # If we're testing an SMTP server, monkey patch OpenSslCipherSuitesPlugin
+    # so that it uses eight threads instead of ten.  This is because a lot of
+    # SMTP servers start rejecting connections if you connect too frequently.
+    #
+    # A balance has to be achieved between not connecting too often and
+    # actually completing the scan within the five minute window allowed by AWS
+    # Lambda.
+    if data['starttls_smtp']:
+        OpenSslCipherSuitesPlugin.MAX_THREADS = 8
+    else:
+        OpenSslCipherSuitesPlugin.MAX_THREADS = 10
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
