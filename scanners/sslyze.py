@@ -44,7 +44,7 @@ lambda_support = True
 # support STARTTLS so we can scan them.
 def init_domain(domain, environment, options):
     hosts_to_scan = []
-    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+    cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
@@ -54,7 +54,7 @@ def init_domain(domain, environment, options):
         # If we have pshtt data and it says canonical endpoint uses
         # www and the given domain is bare, add www.
         if utils.domain_uses_www(domain, cache_dir=cache_dir):
-            hostname = "www.%s" % domain
+            hostname = 'www.%s' % domain
         else:
             hostname = domain
 
