@@ -44,6 +44,7 @@ lambda_support = True
 # support STARTTLS so we can scan them.
 def init_domain(domain, environment, options):
     hosts_to_scan = []
+    cached_data = []
     cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
     # If we have pshtt data, skip domains which pshtt saw as not
@@ -67,18 +68,38 @@ def init_domain(domain, environment, options):
     # If we have trustymail data, see if there are any mail servers
     # that support STARTTLS that we should scan
     mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
+    # Ensure that the 'cache' value exists in environment
+    if 'cache' not in environment:
+        environment['cache'] = {}
     for mail_server in mail_servers_to_test:
-        hostname_and_port = mail_server.split(':')
-        hosts_to_scan.append({
-            'hostname': hostname_and_port[0],
-            'port': hostname_and_port[1],
-            'starttls_smtp': True
-        })
+        # Check if we already have results for this mail server,
+        # possibly from a different domain.
+        #
+        # I have found that SMTP servers (as compared to HTTP/HTTPS
+        # servers) are MUCH more sensitive to having multiple
+        # connections made to them.  In testing the various cyphers we
+        # make a lot of connections, and multiple government domains
+        # often use the same SMTP servers, so it makes sense to check
+        # if we have already hit this mail server when testing a
+        # different domain.
+        if mail_server not in environment['cache']:
+            hostname_and_port = mail_server.split(':')
+            hosts_to_scan.append({
+                'hostname': hostname_and_port[0],
+                'port': hostname_and_port[1],
+                'starttls_smtp': True
+            })
+        else:
+            logging.debug('Using cached data for {}'.format(mail_server))
+            cached_data.append(environment['cache'][mail_server])
 
     if not hosts_to_scan:
         logging.warn('\tNo hosts to scan for {}'.format(domain))
 
-    return {'hosts_to_scan': hosts_to_scan}
+    return {
+        'hosts_to_scan': hosts_to_scan,
+        'cached_data': cached_data
+    }
 
 
 # Run sslyze on the given domain.
@@ -116,7 +137,12 @@ def scan(domain, environment, options):
         data['errors'] = ' '.join(data['errors'])
 
         retVal.append(data)
+        # Update our cache with the mail server we just scanned
+        environment['cache']['{}:{}'.format(hostname, port)] = data
 
+    # Return the scan results together with the already-cached results
+    # (if there were any)
+    retVal.extend(environment['cached_data'])
     return retVal
 
 
