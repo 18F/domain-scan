@@ -88,6 +88,10 @@ LAMBDA_DETAIL_HEADERS = [
 # about Lambda executions to show up after task completion.
 LAMBDA_LOG_DELAY = 20
 
+# The environment dictionary key whose correpsonding value is the fast
+# cache data
+FAST_CACHE_KEY = 'fastcache'
+
 ###
 # Entry point. `options` is a dict of CLI flags.
 ###
@@ -241,8 +245,8 @@ def copy_environment(env: dict) -> dict:
     """
     Return a copy of the environment
 
-    In the copy, the 'cache' value is the same object but all other
-    values are deep copies.
+    In the copy, the FAST_CACHE_KEY value is the same object but all
+    other values are deep copies.
 
     Parameters
     ----------
@@ -252,14 +256,14 @@ def copy_environment(env: dict) -> dict:
     Returns
     -------
     dict
-        A new dict in which the 'cache' value is the same object but
-        all other values are deep copies.
+        A new dict in which the FAST_CACHE_KEY value is the same
+        object but all other values are deep copies.
     """
     # Deep copy everything but the cache
-    env_copy = {key: copy.deepcopy(value) for key, value in env.items() if key != 'cache'}
+    env_copy = {key: copy.deepcopy(value) for key, value in env.items() if key != FAST_CACHE_KEY}
     # Reuse the same cache object, if it exists
-    if 'cache' in env:
-        env_copy['cache'] = env['cache']
+    if FAST_CACHE_KEY in env:
+        env_copy[FAST_CACHE_KEY] = env[FAST_CACHE_KEY]
 
     return env_copy
 
@@ -341,9 +345,9 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             # Capture local start and end times around scan.
             meta['start_time'] = scan_utils.local_now()
 
-            # Drop the cache from the scan_environment before
+            # Drop the fastcache from the scan_environment before
             # (potentially) sending to Lambda, since it may be huge
-            scan_environment.pop('cache', None)
+            scan_environment.pop(FAST_CACHE_KEY, None)
 
             data = scan_method(scanner, domain, handles, scan_environment, options, meta)
 

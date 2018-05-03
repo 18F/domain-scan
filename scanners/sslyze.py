@@ -13,6 +13,7 @@
 ###
 
 import logging
+from typing import Union
 
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
@@ -37,11 +38,34 @@ network_timeout = 5
 lambda_support = True
 
 
-def get_mail_server_from_cache(mail_server, cache):
+# The environment dictionary key whose correpsonding value is the fast
+# cache data
+FAST_CACHE_KEY = 'fastcache'
+
+
+def get_mail_server_from_cache(mail_server: str, fastcache: dict) -> Union[dict, None]:
+    """
+    Extract and return data from the fast cache that corresponds to
+    the specified mail server.
+
+    Parameters
+    ----------
+    mail_server : str
+        A string of the form 'hostname:port'.
+
+    fastcache : dict
+        The fast cache dictionary.
+
+    Returns
+    -------
+    dict
+        The data found in the fast cache corresponding to the
+        specified mail server, or None if no such data is found.
+    """
     hostname_and_port = mail_server.split(':')
     hostname = hostname_and_port[0]
     port = hostname_and_port[1]
-    for record in cache:
+    for record in fastcache:
         if record['starttls_smtp'] and record['hostname'] == hostname and record['port'] == port:
             return record
 
@@ -79,7 +103,7 @@ def init_domain(domain, environment, options):
     # If we have trustymail data, see if there are any mail servers
     # that support STARTTLS that we should scan
     mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
-    # Ensure that the 'cache' value exists in environment
+    # Ensure that the FAST_CACHE_KEY value exists in environment
     for mail_server in mail_servers_to_test:
         # Check if we already have results for this mail server,
         # possibly from a different domain.
@@ -92,8 +116,8 @@ def init_domain(domain, environment, options):
         # if we have already hit this mail server when testing a
         # different domain.
         cached_value = None
-        if 'cache' in environment:
-            cached_value = get_mail_server_from_cache(mail_server, environment['cache'])
+        if FAST_CACHE_KEY in environment:
+            cached_value = get_mail_server_from_cache(mail_server, environment[FAST_CACHE_KEY])
 
         if cached_value is None:
             logging.debug('Adding {} to list to be scanned'.format(mail_server))
