@@ -331,17 +331,18 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             meta['end_time'] = scan_utils.local_now()
             meta['duration'] = meta['end_time'] - meta['start_time']
 
-            # Update the cache
-            if 'cache' not in environment:
-                environment['cache'] = []
-            # I hate having to use isinstance here, but I don't see
-            # another way
-            if isinstance(data, list):
-                environment['cache'].extend(data)
-            else:
-                environment['cache'].append(data)
-
         if data:
+            if hasattr(scanner, 'fast_cache_support'):
+                # Update the cache
+                if FAST_CACHE_KEY not in environment:
+                    environment[FAST_CACHE_KEY] = []
+                # I hate having to use isinstance here, but I don't
+                # see another way
+                if isinstance(data, list):
+                    environment[FAST_CACHE_KEY].extend(data)
+                else:
+                    environment[FAST_CACHE_KEY].append(data)
+
             # Cache locally.
             scan_utils.write(scan_utils.json_for(data), domain_cache)
 

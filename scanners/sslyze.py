@@ -37,6 +37,8 @@ network_timeout = 5
 # Advertise Lambda support
 lambda_support = True
 
+# Advertise fast cache support
+fast_cache_support = True
 
 # The environment dictionary key whose correpsonding value is the fast
 # cache data
