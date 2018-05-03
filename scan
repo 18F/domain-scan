@@ -237,6 +237,52 @@ def scan_domains(scanners: List[ModuleType], domains: Path,
     scan_utils.write(scan_utils.json_for(metadata), "%s/meta.json" % results_dir)
 
 
+def copy_environment(env: dict): -> dict
+    """
+    Return a copy of the environment
+
+    In the copy, the 'cache' value is the same object but all other
+    values are deep copies.
+
+    Parameters
+    ----------
+    env : dict
+        The original environment dict.
+
+    Returns
+    -------
+    dict
+        A new dict in which the 'cache' value is the same object but
+        all other values are deep copies.
+    """
+    # Deep copy everything but the cache
+    env_copy = {key: copy.deepcopy(value) for key, value in env if key != 'cache'}
+    # Reuse the same cache object, if it exists
+    if 'cache' in env:
+        env_copy['cache'] = env['cache']
+
+    return env_copy
+
+
+def update_environment(env: dict, d: dict) -> None
+    """
+    Update the environment
+
+    Only the 'cache' value from env is updated, using the value from d.
+    All other values in env remain unaltered.
+
+    Parameters
+    ----------
+    env : dict
+        The environment dict to be updated.
+
+    d : dict
+        The dict from which the environment is to be updated.
+    """
+    if 'cache' in d:
+        env['cache'] = d['cache']
+
+
 ###
 # Core scan method for scanners. (Run once in each worker.)
 def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
@@ -260,7 +306,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
         # Init function per-domain (always run locally).
         scan_environment = {}
         if hasattr(scanner, "init_domain"):
-            environment_copy = copy.deepcopy(environment)
+            environment_copy = copy_environment(environment)
             scan_environment = scanner.init_domain(domain, environment_copy, options)
 
         # Rely on scanner to say why.
@@ -269,6 +315,10 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             return
 
         scan_environment = {**environment, **scan_environment}
+        # I think it's unlikely that a scanner would actually write to cache in
+        # init_domain, but just in case that is useful one day I'll go ahead
+        # and update here
+        update_environment(environment, scan_environment)
 
         # If --cache is on, read from this. Always write to it.
         domain_cache = scan_utils.cache_path(
@@ -293,6 +343,8 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             data = scan_method(scanner, domain, handles, scan_environment, options, meta)
             meta['end_time'] = scan_utils.local_now()
             meta['duration'] = meta['end_time'] - meta['start_time']
+            # Update the environment in case the scanner modified cache
+            update_environment(environment, scan_environment)
 
         if data:
             # Cache locally.
