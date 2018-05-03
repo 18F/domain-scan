@@ -340,11 +340,25 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
 
             # Capture local start and end times around scan.
             meta['start_time'] = scan_utils.local_now()
+
+            # Drop the cache from the scan_environment before
+            # (potentially) sending to Lambda, since it may be huge
+            scan_environment.pop('cache', None)
+
             data = scan_method(scanner, domain, handles, scan_environment, options, meta)
+
             meta['end_time'] = scan_utils.local_now()
             meta['duration'] = meta['end_time'] - meta['start_time']
-            # Update the environment in case the scanner modified cache
-            update_environment(environment, scan_environment)
+
+            # Update the cache
+            if 'cache' not in environment:
+                environment['cache'] = []
+            # I hate having to use isinstance here, but I don't see
+            # another way
+            if isinstance(data, list):
+                environment['cache'].extend(data)
+            else:
+                environment['cache'].append(data)
 
         if data:
             # Cache locally.

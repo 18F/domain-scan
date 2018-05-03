@@ -37,6 +37,17 @@ network_timeout = 5
 lambda_support = True
 
 
+def get_mail_server_from_cache(mail_server, cache):
+    hostname_and_port = mail_server.split(':')
+    hostname = hostname_and_port[0]
+    port = hostname_and_port[1]
+    for record in cache:
+        if record['starttls_smtp'] and record['hostname'] == hostname and record['port'] == port:
+            return record
+
+    return None
+
+
 # If we have pshtt data, use it to skip some domains, and to adjust
 # scan hostnames to canonical URLs where we can.
 #
@@ -80,7 +91,11 @@ def init_domain(domain, environment, options):
         # often use the same SMTP servers, so it makes sense to check
         # if we have already hit this mail server when testing a
         # different domain.
-        if 'cache' not in environment or mail_server not in environment['cache']:
+        cached_value = None
+        if 'cache' in environment:
+            cached_value = get_mail_server_from_cache(mail_server, environment['cache'])
+
+        if cached_value is None:
             logging.debug('Adding {} to list to be scanned'.format(mail_server))
             hostname_and_port = mail_server.split(':')
             hosts_to_scan.append({
@@ -90,7 +105,7 @@ def init_domain(domain, environment, options):
             })
         else:
             logging.debug('Using cached data for {}'.format(mail_server))
-            cached_data.append(environment['cache'][mail_server])
+            cached_data.append(cached_value)
 
     if not hosts_to_scan:
         logging.warn('\tNo hosts to scan for {}'.format(domain))
@@ -109,10 +124,6 @@ def scan(domain, environment, options):
         'port': 443,
         'starttls_smtp': False
     }
-
-    # Ensure that environment contains a 'cache' value
-    if 'cache' not in environment:
-        environment['cache'] = {}
 
     retVal = []
     for host_to_scan in environment.get('hosts_to_scan', [default_host]):
@@ -140,9 +151,6 @@ def scan(domain, environment, options):
         data['errors'] = ' '.join(data['errors'])
 
         retVal.append(data)
-        # Update our cache with the host we just scanned, if it's a mail server
-        if data['starttls_smtp']:
-            environment['cache']['{}:{}'.format(data['hostname'], data['port'])] = data
 
     # Return the scan results together with the already-cached results
     # (if there were any)
