@@ -268,25 +268,6 @@ def copy_environment(env: dict) -> dict:
     return env_copy
 
 
-def update_environment(env: dict, d: dict) -> None:
-    """
-    Update the environment
-
-    Only the 'cache' value from env is updated, using the value from d.
-    All other values in env remain unaltered.
-
-    Parameters
-    ----------
-    env : dict
-        The environment dict to be updated.
-
-    d : dict
-        The dict from which the environment is to be updated.
-    """
-    if 'cache' in d:
-        env['cache'] = d['cache']
-
-
 ###
 # Core scan method for scanners. (Run once in each worker.)
 def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
@@ -319,10 +300,6 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             return
 
         scan_environment = {**environment, **scan_environment}
-        # I think it's unlikely that a scanner would actually write to cache in
-        # init_domain, but just in case that is useful one day I'll go ahead
-        # and update here
-        update_environment(environment, scan_environment)
 
         # If --cache is on, read from this. Always write to it.
         domain_cache = scan_utils.cache_path(
