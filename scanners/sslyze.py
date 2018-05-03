@@ -69,8 +69,6 @@ def init_domain(domain, environment, options):
     # that support STARTTLS that we should scan
     mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
     # Ensure that the 'cache' value exists in environment
-    if 'cache' not in environment:
-        environment['cache'] = {}
     for mail_server in mail_servers_to_test:
         # Check if we already have results for this mail server,
         # possibly from a different domain.
@@ -82,7 +80,8 @@ def init_domain(domain, environment, options):
         # often use the same SMTP servers, so it makes sense to check
         # if we have already hit this mail server when testing a
         # different domain.
-        if mail_server not in environment['cache']:
+        if 'cache' not in environment or mail_server not in environment['cache']:
+            logging.debug('Adding {} to list to be scanned'.format(mail_server))
             hostname_and_port = mail_server.split(':')
             hosts_to_scan.append({
                 'hostname': hostname_and_port[0],
@@ -111,6 +110,10 @@ def scan(domain, environment, options):
         'starttls_smtp': False
     }
 
+    # Ensure that environment contains a 'cache' value
+    if 'cache' not in environment:
+        environment['cache'] = {}
+
     retVal = []
     for host_to_scan in environment.get('hosts_to_scan', [default_host]):
 
@@ -137,8 +140,9 @@ def scan(domain, environment, options):
         data['errors'] = ' '.join(data['errors'])
 
         retVal.append(data)
-        # Update our cache with the mail server we just scanned
-        environment['cache']['{}:{}'.format(hostname, port)] = data
+        # Update our cache with the host we just scanned, if it's a mail server
+        if data['starttls_smtp']:
+            environment['cache']['{}:{}'.format(data['hostname'], data['port'])] = data
 
     # Return the scan results together with the already-cached results
     # (if there were any)

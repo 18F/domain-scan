@@ -237,7 +237,7 @@ def scan_domains(scanners: List[ModuleType], domains: Path,
     scan_utils.write(scan_utils.json_for(metadata), "%s/meta.json" % results_dir)
 
 
-def copy_environment(env: dict): -> dict
+def copy_environment(env: dict) -> dict:
     """
     Return a copy of the environment
 
@@ -256,7 +256,7 @@ def copy_environment(env: dict): -> dict
         all other values are deep copies.
     """
     # Deep copy everything but the cache
-    env_copy = {key: copy.deepcopy(value) for key, value in env if key != 'cache'}
+    env_copy = {key: copy.deepcopy(value) for key, value in env.items() if key != 'cache'}
     # Reuse the same cache object, if it exists
     if 'cache' in env:
         env_copy['cache'] = env['cache']
@@ -264,7 +264,7 @@ def copy_environment(env: dict): -> dict
     return env_copy
 
 
-def update_environment(env: dict, d: dict) -> None
+def update_environment(env: dict, d: dict) -> None:
     """
     Update the environment
 
