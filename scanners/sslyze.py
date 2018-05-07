@@ -79,6 +79,9 @@ def get_mail_server_from_cache(mail_server: str, fastcache: dict) -> Union[dict,
 #
 # If we have trustymail data, use it to identify any mail servers that
 # support STARTTLS so we can scan them.
+#
+# Check the fastcache to determine if we have already tested any of
+# the mail servers when scanning other domains.
 def init_domain(domain, environment, options):
     hosts_to_scan = []
     cached_data = []
@@ -105,7 +108,6 @@ def init_domain(domain, environment, options):
     # If we have trustymail data, see if there are any mail servers
     # that support STARTTLS that we should scan
     mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
-    # Ensure that the FAST_CACHE_KEY value exists in environment
     for mail_server in mail_servers_to_test:
         # Check if we already have results for this mail server,
         # possibly from a different domain.
