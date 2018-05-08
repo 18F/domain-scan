@@ -88,7 +88,7 @@ LAMBDA_DETAIL_HEADERS = [
 # about Lambda executions to show up after task completion.
 LAMBDA_LOG_DELAY = 20
 
-# The environment dictionary key whose correpsonding value is the fast
+# The environment dictionary key whose corresponding value is the fast
 # cache data
 FAST_CACHE_KEY = 'fastcache'
 
