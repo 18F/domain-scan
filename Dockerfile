@@ -136,7 +136,7 @@ RUN apt-get install -y nodejs
 RUN npm install --global phantomjs-prebuilt pa11y@3.0.1 --ignore-scripts
 
 ###
-## Third Parties
+## third_parties
 ###
 
 RUN npm install --global puppeteer --ignore-scripts
