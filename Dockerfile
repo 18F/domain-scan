@@ -50,9 +50,11 @@ RUN \
       # Additional dependencies for third-parties scanner
       nodejs \
       npm \
+      # Additional dependencies for a11y scanner
+      net-tools \
       # Chrome dependencies
       fonts-liberation \
-      libappindicator1 \
+      libappindicator3-1 \
       libasound2 \
       libatk-bridge2.0-0 \
       libgtk-3-0 \
@@ -123,7 +125,21 @@ RUN pip install --upgrade pip setuptools
 ###
 # Node
 ###
-RUN ln -s /usr/bin/nodejs /usr/bin/node
+# RUN ln -s /usr/bin/nodejs /usr/bin/node
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash
+RUN apt-get install -y nodejs
+
+###
+## pa11y
+###
+
+RUN npm install --global phantomjs-prebuilt pa11y@3.0.1 --ignore-scripts
+
+###
+## Third Parties
+###
+
+RUN npm install --global puppeteer --ignore-scripts
 
 ###
 # Create unprivileged User
