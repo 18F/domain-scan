@@ -52,7 +52,7 @@ RUN \
       npm \
       # Chrome dependencies
       fonts-liberation \
-      libappindicator1 \
+      libappindicator3-1 \
       libasound2 \
       libatk-bridge2.0-0 \
       libgtk-3-0 \
