@@ -133,13 +133,16 @@ RUN apt-get install -y nodejs
 ## pa11y
 ###
 
-RUN npm install --global phantomjs-prebuilt pa11y@3.0.1 --ignore-scripts
+RUN wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
+    && tar xvjf phantomjs-2.1.1-linux-x86_64.tar.bz2 -C /usr/local/share/ \
+    && ln -s /usr/local/share/phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/
+RUN npm install --global pa11y@4.13.2 --ignore-scripts
 
 ###
 ## third_parties
 ###
 
-RUN npm install --global puppeteer --ignore-scripts
+RUN npm install puppeteer
 
 ###
 # Create unprivileged User
