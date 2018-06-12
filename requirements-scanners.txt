@@ -5,7 +5,7 @@
 pshtt>=0.4.2
 
 # trustymail
-trustymail>=0.5.5
+trustymail>=0.5.7
 
 # sslyze
 sslyze>=1.4.2
