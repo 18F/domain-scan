@@ -66,16 +66,22 @@ module.exports = {
 }
 
 var processUrl = (href, sourceHref, data) => {
+  if (debug) console.log("URI: " + href);
+
+  // Ignore blob: and data: URIs, these do not generate an external request.
+  // Catch them before running URL.parse(), since they are not URLs and the
+  // URL.parse() function does not parse them correctly.
+  var abort = false;
+  ["data:", "blob:"].forEach(function(protocol) {
+    if (href.toLowerCase().startsWith(protocol)) abort = true;
+  });
+  if (abort) return;
+
   var url = URL.parse(href);
   var source = URL.parse(sourceHref);
 
-  if (debug) console.log("URL: " + href);
-
   // Ignore the original request to the page itself.
   if (href == sourceHref) return;
-
-  // Ignore data: URIs.
-  if (url.protocol == "data:") return;
 
   let www_host, root_host;
 
