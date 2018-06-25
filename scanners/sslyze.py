@@ -154,6 +154,7 @@ def to_rows(data):
 
             row['certs'].get('is_symantec_cert'),
             row['certs'].get('symantec_distrust_date'),
+            str.join(', ', row.get('ciphers', [])),
 
             row.get('errors')
         ])
@@ -183,6 +184,7 @@ headers = [
     "EV Trusted OIDs", "EV Trusted Browsers",
 
     "Is Symantec Cert", "Symantec Distrust Date",
+    "Accepted Ciphers",
 
     "Errors"
 ]
@@ -250,6 +252,7 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         (tlsv1_2.accepted_cipher_list or []) +
         (tlsv1_3.accepted_cipher_list or [])
     )
+    data['ciphers'] = [cipher.name for cipher in accepted_ciphers]
 
     if len(accepted_ciphers) > 0:
         # Look at accepted cipher suites for RC4 or DHE.
