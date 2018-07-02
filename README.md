@@ -21,7 +21,7 @@ There is also built-in support for using **headless Chrome** to efficiently meas
 
 ### Requirements
 
-`domain-scan` requires **Python 3.5 and up**.
+`domain-scan` requires **Python 3.6 and up**.
 
 To install **core dependencies**:
 
