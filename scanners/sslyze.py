@@ -137,7 +137,6 @@ def to_rows(data):
             row['protocols'].get('tlsv1.2'), row['protocols'].get('tlsv1.3'),
 
             row['config'].get('any_dhe'), row['config'].get('all_dhe'),
-            row['config'].get('weakest_dh'),
             row['config'].get('any_rc4'), row['config'].get('all_rc4'),
             row['config'].get('any_3des'),
 
@@ -169,7 +168,6 @@ headers = [
     "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3",
 
     "Any Forward Secrecy", "All Forward Secrecy",
-    "Weakest DH Group Size",
     "Any RC4", "All RC4",
     "Any 3DES",
 
@@ -284,19 +282,6 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         data['config']['any_dhe'] = any_dhe
         data['config']['all_dhe'] = all_dhe
         data['config']['any_3des'] = any_3des
-
-        # Find the weakest available DH group size, if any are available.
-        weakest_dh = 1234567890  # nonsense maximum
-        for cipher in accepted_ciphers:
-            if cipher.dh_info is not None:
-                size = int(cipher.dh_info['GroupSize'])
-                if size < weakest_dh:
-                    weakest_dh = size
-
-        if weakest_dh == 1234567890:
-            weakest_dh = None
-
-        data['config']['weakest_dh'] = weakest_dh
 
 
 def analyze_certs(certs):
