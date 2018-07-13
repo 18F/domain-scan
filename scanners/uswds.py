@@ -51,13 +51,13 @@ def to_rows(data):
 
     return [[
         data['url'],
-        data.get('banner_present'),
+        data.get('present'),
         data.get('banner_bad_text'),
     ]]
 
 
 headers = [
     'Scanned URL',
-    'USWDS Banner Present',
+    'USWDS Present',
     'USWDS Bad Banner Text'
 ]

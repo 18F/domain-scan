@@ -36,14 +36,27 @@ module.exports = {
       else throw exc;
     }
 
+    // Do a quick text match on the HTML to find out of date USWDS
+    // banner text.
     const html = await page.content();
-
     data.banner_bad_text = hasBadText(html);
+
+    // Search DOM for evidence of USWDS being present at all.
+    data.present = await uswdsPresent(page);
 
     return data;
   }
 }
 
+// Simple text match on some old text.
 var hasBadText = (html) => {
   return (html.search("Federal government websites always use a .gov or .mil domain.") >= 0)
+};
+
+
+// Checks for any element with a class with "usa-" in it.
+// TODO: Should "usa-" at least be at the start of the string?
+var uswdsPresent = async (page) => {
+  var match = await page.$('[class*=usa-]');
+  return (match != null);
 };
