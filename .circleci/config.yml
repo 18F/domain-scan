@@ -24,6 +24,9 @@ jobs:
           pip install --upgrade setuptools
           pip install flake8
           pip install -r requirements.txt
+          pip install -r requirements-gatherers.txt
+          pip install -r requirements-scanners.txt
+          pip install -r requirements-dev.txt
 
     - save_cache:
         paths:
