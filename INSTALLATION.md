@@ -47,6 +47,47 @@ Or, if for any reason you want to save the cache between runs:
 docker run --volume $PWD/results:/home/scanner/results --volume $PWD/cache:/home/scanner/cache dhsncats/domain-scan:latest --scan=pshtt,trustymail,sslyze dhs.gov
 ```
 
+## Installation in VM via Vagrant ##
+
+### Prerequisites ###
+
+1. [Vagrant](https://vagrantup.com)
+2. `git`
+
+### Installation ###
+
+First, `cd` into your work directory and clone the `18F/domain-scan` repository:
+
+```
+cd /your/work/directory
+git clone https://github.com/18F/domain-scan.git
+cd domain-scan
+```
+
+Next, install Vagrant from: https://vagrantup.com
+
+Use Vagrant to build a new VM with everything installed into it:
+
+```
+vagrant up
+```
+
+### Execution ###
+
+To execute a scan against a domain, say `dhs.gov`, simply enter the VM and run
+`/vagrant/scan ...`:
+
+```
+# SSH into the VM
+vagrant ssh
+
+# Run the scan
+/vagrant/scan dhs.gov --scan=pshtt,trustymail,sslyze
+```
+
+When you are finished scanning, exit the virtual machine with `exit`.
+
+
 ## Installation directly to a Linux host ##
 ### Prerequisites ###
 1. A Linux host or VM
