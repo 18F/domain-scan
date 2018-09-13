@@ -45,8 +45,8 @@ class Gatherer(Gatherer):
         credentials = load_credentials()
 
         if credentials is None:
-            logging.warn("No BigQuery credentials provided.")
-            logging.warn("Set BIGQUERY_CREDENTIALS or BIGQUERY_CREDENTIALS_PATH environment variables.")
+            logging.warning("No BigQuery credentials provided.")
+            logging.warning("Set BIGQUERY_CREDENTIALS or BIGQUERY_CREDENTIALS_PATH environment variables.")
             exit(1)
 
         # When using this form of instantiation, the client won't pull
@@ -70,7 +70,7 @@ class Gatherer(Gatherer):
         # Reuse of cached data can be turned on with --cache.
         cache = self.options.get("cache", False)
         if (cache is True) and os.path.exists(download_path):
-            logging.warn("Using cached download data.")
+            logging.warning("Using cached download data.")
 
         # But by default, fetch new data from the BigQuery API,
         # and write it to the expected download location.
@@ -78,7 +78,7 @@ class Gatherer(Gatherer):
             # Ensure cache destination exists.
             utils.mkdir_p(os.path.dirname(download_path))
 
-            logging.warn("Kicking off SQL query job.")
+            logging.warning("Kicking off SQL query job.")
 
             rows = None
 
@@ -89,14 +89,14 @@ class Gatherer(Gatherer):
                 iterator = query_job.result(timeout=timeout)
                 rows = list(iterator)
             except google.api_core.exceptions.Forbidden:
-                logging.warn("Access denied to Censys' BigQuery tables.")
+                logging.warning("Access denied to Censys' BigQuery tables.")
             except:
-                logging.warn(utils.format_last_exception())
-                logging.warn("Error talking to BigQuery, aborting.")
+                logging.warning(utils.format_last_exception())
+                logging.warning("Error talking to BigQuery, aborting.")
 
             # At this point, the job is complete and we need to download
             # the resulting CSV URL in results_url.
-            logging.warn("Caching results of SQL query.")
+            logging.warning("Caching results of SQL query.")
 
             download_file = open(download_path, 'w', newline='')
             download_writer = csv.writer(download_file)

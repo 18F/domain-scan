@@ -15,7 +15,7 @@ class Gatherer(Gatherer):
         url = self.options.get(name)
 
         if url is None:
-            logging.warn("A --url is required. (Can be a local path.)")
+            logging.warning("A --url is required. (Can be a local path.)")
             exit(1)
 
         # remote URL
