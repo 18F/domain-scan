@@ -49,7 +49,7 @@ def init_domain(domain, environment, options):
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
     if utils.domain_doesnt_support_https(domain, cache_dir=cache_dir):
-        logging.warn('\tHTTPS not supported for {}'.format(domain))
+        logging.warning('\tHTTPS not supported for {}'.format(domain))
     else:
         # If we have pshtt data and it says canonical endpoint uses
         # www and the given domain is bare, add www.
@@ -76,7 +76,7 @@ def init_domain(domain, environment, options):
         })
 
     if not hosts_to_scan:
-        logging.warn('\tNo hosts to scan for {}'.format(domain))
+        logging.warning('\tNo hosts to scan for {}'.format(domain))
 
     return {'hosts_to_scan': hosts_to_scan}
 
@@ -109,7 +109,7 @@ def scan(domain, environment, options):
         # Error condition.
         if response is None:
             error = "No valid target for scanning, couldn't connect."
-            logging.warn(error)
+            logging.warning(error)
             data['errors'].append(error)
 
         # Join all errors into a string before returning.
@@ -445,11 +445,11 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
         server_info = server_tester.perform(network_timeout=network_timeout)
     except ServerConnectivityError as err:
-        logging.warn("\tServer connectivity not established during test.")
+        logging.warning("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
         utils.notify(err)
-        logging.warn("\tUnknown exception when performing server connectivity info.")
+        logging.warning("\tUnknown exception when performing server connectivity info.")
         return None, None
 
     if sync:
@@ -486,7 +486,7 @@ def scan_serial(scanner, server_info, data, options):
             certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
         # Let generic exceptions bubble up.
         except idna.core.InvalidCodepoint:
-            logging.warn(utils.format_last_exception())
+            logging.warning(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
             certs = None
     else:
@@ -508,12 +508,12 @@ def scan_parallel(scanner, server_info, data, options):
         except OSError as err:
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
-            logging.warn("%s\n%s" % (text, utils.format_last_exception()))
+            logging.warning("%s\n%s" % (text, utils.format_last_exception()))
             return None, None, None, None, None, None, None
         except Exception as err:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warn(text)
+            logging.warning(text)
             return None, None, None, None, None, None, None
 
     # Initialize commands and result containers
@@ -536,7 +536,7 @@ def scan_parallel(scanner, server_info, data, options):
         try:
             if isinstance(result, PluginRaisedExceptionScanResult):
                 error = ("Scan command failed: %s" % result.as_text())
-                logging.warn(error)
+                logging.warning(error)
                 data['errors'].append(error)
                 return None, None, None, None, None, None, None
 
@@ -556,7 +556,7 @@ def scan_parallel(scanner, server_info, data, options):
                 certs = result
             else:
                 error = "Couldn't match scan result with command! %s" % result
-                logging.warn("\t%s" % error)
+                logging.warning("\t%s" % error)
                 data['errors'].append(error)
                 was_error = True
 
@@ -564,7 +564,7 @@ def scan_parallel(scanner, server_info, data, options):
             was_error = True
             text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warn("\t%s" % text)
+            logging.warning("\t%s" % text)
 
     # There was an error during async processing.
     if was_error:

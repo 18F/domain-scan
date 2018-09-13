@@ -149,7 +149,7 @@ def run(options=None, cache_dir="./cache", results_dir="./results"):
     if options.get("sort"):
         utils.sort_csv(gathered_filename)
 
-    logging.warn("Results written to CSV.")
+    logging.warning("Results written to CSV.")
 
     # Save metadata.
     end_time = utils.local_now()

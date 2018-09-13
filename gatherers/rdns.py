@@ -33,12 +33,12 @@ class Gatherer(Gatherer):
         path = self.options.get("rdns")
 
         if path is None:
-            logging.warn("--rdns is required to be a path to a local file.")
+            logging.warning("--rdns is required to be a path to a local file.")
             exit(1)
 
         # May become useful to allow URLs in future.
         if path.startswith("http:") or path.startswith("https:"):
-            logging.warn("--rdns is required to be a path to a local file.")
+            logging.warning("--rdns is required to be a path to a local file.")
             exit(1)
 
         with open(path) as lines:
