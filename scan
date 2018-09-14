@@ -43,13 +43,11 @@ def set_aws_credentials(options):
 
     invoke_config = botocore.config.Config(
         max_pool_connections=global_max_workers,
-        connect_timeout=300, read_timeout=300
+        connect_timeout=300,
+        read_timeout=300,
+        retries={'max_attempts': 0}
     )
     invoke_client = lambda_session.client('lambda', config=invoke_config)
-
-    # hack to disable automatic retries for Lambda invocations
-    # https://github.com/boto/boto3/issues/1104
-    invoke_client.meta.events._unique_id_handlers['retry-config-lambda']['handler']._checker.__dict__['_max_attempts'] = 0
 
     logs_config = botocore.config.Config(max_pool_connections=global_max_workers)
     logs_client = lambda_session.client('logs', config=logs_config)
