@@ -68,7 +68,7 @@ def scan(domain, environment, options):
     data = tmail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
 
     if not data:
-        logging.warn("\ttrustymail scan failed, skipping.")
+        logging.warning("\ttrustymail scan failed, skipping.")
 
     # Reset the logging level
     logging.getLogger().setLevel(old_log_level)

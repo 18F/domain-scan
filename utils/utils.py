@@ -411,8 +411,8 @@ def try_command(command):
                               stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
-        logging.warn(format_last_exception())
-        logging.warn("No command found: %s" % (str(command)))
+        logging.warning(format_last_exception())
+        logging.warning("No command found: %s" % (str(command)))
         return False
 
 
@@ -428,9 +428,9 @@ def scan(command, env=None, allowed_return_codes=[]):
         if exc.returncode in allowed_return_codes:
             return str(exc.stdout, encoding='UTF-8')
         else:
-            logging.warn("Error running %s." % (str(command)))
-            logging.warn("Error running %s." % (str(exc.output)))
-            logging.warn(format_last_exception())
+            logging.warning("Error running %s." % (str(command)))
+            logging.warning("Error running %s." % (str(exc.output)))
+            logging.warning(format_last_exception())
             return None
 
 # Turn shell on, when shell=False won't work.
@@ -441,7 +441,7 @@ def unsafe_execute(command):
         response = subprocess.check_output(command, shell=True)
         return str(response, encoding='UTF-8')
     except subprocess.CalledProcessError:
-        logging.warn("Error running %s." % (str(command)))
+        logging.warning("Error running %s." % (str(command)))
         return None
 
 # Predictable cache path for a domain and operation.
@@ -501,7 +501,7 @@ def base_domain_for(subdomain, cache_dir="./cache"):
         suffix_list, discard = load_suffix_list(cache_dir=cache_dir)
 
     if suffix_list is None:
-        logging.warn("Error downloading the PSL.")
+        logging.warning("Error downloading the PSL.")
         exit(1)
 
     return suffix_list.get_public_suffix(subdomain)
@@ -524,7 +524,7 @@ def load_suffix_list(cache_dir="./cache"):
         try:
             cache_file = publicsuffix.fetch()
         except URLError as err:
-            logging.warn("Unable to download the Public Suffix List...")
+            logging.warning("Unable to download the Public Suffix List...")
             logging.debug("{}".format(err))
             return None, None
 
@@ -654,7 +654,7 @@ def load_domains(domain_csv, whole_rows=False):
 # This loads the whole thing into memory: it's not a great solution for
 # super-large lists of domains.
 def sort_csv(input_filename):
-    logging.warn("Sorting %s..." % input_filename)
+    logging.warning("Sorting %s..." % input_filename)
 
     input_file = open(input_filename, encoding='utf-8', newline='')
     tmp_filename = "%s.tmp" % input_filename
