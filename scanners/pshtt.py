@@ -93,7 +93,7 @@ def scan(domain, environment, options):
             'timeout': pshtt_timeout,
             'user_agent': user_agent,
             'debug': options.get("debug", False),
-            'ca_file': options.get("ca_file", True)
+            'ca_file': options.get("ca_file")
         }
     )
 
