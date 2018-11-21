@@ -90,7 +90,7 @@ def init_domain(domain, environment, options):
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
     if utils.domain_doesnt_support_https(domain, cache_dir=cache_dir):
-        logging.warn('\tHTTPS not supported for {}'.format(domain))
+        logging.warning('\tHTTPS not supported for {}'.format(domain))
     else:
         # If we have pshtt data and it says canonical endpoint uses
         # www and the given domain is bare, add www.
@@ -136,7 +136,7 @@ def init_domain(domain, environment, options):
             cached_data.append(cached_value)
 
     if not hosts_to_scan:
-        logging.warn('\tNo hosts to scan for {}'.format(domain))
+        logging.warning('\tNo hosts to scan for {}'.format(domain))
 
     return {
         'hosts_to_scan': hosts_to_scan,
@@ -172,7 +172,7 @@ def scan(domain, environment, options):
         # Error condition.
         if response is None:
             error = "No valid target for scanning, couldn't connect."
-            logging.warn(error)
+            logging.warning(error)
             data['errors'].append(error)
 
         # Join all errors into a string before returning.
@@ -203,7 +203,6 @@ def to_rows(data):
             row['protocols'].get('tlsv1.2'), row['protocols'].get('tlsv1.3'),
 
             row['config'].get('any_dhe'), row['config'].get('all_dhe'),
-            row['config'].get('weakest_dh'),
             row['config'].get('any_rc4'), row['config'].get('all_rc4'),
             row['config'].get('any_3des'),
 
@@ -220,6 +219,7 @@ def to_rows(data):
 
             row['certs'].get('is_symantec_cert'),
             row['certs'].get('symantec_distrust_date'),
+            str.join(', ', row.get('ciphers', [])),
 
             row.get('errors')
         ])
@@ -234,7 +234,6 @@ headers = [
     "SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3",
 
     "Any Forward Secrecy", "All Forward Secrecy",
-    "Weakest DH Group Size",
     "Any RC4", "All RC4",
     "Any 3DES",
 
@@ -249,6 +248,7 @@ headers = [
     "EV Trusted OIDs", "EV Trusted Browsers",
 
     "Is Symantec Cert", "Symantec Distrust Date",
+    "Accepted Ciphers",
 
     "Errors"
 ]
@@ -316,6 +316,7 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         (tlsv1_2.accepted_cipher_list or []) +
         (tlsv1_3.accepted_cipher_list or [])
     )
+    data['ciphers'] = [cipher.name for cipher in accepted_ciphers]
 
     if len(accepted_ciphers) > 0:
         # Look at accepted cipher suites for RC4 or DHE.
@@ -347,19 +348,6 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         data['config']['any_dhe'] = any_dhe
         data['config']['all_dhe'] = all_dhe
         data['config']['any_3des'] = any_3des
-
-        # Find the weakest available DH group size, if any are available.
-        weakest_dh = 1234567890  # nonsense maximum
-        for cipher in accepted_ciphers:
-            if cipher.dh_info is not None:
-                size = int(cipher.dh_info['GroupSize'])
-                if size < weakest_dh:
-                    weakest_dh = size
-
-        if weakest_dh == 1234567890:
-            weakest_dh = None
-
-        data['config']['weakest_dh'] = weakest_dh
 
 
 def analyze_certs(certs):
@@ -522,12 +510,12 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         # logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
         server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
         server_info = server_tester.perform(network_timeout=network_timeout)
-    except ServerConnectivityError as err:
-        logging.warn("\tServer connectivity not established during test.")
+    except ServerConnectivityError:
+        logging.warning("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
         utils.notify(err)
-        logging.warn("\tUnknown exception when performing server connectivity info.")
+        logging.warning("\tUnknown exception when performing server connectivity info.")
         return None, None
 
     if sync:
@@ -564,7 +552,7 @@ def scan_serial(scanner, server_info, data, options):
             certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
         # Let generic exceptions bubble up.
         except idna.core.InvalidCodepoint:
-            logging.warn(utils.format_last_exception())
+            logging.warning(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
             certs = None
     else:
@@ -583,15 +571,15 @@ def scan_parallel(scanner, server_info, data, options):
     def queue(command):
         try:
             return scanner.queue_scan_command(server_info, command)
-        except OSError as err:
+        except OSError:
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
-            logging.warn("%s\n%s" % (text, utils.format_last_exception()))
+            logging.warning("%s\n%s" % (text, utils.format_last_exception()))
             return None, None, None, None, None, None, None
-        except Exception as err:
+        except Exception:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warn(text)
+            logging.warning(text)
             return None, None, None, None, None, None, None
 
     # Initialize commands and result containers
@@ -614,7 +602,7 @@ def scan_parallel(scanner, server_info, data, options):
         try:
             if isinstance(result, PluginRaisedExceptionScanResult):
                 error = ("Scan command failed: %s" % result.as_text())
-                logging.warn(error)
+                logging.warning(error)
                 data['errors'].append(error)
                 return None, None, None, None, None, None, None
 
@@ -634,15 +622,15 @@ def scan_parallel(scanner, server_info, data, options):
                 certs = result
             else:
                 error = "Couldn't match scan result with command! %s" % result
-                logging.warn("\t%s" % error)
+                logging.warning("\t%s" % error)
                 data['errors'].append(error)
                 was_error = True
 
-        except Exception as err:
+        except Exception:
             was_error = True
             text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warn("\t%s" % text)
+            logging.warning("\t%s" % text)
 
     # There was an error during async processing.
     if was_error:

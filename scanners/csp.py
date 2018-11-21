@@ -53,7 +53,7 @@ def scan(domain, environment, options):
     csp_set = False
     if "content-security-policy" in response.headers:
         csp_set = True
-    logging.warn("Complete!")
+    logging.warning("Complete!")
     return {
         'csp_set': csp_set
     }

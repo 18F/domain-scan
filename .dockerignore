@@ -3,6 +3,7 @@
 cache
 lambda
 !lambda/requirements-lambda.txt
+node_modules
 public_suffix_list.dat
 results
 venv

@@ -13,7 +13,8 @@ class A11yProcessor(object):
         '1_1': 'Missing Image Descriptions',
         '1_3': 'Form - Initial Findings',
         '1_4': 'Color Contrast - Initial Findings',
-        '4_1': 'HTML Attribute - Initial Findings'
+        '4_1': 'HTML Attribute - Initial Findings',
+        'other': 'Other Errors'
     }
 
     BRANCHES = {
@@ -51,9 +52,9 @@ class A11yProcessor(object):
             ('domains', self.make_domain_data(data)),
         ]
 
-        mkdir_p(results_dir())
+        mkdir_p(results_dir({}))
         for name, data in parsed_datasets:
-            path = '{}/{}.json'.format(results_dir(), name)
+            path = '{}/{}.json'.format(results_dir({}), name)
             with open(path, 'w+') as f:
                 json.dump(data, f, indent=2)
 

@@ -43,13 +43,11 @@ def set_aws_credentials(options):
 
     invoke_config = botocore.config.Config(
         max_pool_connections=global_max_workers,
-        connect_timeout=300, read_timeout=300
+        connect_timeout=300,
+        read_timeout=300,
+        retries={'max_attempts': 0}
     )
     invoke_client = lambda_session.client('lambda', config=invoke_config)
-
-    # hack to disable automatic retries for Lambda invocations
-    # https://github.com/boto/boto3/issues/1104
-    invoke_client.meta.events._unique_id_handlers['retry-config-lambda']['handler']._checker.__dict__['_max_attempts'] = 0
 
     logs_config = botocore.config.Config(max_pool_connections=global_max_workers)
     logs_client = lambda_session.client('logs', config=logs_config)
@@ -173,7 +171,7 @@ def scan_domains(scanners: List[ModuleType], domains: Path,
             init = scanner.init(environment, options)  # type: ignore
             # If a scanner's init() function returns false, stop entirely.
             if init is False:
-                logging.warn("[%s] Scanner init function returned false!  Bailing."
+                logging.warning("[%s] Scanner init function returned false!  Bailing."
                              % handles[name]['name'])
                 exit(1)
 
@@ -211,7 +209,7 @@ def scan_domains(scanners: List[ModuleType], domains: Path,
 
     # Sleeping's not ideal, but no better idea right now.
     if get_lambda_details:
-        logging.warn("\tWaiting %is for logs to show up in CloudWatch..." %
+        logging.warning("\tWaiting %is for logs to show up in CloudWatch..." %
                      LAMBDA_LOG_DELAY)
         time.sleep(LAMBDA_LOG_DELAY)
 
@@ -225,7 +223,7 @@ def scan_domains(scanners: List[ModuleType], domains: Path,
             add_lambda_details(handle['filename'],
                                options["_"]["lambda_options"]["logs_client"])
 
-    logging.warn("Results written to CSV.")
+    logging.warning("Results written to CSV.")
 
     # Save metadata.
     end_time = scan_utils.local_now()
@@ -284,7 +282,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
     assert name == handles[name]['name']  # Sanity check
 
     try:
-        logging.warn("[%s][%s] Running scan..." % (domain, name))
+        logging.warning("[%s][%s] Running scan..." % (domain, name))
 
         data = None
 
@@ -307,7 +305,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
         )
 
         if (options.get("cache")) and (os.path.exists(domain_cache)):
-            logging.warn("\tUsing cached scan response.")
+            logging.warning("\tUsing cached scan response.")
             raw = scan_utils.read(domain_cache)
             data = json.loads(raw)
             if (data.__class__ is dict) and data.get('invalid'):
@@ -360,7 +358,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
         # Always print errors.
         if len(meta['errors']) > 0:
             for error in meta['errors']:
-                logging.warn("\t%s" % error)
+                logging.warning("\t%s" % error)
 
         # If --meta wasn't requested, throw it all away.
         if not options.get("meta", False):
@@ -370,7 +368,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             rows, domain, scan_utils.base_domain_for(domain, cache_dir=cache_dir),
             scanner, handles[name]['writer'], meta=meta)
     except:
-        logging.warn(scan_utils.format_last_exception())
+        logging.warning(scan_utils.format_last_exception())
 
 
 ###
@@ -380,7 +378,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
 #
 # Let all errors bubble up to perform_scan.
 def perform_local_scan(scanner, domain, handles, environment, options, meta):
-    logging.warn("\tExecuting local scan...")
+    logging.warning("\tExecuting local scan...")
 
     scanner_name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
 
@@ -410,7 +408,7 @@ def perform_local_scan(scanner, domain, handles, environment, options, meta):
 # Catch some Lambda-specific exceptions around the invoke call,
 # but otherwise allow exceptions to bubble up to perform_scan.
 def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
-    logging.warn("\tExecuting Lambda scan...")
+    logging.warning("\tExecuting Lambda scan...")
 
     scanner_name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
 
@@ -483,7 +481,7 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 # this function relatively stateless (only relying on info in the
 # Lambda detail fields) to make parallelization/refactoring easier.
 def add_lambda_details(input_filename, logs_client):
-    logging.warn("Fetching more Lambda details for %s..." % input_filename)
+    logging.warning("Fetching more Lambda details for %s..." % input_filename)
 
     input_file = open(input_filename, encoding='utf-8', newline='')
     tmp_filename = "%s.tmp" % input_filename
@@ -505,7 +503,7 @@ def add_lambda_details(input_filename, logs_client):
         for i, cell in enumerate(row):
             dict_row[header[i]] = cell
 
-        logging.warn("[%s][%s] Fetching Lambda details from logs..." % (row[0], input_filename))
+        logging.warning("[%s][%s] Fetching Lambda details from logs..." % (row[0], input_filename))
         details = fetch_lambda_details(dict_row, logs_client)
 
         # Matches order of LAMBDA_DETAIL_HEADERS
@@ -558,7 +556,7 @@ def fetch_lambda_details(dict_row, logs_client):
     except:
         exception = scan_utils.format_last_exception()
         lambda_fields['errors'] = ("Unknown exception: %s" % exception)
-        logging.warn(exception)
+        logging.warning(exception)
         return lambda_fields
 
     if events and events.get('events'):
@@ -578,7 +576,7 @@ def fetch_lambda_details(dict_row, logs_client):
         lambda_fields['memory_used'] = values[4]
     else:
         lambda_fields["errors"] = "No logs found for this task."
-        logging.warn("\tNo logs found for (group, stream, task): %s, %s, %s" % (log_group_name, log_stream_name, request_id))
+        logging.warning("\tNo logs found for (group, stream, task): %s, %s, %s" % (log_group_name, log_stream_name, request_id))
 
     return lambda_fields
 

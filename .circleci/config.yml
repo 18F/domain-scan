@@ -2,44 +2,6 @@
 
 version: 2
 jobs:
-  build_35:
-    docker:
-      - image: circleci/python:3.5
-
-    steps:
-    - checkout
-
-    # Download and cache dependencies
-    - restore_cache:
-        keys:
-        - v1-python35-dependencies-{{ checksum "requirements.txt" }}
-        # fallback to using the latest cache if no exact match is found
-        - v1-python35-dependencies-
-
-    - run:
-        name: install dependencies
-        command: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install --upgrade setuptools
-          pip install flake8
-          pip install -r requirements.txt
-
-    - save_cache:
-        paths:
-          - ./venv
-        key: v1-python35-dependencies-{{ checksum "requirements.txt" }}
-
-    - run:
-        name: run tests
-        command: |
-          . venv/bin/activate
-          ./test.sh
-
-    - store_artifacts:
-        path: test-reports
-        destination: test-reports
-
   build_36:
     docker:
       - image: circleci/python:3.6
@@ -62,6 +24,9 @@ jobs:
           pip install --upgrade setuptools
           pip install flake8
           pip install -r requirements.txt
+          pip install -r requirements-gatherers.txt
+          pip install -r requirements-scanners.txt
+          pip install -r requirements-dev.txt
 
     - save_cache:
         paths:
@@ -82,5 +47,4 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build_35
       - build_36

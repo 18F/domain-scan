@@ -21,9 +21,13 @@ __pycache__
 /reports
 /results
 .env
+.envrc
 *.swp
 .python-version
 .ruby-version
 scripts/pulse-results/*.json
 .DS_Store
 venv
+build/
+dist/
+dist_back/

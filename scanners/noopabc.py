@@ -35,7 +35,7 @@ class Scanner(ScannerABC):
 
         # Perform the "task".
         complete = True
-        logging.warn("Complete!")
+        logging.warning("Complete!")
 
         return {
             'complete': complete,

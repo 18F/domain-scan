@@ -50,9 +50,11 @@ RUN \
       # Additional dependencies for third-parties scanner
       nodejs \
       npm \
+      # Additional dependencies for a11y scanner
+      net-tools \
       # Chrome dependencies
       fonts-liberation \
-      libappindicator1 \
+      libappindicator3-1 \
       libasound2 \
       libatk-bridge2.0-0 \
       libgtk-3-0 \
@@ -123,7 +125,24 @@ RUN pip install --upgrade pip setuptools
 ###
 # Node
 ###
-RUN ln -s /usr/bin/nodejs /usr/bin/node
+# RUN ln -s /usr/bin/nodejs /usr/bin/node
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash
+RUN apt-get install -y nodejs
+
+###
+## pa11y
+###
+
+RUN wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
+    && tar xvjf phantomjs-2.1.1-linux-x86_64.tar.bz2 -C /usr/local/share/ \
+    && ln -s /usr/local/share/phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/
+RUN npm install --global pa11y@4.13.2 --ignore-scripts
+
+###
+## third_parties
+###
+
+RUN npm install puppeteer
 
 ###
 # Create unprivileged User

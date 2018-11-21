@@ -26,7 +26,7 @@ lambda_suffix_path = "./cache/public-suffix-list.txt"
 
 # Download third party data once, at the top of the scan.
 def init(environment, options):
-    logging.warn("[pshtt] Downloading third party data...")
+    logging.warning("[pshtt] Downloading third party data...")
 
     # In local environments, download latest PSL, cache in-memory.
     if environment['scan_method'] == "local":
@@ -132,4 +132,4 @@ headers = [
 
 
 def format_domain(domain):
-    return re.sub("^(https?://)?(www\.)?", "", domain)
+    return re.sub(r"^(https?://)?(www\.)?", "", domain)
