@@ -128,7 +128,7 @@ def init_domain(domain, environment, options):
             hostname_and_port = mail_server.split(':')
             hosts_to_scan.append({
                 'hostname': hostname_and_port[0],
-                'port': hostname_and_port[1],
+                'port': int(hostname_and_port[1]),
                 'starttls_smtp': True
             })
         else:
