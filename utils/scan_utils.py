@@ -428,11 +428,11 @@ def build_scan_options_parser() -> ArgumentParser:
                         help="a11y: Location of pa11y config file (used with a11y scanner.")
     parser.add_argument("--a11y-redirects",
                         help="a11y: Location of YAML file with redirects to inform the a11y scanner.")
-    
+
     # pshtt:
     parser.add_argument("--ca_file",
                         help="ca_file: Location of PEM file of trust store to verify certs with.")
-                        
+
     # sslyze:
     parser.add_argument("--sslyze-serial",
                         help="sslyze: If set, will use a synchronous (single-threaded in-process) scanner. Defaults to true.")

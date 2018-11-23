@@ -121,7 +121,7 @@ def to_rows(data):
 
 
 headers = [
-    "Canonical URL", "Live", "HTTPS Full Connection", "HTTPS Client Auth Required", 
+    "Canonical URL", "Live", "HTTPS Full Connection", "HTTPS Client Auth Required",
     "Redirect", "Redirect To",
     "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS",
     "Strictly Forces HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
@@ -129,7 +129,7 @@ headers = [
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preload Pending", "HSTS Preloaded",
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
-    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", 
+    "Domain Enforces HTTPS", "Domain Uses Strong HSTS",
     "HTTPS Publicly Trusted", "HTTPS Custom Truststore Trusted",
     "Unknown Error",
 ]
