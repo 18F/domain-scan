@@ -17,7 +17,7 @@ from typing import Any, List, Tuple
 from types import ModuleType
 
 from scanners.headless.local_bridge import headless_scan
-from utils import scan_utils
+from utils import FAST_CACHE_KEY, scan_utils
 
 
 # Default and maximum for local workers (threads) per-scanner.
@@ -85,6 +85,7 @@ LAMBDA_DETAIL_HEADERS = [
 # A best-effort delay to sleep while waiting for CloudWatch Logs
 # about Lambda executions to show up after task completion.
 LAMBDA_LOG_DELAY = 20
+
 
 ###
 # Entry point. `options` is a dict of CLI flags.
@@ -235,6 +236,33 @@ def scan_domains(scanners: List[ModuleType], domains: Path,
     scan_utils.write(scan_utils.json_for(metadata), "%s/meta.json" % results_dir)
 
 
+def copy_environment(env: dict) -> dict:
+    """
+    Return a copy of the environment
+
+    In the copy, the FAST_CACHE_KEY value is the same object but all
+    other values are deep copies.
+
+    Parameters
+    ----------
+    env : dict
+        The original environment dict.
+
+    Returns
+    -------
+    dict
+        A new dict in which the FAST_CACHE_KEY value is the same
+        object but all other values are deep copies.
+    """
+    # Deep copy everything but the cache
+    env_copy = {key: copy.deepcopy(value) for key, value in env.items() if key != FAST_CACHE_KEY}
+    # Reuse the same cache object, if it exists
+    if FAST_CACHE_KEY in env:
+        env_copy[FAST_CACHE_KEY] = env[FAST_CACHE_KEY]
+
+    return env_copy
+
+
 ###
 # Core scan method for scanners. (Run once in each worker.)
 def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
@@ -258,7 +286,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
         # Init function per-domain (always run locally).
         scan_environment = {}
         if hasattr(scanner, "init_domain"):
-            environment_copy = copy.deepcopy(environment)
+            environment_copy = copy_environment(environment)
             scan_environment = scanner.init_domain(domain, environment_copy, options)
 
         # Rely on scanner to say why.
@@ -288,11 +316,21 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
 
             # Capture local start and end times around scan.
             meta['start_time'] = scan_utils.local_now()
+
+            # Drop the fast cache from the scan_environment before
+            # (potentially) sending to Lambda, since it may be huge
+            scan_environment.pop(FAST_CACHE_KEY, None)
+
             data = scan_method(scanner, domain, handles, scan_environment, options, meta)
+
             meta['end_time'] = scan_utils.local_now()
             meta['duration'] = meta['end_time'] - meta['start_time']
 
-        if data:
+        # Run the post-scan hook if it's present
+        if hasattr(scanner, 'post_scan'):
+            scanner.post_scan(domain, data, environment, options)
+
+        if data is not None:
             # Cache locally.
             scan_utils.write(scan_utils.json_for(data), domain_cache)
 
