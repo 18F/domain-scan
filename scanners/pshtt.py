@@ -136,4 +136,4 @@ headers = [
 
 
 def format_domain(domain):
-    return re.sub("^(https?://)?(www\.)?", "", domain)
+    return re.sub(r"^(https?://)?(www\.)?", "", domain)

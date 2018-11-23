@@ -444,7 +444,7 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         # logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
         server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
         server_info = server_tester.perform(network_timeout=network_timeout)
-    except ServerConnectivityError as err:
+    except ServerConnectivityError:
         logging.warning("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
@@ -505,12 +505,12 @@ def scan_parallel(scanner, server_info, data, options):
     def queue(command):
         try:
             return scanner.queue_scan_command(server_info, command)
-        except OSError as err:
+        except OSError:
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
             logging.warning("%s\n%s" % (text, utils.format_last_exception()))
             return None, None, None, None, None, None, None
-        except Exception as err:
+        except Exception:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
             logging.warning(text)
@@ -560,7 +560,7 @@ def scan_parallel(scanner, server_info, data, options):
                 data['errors'].append(error)
                 was_error = True
 
-        except Exception as err:
+        except Exception:
             was_error = True
             text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
