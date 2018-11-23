@@ -150,7 +150,7 @@ def scan(domain, environment, options):
     return retVal
 
 
-def post_scan(domain: str, data: Any, environment: dict):
+def post_scan(domain: str, data: Any, environment: dict, options: dict):
     """Post-scan hook for sslyze
 
     Add SMTP results to the fast cache, keyed by the concatenation of
@@ -171,19 +171,25 @@ def post_scan(domain: str, data: Any, environment: dict):
     environment: dict
         The environment data structure associated with the scan that
         produced the results in data.
-    """
-    if FAST_CACHE_KEY not in environment:
-        environment[FAST_CACHE_KEY] = {}
 
-    fast_cache = environment[FAST_CACHE_KEY]
-    # Add the SMTP host results to the fast cache
-    for record in data:
-        if record['starttls_smtp']:
-            key = '{}:{}'.format(record['hostname'], record['port'])
-            # Avoid overwriting the cached data if someone else wrote
-            # it while we were running
-            if key not in fast_cache:
-                fast_cache[key] = record
+    options: dict
+        The CLI options.
+    """
+    # Make sure fast caching hasn't been disabled
+    if not options['no_fast_cache']:
+        if FAST_CACHE_KEY not in environment:
+            environment[FAST_CACHE_KEY] = {}
+
+        fast_cache = environment[FAST_CACHE_KEY]
+        # Add the SMTP host results to the fast cache
+        for record in data:
+            if record['starttls_smtp']:
+                key = '{}:{}'.format(record['hostname'],
+                                     record['port'])
+                # Avoid overwriting the cached data if someone
+                # else wrote it while we were running
+                if key not in fast_cache:
+                    fast_cache[key] = record
 
 
 # Given a response dict, turn it into CSV rows.

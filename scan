@@ -329,7 +329,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
         if data:
             # Run the post-scan hook if it's present
             if hasattr(scanner, 'post_scan'):
-                scanner.post_scan(domain, data, environment)
+                scanner.post_scan(domain, data, environment, options)
 
             # Cache locally.
             scan_utils.write(scan_utils.json_for(data), domain_cache)
