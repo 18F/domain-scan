@@ -423,8 +423,8 @@ def build_scan_options_parser() -> ArgumentParser:
     # TODO: Should workers have a default value?
     parser.add_argument("--no-fast-cache", action="store_true", help="".join([
         "Do not use fast caching even if a scanner supports it.  This option ",
-        "will cause domain-scan to use less memory, but some scans may be ",
-        "repeated."
+        "will cause domain-scan to use less memory, but some (possibly ",
+        "expensive) network activity or other operations may be repeated."
     ]))
     # TODO: Move the scanner-specific argument parsing to each scanner's code.
 
