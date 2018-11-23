@@ -17,7 +17,7 @@ from typing import Any, List, Tuple
 from types import ModuleType
 
 from scanners.headless.local_bridge import headless_scan
-from utils import scan_utils
+from utils import FAST_CACHE_KEY, scan_utils
 
 
 # Default and maximum for local workers (threads) per-scanner.
@@ -86,9 +86,6 @@ LAMBDA_DETAIL_HEADERS = [
 # about Lambda executions to show up after task completion.
 LAMBDA_LOG_DELAY = 20
 
-# The environment dictionary key whose corresponding value is the fast
-# cache data
-FAST_CACHE_KEY = 'fastcache'
 
 ###
 # Entry point. `options` is a dict of CLI flags.
@@ -320,7 +317,7 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             # Capture local start and end times around scan.
             meta['start_time'] = scan_utils.local_now()
 
-            # Drop the fastcache from the scan_environment before
+            # Drop the fast cache from the scan_environment before
             # (potentially) sending to Lambda, since it may be huge
             scan_environment.pop(FAST_CACHE_KEY, None)
 
@@ -330,16 +327,9 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             meta['duration'] = meta['end_time'] - meta['start_time']
 
         if data:
-            if hasattr(scanner, 'fast_cache_support'):
-                # Update the cache
-                if FAST_CACHE_KEY not in environment:
-                    environment[FAST_CACHE_KEY] = []
-                # I hate having to use isinstance here, but I don't
-                # see another way
-                if isinstance(data, list):
-                    environment[FAST_CACHE_KEY].extend(data)
-                else:
-                    environment[FAST_CACHE_KEY].append(data)
+            # Run the post-scan hook if it's present
+            if hasattr(scanner, 'post_scan'):
+                scanner.post_scan(domain, data, environment)
 
             # Cache locally.
             scan_utils.write(scan_utils.json_for(data), domain_cache)

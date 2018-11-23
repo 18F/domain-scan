@@ -13,7 +13,7 @@
 ###
 
 import logging
-from typing import Union
+from typing import Any
 
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
@@ -28,7 +28,7 @@ import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 
-from utils import utils
+from utils import FAST_CACHE_KEY, utils
 
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.
@@ -36,42 +36,6 @@ network_timeout = 5
 
 # Advertise Lambda support
 lambda_support = True
-
-# Advertise fast cache support
-fast_cache_support = True
-
-# The environment dictionary key whose correpsonding value is the fast
-# cache data
-FAST_CACHE_KEY = 'fastcache'
-
-
-def get_mail_server_from_cache(mail_server: str, fastcache: dict) -> Union[dict, None]:
-    """
-    Extract and return data from the fast cache that corresponds to
-    the specified mail server.
-
-    Parameters
-    ----------
-    mail_server : str
-        A string of the form 'hostname:port'.
-
-    fastcache : dict
-        The fast cache dictionary.
-
-    Returns
-    -------
-    dict
-        The data found in the fast cache corresponding to the
-        specified mail server, or None if no such data is found.
-    """
-    hostname_and_port = mail_server.split(':')
-    hostname = hostname_and_port[0]
-    port = hostname_and_port[1]
-    for record in fastcache:
-        if record['starttls_smtp'] and record['hostname'] == hostname and record['port'] == port:
-            return record
-
-    return None
 
 
 # If we have pshtt data, use it to skip some domains, and to adjust
@@ -121,7 +85,7 @@ def init_domain(domain, environment, options):
         # different domain.
         cached_value = None
         if FAST_CACHE_KEY in environment:
-            cached_value = get_mail_server_from_cache(mail_server, environment[FAST_CACHE_KEY])
+            cached_value = environment[FAST_CACHE_KEY].get(mail_server, None)
 
         if cached_value is None:
             logging.debug('Adding {} to list to be scanned'.format(mail_server))
@@ -184,6 +148,42 @@ def scan(domain, environment, options):
     # (if there were any)
     retVal.extend(environment['cached_data'])
     return retVal
+
+
+def post_scan(domain: str, data: Any, environment: dict):
+    """Post-scan hook for sslyze
+
+    Add SMTP results to the fast cache, keyed by the concatenation of
+    the mail server and host.  Do not update if an appropriate cache
+    entry appeared while we were running, since the earlier entry is
+    more likely to be correct because it is less likely to have
+    triggered any defenses that are in place.
+
+    Parameters
+    ----------
+    domain : str
+        The domain being scanned.
+
+    data : Any
+        The result returned by the scan function for the domain
+        currently being scanned.
+
+    environment: dict
+        The environment data structure associated with the scan that
+        produced the results in data.
+    """
+    if FAST_CACHE_KEY not in environment:
+        environment[FAST_CACHE_KEY] = {}
+
+    fast_cache = environment[FAST_CACHE_KEY]
+    # Add the SMTP host results to the fast cache
+    for record in data:
+        if record['starttls_smtp']:
+            key = '{}:{}'.format(record['hostname'], record['port'])
+            # Avoid overwriting the cached data if someone else wrote
+            # it while we were running
+            if key not in fast_cache:
+                fast_cache[key] = record
 
 
 # Given a response dict, turn it into CSV rows.
