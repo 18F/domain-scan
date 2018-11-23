@@ -176,7 +176,7 @@ def post_scan(domain: str, data: Any, environment: dict, options: dict):
         The CLI options.
     """
     # Make sure fast caching hasn't been disabled
-    if not options['no_fast_cache']:
+    if not options['no_fast_cache'] and data is not None:
         if FAST_CACHE_KEY not in environment:
             environment[FAST_CACHE_KEY] = {}
 

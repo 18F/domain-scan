@@ -326,11 +326,11 @@ def perform_scan(params: Tuple[Any, str, dict, dict, dict]):
             meta['end_time'] = scan_utils.local_now()
             meta['duration'] = meta['end_time'] - meta['start_time']
 
-        if data:
-            # Run the post-scan hook if it's present
-            if hasattr(scanner, 'post_scan'):
-                scanner.post_scan(domain, data, environment, options)
+        # Run the post-scan hook if it's present
+        if hasattr(scanner, 'post_scan'):
+            scanner.post_scan(domain, data, environment, options)
 
+        if data is not None:
             # Cache locally.
             scan_utils.write(scan_utils.json_for(data), domain_cache)
 
