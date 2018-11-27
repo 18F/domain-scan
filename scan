@@ -43,9 +43,9 @@ def set_aws_credentials(options):
 
     invoke_config = botocore.config.Config(
         max_pool_connections=global_max_workers,
-        connect_timeout=300,
-        read_timeout=300,
-        retries={'max_attempts': 0}
+        connect_timeout=900,
+        read_timeout=900,
+        retries={'max_attempts': 5}
     )
     invoke_client = lambda_session.client('lambda', config=invoke_config)
 
