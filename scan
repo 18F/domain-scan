@@ -45,7 +45,7 @@ def set_aws_credentials(options):
         max_pool_connections=global_max_workers,
         connect_timeout=900,
         read_timeout=900,
-        retries={'max_attempts': 5}
+        retries={'max_attempts': 0}
     )
     invoke_client = lambda_session.client('lambda', config=invoke_config)
 
@@ -404,7 +404,16 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
     invoke_client = options["_"]["lambda_options"]["invoke_client"]
     data = None
-    meta['lambda'] = {}
+
+    if 'lambda' not in meta:
+        meta['lambda'] = {
+            'retries': 0
+        }
+    else:
+        if meta['lambda']['retries'] < 5:
+            meta['lambda']['retries'] = meta['lambda']['retries'] + 1
+        else:
+            return None
 
     task_prefix = "task_"  # default, maybe make optional later
     task_name = "%s%s" % (task_prefix, scanner_name)
@@ -441,7 +450,9 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
         if response is None:
             meta['errors'].append("Response came back empty. Raw payload response:\n%s\nFull api_response:\n%s" % (raw, api_response))
-
+            # Retry
+            print('Kicking off retry number {}'.format(meta['lambda']['retries']))
+            return perform_lambda_scan(scanner, domain, handles, environment, options, meta)
         # An errorMessage field implies a Lambda-level error.
         elif response.get("errorMessage") is None:
             # Payload has some per-task Lambda-specific info.
@@ -459,9 +470,15 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
 
         else:
             meta['errors'].append("Lambda error: %s" % raw)
+            # Retry
+            print('Kicking off retry number {}'.format(meta['lambda']['retries']))
+            return perform_lambda_scan(scanner, domain, handles, environment, options, meta)
 
     except botocore.vendored.requests.exceptions.ReadTimeout:
         meta['errors'].append("Connection timeout while talking to Lambda.")
+        # Retry
+        print('Kicking off retry number {}'.format(meta['lambda']['retries']))
+        return perform_lambda_scan(scanner, domain, handles, environment, options, meta)
 
     return data
 
