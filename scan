@@ -24,6 +24,9 @@ from utils import FAST_CACHE_KEY, scan_utils
 default_workers = 10
 global_max_workers = 1000
 
+# The default value to use for the maximum number of Lambda retries
+default_max_lambda_retries = 5
+
 # Some metadata about the scan itself.
 start_time = scan_utils.local_now()
 start_command = str.join(" ", sys.argv)
@@ -397,7 +400,7 @@ def perform_local_scan(scanner, domain, handles, environment, options, meta):
 #
 # Catch some Lambda-specific exceptions around the invoke call,
 # but otherwise allow exceptions to bubble up to perform_scan.
-def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
+def perform_lambda_scan(scanner, domain, handles, environment, options, meta, previousData=None):
     logging.warning("\tExecuting Lambda scan...")
 
     scanner_name = scanner.__name__.split(".")[-1]  # e.g. 'pshtt'
@@ -410,10 +413,12 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
             'retries': 0
         }
     else:
-        if meta['lambda']['retries'] < 5:
+        if meta['lambda']['retries'] < default_max_lambda_retries:
             meta['lambda']['retries'] = meta['lambda']['retries'] + 1
+            logging.info('Attempting retry number {} for {}'.format(meta['lambda']['retries'], domain))
         else:
-            return None
+            logging.warn('No more retries for {}'.format(domain))
+            return previousData
 
     task_prefix = "task_"  # default, maybe make optional later
     task_name = "%s%s" % (task_prefix, scanner_name)
@@ -432,7 +437,7 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
         # farming out the hard work to Lambda. This increases max workers
         # somewhat, since waiting on responses is much, much cheaper than
         # performing active scanning.
-
+        retry = False
         api_response = invoke_client.invoke(
             FunctionName=task_name,
             InvocationType='RequestResponse',
@@ -447,12 +452,11 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
         raw = str(api_response['Payload'].read(), encoding='utf-8')
 
         response = json.loads(raw)
+        logging.debug('Response is: {}'.format(response))
 
         if response is None:
             meta['errors'].append("Response came back empty. Raw payload response:\n%s\nFull api_response:\n%s" % (raw, api_response))
-            # Retry
-            print('Kicking off retry number {}'.format(meta['lambda']['retries']))
-            return perform_lambda_scan(scanner, domain, handles, environment, options, meta)
+            retry = True
         # An errorMessage field implies a Lambda-level error.
         elif response.get("errorMessage") is None:
             # Payload has some per-task Lambda-specific info.
@@ -463,24 +467,26 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta):
                 data = response['data']
             else:
                 meta['errors'].append("Response object lacked 'data' field. Raw response: %s" % raw)
+                retry = True
 
             # An error field implies an exception during the scan.
             if 'error' in response:
                 meta['errors'].append("Error or exception during scan: %s" % response['error'])
+                retry = True
 
         else:
             meta['errors'].append("Lambda error: %s" % raw)
-            # Retry
-            print('Kicking off retry number {}'.format(meta['lambda']['retries']))
-            return perform_lambda_scan(scanner, domain, handles, environment, options, meta)
+            retry = True
 
     except botocore.vendored.requests.exceptions.ReadTimeout:
         meta['errors'].append("Connection timeout while talking to Lambda.")
-        # Retry
-        print('Kicking off retry number {}'.format(meta['lambda']['retries']))
-        return perform_lambda_scan(scanner, domain, handles, environment, options, meta)
+        retry = True
 
-    return data
+    if not retry:
+        return data
+    else:
+        # Retry
+        return perform_lambda_scan(scanner, domain, handles, environment, options, meta, data)
 
 
 # Given just a CSV with some Lambda detail headers at the end,
