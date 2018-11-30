@@ -25,7 +25,7 @@ default_workers = 10
 global_max_workers = 1000
 
 # The default value to use for the maximum number of Lambda retries
-default_max_lambda_retries = 5
+default_max_lambda_retries = 0
 
 # Some metadata about the scan itself.
 start_time = scan_utils.local_now()
@@ -408,12 +408,15 @@ def perform_lambda_scan(scanner, domain, handles, environment, options, meta, pr
     invoke_client = options["_"]["lambda_options"]["invoke_client"]
     data = None
 
+    max_lambda_retries = options.get('lambda_retries',
+                                     default_max_lambda_retries)
+
     if 'lambda' not in meta:
         meta['lambda'] = {
             'retries': 0
         }
     else:
-        if meta['lambda']['retries'] < default_max_lambda_retries:
+        if meta['lambda']['retries'] < max_lambda_retries:
             meta['lambda']['retries'] = meta['lambda']['retries'] + 1
             logging.info('Attempting retry number {} for {}'.format(meta['lambda']['retries'], domain))
         else:
