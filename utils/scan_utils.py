@@ -392,6 +392,10 @@ def build_scan_options_parser() -> ArgumentParser:
         "profile. Credentials/config for this named profile should already ",
         "be configured separately in the execution environment.",
     ]))
+    parser.add_argument("--lambda-retries", type=int, help="".join([
+        "The maximum number of times to retry a Lambda job that fails.  ",
+        "If not specified then the value 0 is used."
+    ]))
     parser.add_argument("--meta", action="store_true", help="".join([
         "Append some additional columns to each row with information about ",
         "the scan itself. This includes start/end times and durations, as ",
