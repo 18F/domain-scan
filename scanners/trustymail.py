@@ -139,6 +139,12 @@ def scan(domain, environment, options):
         'spf': options.get('spf', False),
         'dmarc': options.get('dmarc', False)
     }
+    # If the user listed no specific scans then perform all scans.  It
+    # is necessary to do this here in case use_cached_data is True and
+    # we set scan_types['mx'] to True below.
+    if all([not scan_types[key] for key in scan_types]):
+        for key in scan_types:
+            scan_types[key] = True
 
     # Do we need to perform the MX and STARTTLS scans or do we have
     # already-cached data for that?
@@ -149,7 +155,8 @@ def scan(domain, environment, options):
     cached_data = environment.get('cached_data', {})
     use_cached_data = len(cached_data) > 0
     if use_cached_data:
-        # This is true because we want the actual MX records
+        # This is true because we want the actual MX records, even
+        # though we already did the DNS query in init_domain()
         scan_types['mx'] = True
         scan_types['starttls'] = False
 
@@ -162,17 +169,40 @@ def scan(domain, environment, options):
         trustymail.PublicSuffixListReadOnly = True
     import trustymail.trustymail as tmail
 
-    data = tmail.scan(domain, timeout, smtp_timeout, smtp_localhost, smtp_ports, smtp_cache, scan_types, dns_hostnames).generate_results()
+    data = tmail.scan(domain, timeout, smtp_timeout, smtp_localhost,
+                      smtp_ports, smtp_cache, scan_types,
+                      dns_hostnames)
 
     if not data:
         logging.warning("\ttrustymail scan failed, skipping.")
 
-    # TODO: Cram the cached data into data
+    # Crowbar in the cached data, if necessary
+    if use_cached_data:
+        ports = set()
+        servers = set()
+        for mail_server in cached_data:
+            # Grab the server and port
+            server_and_port = mail_server.split(':')
+            server = server_and_port[0]
+            port = server_and_port[1]
+            servers.add(server)
+            ports.add(port)
+
+            cached_result = cached_data[mail_server]
+            data.starttls_results[mail_server] = {
+                'supports_smtp': cached_result['supports_smtp'],
+                'supports_starttls': cached_result['supports_starttls']
+            }
+
+        for server in servers:
+            data.mail_servers.append(server)
+        for port in ports:
+            data.ports_tested.add(port)
 
     # Reset the logging level
     logging.getLogger().setLevel(old_log_level)
 
-    return data
+    return data.generate_results()
 
 
 def post_scan(domain: str, data: Any, environment: dict, options: dict):
@@ -206,22 +236,22 @@ def post_scan(domain: str, data: Any, environment: dict, options: dict):
         if FAST_CACHE_KEY not in environment:
             environment[FAST_CACHE_KEY] = {}
 
-        mail_servers = data['Mail Servers']
-        ports = data['Mail Server Ports Tested']
-        smtp_results = data['Domain Supports SMTP Results']
-        starttls_results = data['Domain Supports STARTTLS Results']
-        
+        servers = data['Mail Servers'].split(',')
+        ports = data['Mail Server Ports Tested'].split(',')
+        smtp_results = data['Domain Supports SMTP Results'].split(',')
+        starttls_results = data['Domain Supports STARTTLS Results'].split(',')
 
         fast_cache = environment[FAST_CACHE_KEY]
-        # Add the SMTP host results to the fast cache
-        for record in data:
-            if record['starttls_smtp']:
-                key = '{}:{}'.format(record['hostname'],
-                                     record['port'])
+        for server in servers:
+            for port in ports:
+                mail_server = '{}:{}'.format(server, port)
                 # Avoid overwriting the cached data if someone
                 # else wrote it while we were running
-                if key not in fast_cache:
-                    fast_cache[key] = record
+                if mail_server not in fast_cache:
+                    fast_cache[mail_server] = {
+                        'supports_smtp': mail_server in smtp_results,
+                        'supports_starttls': mail_server in starttls_results
+                    }
 
 
 def to_rows(data):
