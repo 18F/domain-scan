@@ -64,18 +64,18 @@ def init_domain(domain, environment, options):
         # http://www.dnspython.org/docs/1.14.0/dns.resolver-pysrc.html#Resolver._compute_timeout.
         resolver.timeout = float(timeout)
         resolver.lifetime = float(timeout)
-        resolver.nameservers = dns_hostnames.split(',')
+        resolver.nameservers = dns_hostnames
         # Use TCP, since we care about the content and correctness of
         # the records more than whether their records fit in a single
         # UDP packet.
-        mx_records = resolver.query(domain.domain_name, 'MX', tcp=True)
+        mx_records = resolver.query(domain, 'MX', tcp=True)
 
         # The rstrip is because dnspython's string representation of
         # the record will contain a trailing period if it is a FQDN.
         mail_servers_to_test = {
             '{}:{}'.format(record.exchange.to_text().rstrip('.').lower(), port)
             for record in mx_records
-            for port in smtp_ports.split(',')
+            for port in smtp_ports
         }
         # Check if we already have results for all mail servers to be
         # tested, possibly from a different domain.
@@ -147,7 +147,7 @@ def scan(domain, environment, options):
     # mail server associated with the domain, it suffices to check if
     # cached_data is empty here,
     cached_data = environment.get('cached_data', {})
-    use_cached_data = len(cached_data) >= 0
+    use_cached_data = len(cached_data) > 0
     if use_cached_data:
         # This is true because we want the actual MX records
         scan_types['mx'] = True
