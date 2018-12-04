@@ -9,5 +9,8 @@
 # invocation.
 boto3
 
+# Used locally by trustymail code even when Lambda is used
+dnspython
+
 # Used in Lambda functions
 -r lambda/requirements-lambda.txt
