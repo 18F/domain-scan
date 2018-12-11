@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, List
 
 import dns.resolver
 
@@ -68,7 +68,17 @@ def init_domain(domain, environment, options):
         # Use TCP, since we care about the content and correctness of
         # the records more than whether their records fit in a single
         # UDP packet.
-        mx_records = resolver.query(domain, 'MX', tcp=True)
+        try:
+            mx_records = resolver.query(domain, 'MX', tcp=True)
+        except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN) as error:
+            # The NoNameServers exception means that we got a SERVFAIL
+            # response.  These responses are almost always permanent,
+            # not temporary, so let's treat the domain as not live.
+            logging.info('No MX records for domain {}: {}'.format(domain, error))
+            mx_records = []
+        except (dns.resolver.NoAnswer, dns.exception.Timeout) as error:
+            logging.warning('Encountered an error retrieving MX records for domain {}: {}.'.format(domain, error))
+            mx_records = []
 
         # The rstrip is because dnspython's string representation of
         # the record will contain a trailing period if it is a FQDN.
@@ -191,7 +201,7 @@ def scan(domain, environment, options):
             cached_result = cached_data[mail_server]
             data.starttls_results[mail_server] = {
                 'supports_smtp': cached_result['supports_smtp'],
-                'supports_starttls': cached_result['supports_starttls']
+                'starttls': cached_result['starttls']
             }
 
         for server in servers:
@@ -203,6 +213,34 @@ def scan(domain, environment, options):
     logging.getLogger().setLevel(old_log_level)
 
     return data.generate_results()
+
+
+def list_from_dict_key(d: dict, k: str, delim: str=',') -> List[str]:
+    """Extract a list from a delimited string in a dictionary.
+
+    Parameters
+    ----------
+    d : dict
+        The dictionary containing the delimited string.
+
+    k : str
+        The key under which the delimited value is stored in the
+        dictionary.
+
+    delim : str
+        The delimiter for the delimited string.
+
+    Returns
+    -------
+    List[str]: The list extracted from the delimited string, or an
+    empty list if the dictionary key is None or does not exist.
+    """
+    ans = []
+    s = d.get(k, None)
+    if s is not None:
+        ans = s.split(',')
+
+    return ans
 
 
 def post_scan(domain: str, data: Any, environment: dict, options: dict):
@@ -236,10 +274,15 @@ def post_scan(domain: str, data: Any, environment: dict, options: dict):
         if FAST_CACHE_KEY not in environment:
             environment[FAST_CACHE_KEY] = {}
 
-        servers = data['Mail Servers'].split(',')
-        ports = data['Mail Server Ports Tested'].split(',')
-        smtp_results = data['Domain Supports SMTP Results'].split(',')
-        starttls_results = data['Domain Supports STARTTLS Results'].split(',')
+        servers = list_from_dict_key(data, 'Mail Servers')
+        ports = [
+            int(port) for port in list_from_dict_key(data,
+                                                     'Mail Server Ports Tested')
+        ]
+        smtp_results = list_from_dict_key(data,
+                                          'Domain Supports SMTP Results')
+        starttls_results = list_from_dict_key(data,
+                                              'Domain Supports STARTTLS Results')
 
         fast_cache = environment[FAST_CACHE_KEY]
         for server in servers:
@@ -250,7 +293,7 @@ def post_scan(domain: str, data: Any, environment: dict, options: dict):
                 if mail_server not in fast_cache:
                     fast_cache[mail_server] = {
                         'supports_smtp': mail_server in smtp_results,
-                        'supports_starttls': mail_server in starttls_results
+                        'starttls': mail_server in starttls_results
                     }
 
 
