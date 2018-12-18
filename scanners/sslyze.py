@@ -156,7 +156,7 @@ def post_scan(domain: str, data: Any, environment: dict, options: dict):
     """Post-scan hook for sslyze
 
     Add SMTP results to the fast cache, keyed by the concatenation of
-    the mail server and host.  Do not update if an appropriate cache
+    the mail server and port.  Do not update if an appropriate cache
     entry appeared while we were running, since the earlier entry is
     more likely to be correct because it is less likely to have
     triggered any defenses that are in place.
