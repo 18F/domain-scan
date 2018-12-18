@@ -13,11 +13,8 @@
 ###
 
 import logging
-<<<<<<< HEAD
 import datetime
-=======
 from typing import Any
->>>>>>> c89e956209a16d5d77e3dcdb9e439a60e5dbac6e
 
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
