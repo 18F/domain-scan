@@ -392,6 +392,10 @@ def build_scan_options_parser() -> ArgumentParser:
         "profile. Credentials/config for this named profile should already ",
         "be configured separately in the execution environment.",
     ]))
+    parser.add_argument("--lambda-retries", type=int, help="".join([
+        "The maximum number of times to retry a Lambda job that fails.  ",
+        "If not specified then the value 0 is used."
+    ]))
     parser.add_argument("--meta", action="store_true", help="".join([
         "Append some additional columns to each row with information about ",
         "the scan itself. This includes start/end times and durations, as ",
@@ -421,6 +425,11 @@ def build_scan_options_parser() -> ArgumentParser:
     parser.add_argument("--workers", nargs=1,
                         help="Limit parallel threads per-scanner to a number.")
     # TODO: Should workers have a default value?
+    parser.add_argument("--no-fast-cache", action="store_true", help="".join([
+        "Do not use fast caching even if a scanner supports it.  This option ",
+        "will cause domain-scan to use less memory, but some (possibly ",
+        "expensive) network activity or other operations may be repeated."
+    ]))
     # TODO: Move the scanner-specific argument parsing to each scanner's code.
 
     # a11y:
@@ -428,11 +437,11 @@ def build_scan_options_parser() -> ArgumentParser:
                         help="a11y: Location of pa11y config file (used with a11y scanner.")
     parser.add_argument("--a11y-redirects",
                         help="a11y: Location of YAML file with redirects to inform the a11y scanner.")
-    
+
     # pshtt:
     parser.add_argument("--ca_file",
                         help="ca_file: Location of PEM file of trust store to verify certs with.")
-                        
+
     # sslyze:
     parser.add_argument("--sslyze-serial",
                         help="sslyze: If set, will use a synchronous (single-threaded in-process) scanner. Defaults to true.")
@@ -441,16 +450,49 @@ def build_scan_options_parser() -> ArgumentParser:
     parser.add_argument("--sslyze-reneg",
                         help="sslyze: If set, will use the SessionRenegotiationScanner and return session renegotiation info. Defaults to true.")
     # trustymail:
-    parser.add_argument("--starttls", help="trustymail: ?")
-    parser.add_argument("--timeout", help="trustymail: ?")
-    parser.add_argument("--smtp-timeout", help="trustymail: ?")
-    parser.add_argument("--smtp-localhost", help="trustymail: ?")
-    parser.add_argument("--smtp-ports", help="trustymail: ?")
-    parser.add_argument("--dns", help="trustymail: ?")
-    parser.add_argument("--no-smtp-cache", help="trustymail: ?")
-    parser.add_argument("--mx", help="trustymail: ?")
-    parser.add_argument("--spf", help="trustymail: ?")
-    parser.add_argument("--dmarc", help="trustymail: ?")
+    parser.add_argument("--starttls", help="".join([
+        "trustymail: Only check mx records and STARTTLS support.  ",
+        "(Implies --mx.)"
+    ]))
+    parser.add_argument("--timeout", help="".join([
+        "trustymail: The DNS lookup timeout in seconds. (Default is 5.)"
+    ]))
+    parser.add_argument("--smtp-timeout", help="".join([
+        "trustymail: The SMTP connection timeout in seconds. (Default is 5.)"
+    ]))
+    parser.add_argument("--smtp-localhost", help="".join([
+        "trustymail: The hostname to use when connecting to SMTP ",
+        "servers.  (Default is the FQDN of the host from ",
+        "which trustymail is being run.)"
+    ]))
+    parser.add_argument("--smtp-ports", help="".join([
+        "trustymail: A comma-delimited list of ports at which to look ",
+        "for SMTP servers.  (Default is '25,465,587'.)"
+    ]))
+    parser.add_argument("--dns", help="".join([
+        "trustymail: A comma-delimited list of DNS servers to query ",
+        "against.  For example, if you want to use ",
+        "Google's DNS then you would use the ",
+        "value --dns-hostnames='8.8.8.8,8.8.4.4'.  By ",
+        "default the DNS configuration of the host OS ",
+        "(/etc/resolv.conf) is used.  Note that ",
+        "the host's DNS configuration is not used at all "
+        "if this option is used."
+    ]))
+    parser.add_argument("--no-smtp-cache", help="".join([
+        "trustymail: Do not cache SMTP results during the run.  This",
+        "may results in slower scans due to testing the ",
+        "same mail servers multiple times."
+    ]))
+    parser.add_argument("--mx", help="".join([
+        "trustymail: Only check MX records"
+    ]))
+    parser.add_argument("--spf", help="".join([
+        "trustymail: Only check SPF records"
+    ]))
+    parser.add_argument("--dmarc", help="".join([
+        "trustymail: Only check DMARC records"
+    ]))
 
     return parser
 

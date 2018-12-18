@@ -13,7 +13,11 @@
 ###
 
 import logging
+<<<<<<< HEAD
 import datetime
+=======
+from typing import Any
+>>>>>>> c89e956209a16d5d77e3dcdb9e439a60e5dbac6e
 
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
 from sslyze.synchronous_scanner import SynchronousScanner
@@ -29,7 +33,7 @@ import cryptography.hazmat.backends.openssl
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric import ec, dsa, rsa
 
-from utils import utils
+from utils import FAST_CACHE_KEY, utils
 
 # Number of seconds to wait during sslyze connection check.
 # Not much patience here, and very willing to move on.
@@ -44,9 +48,13 @@ lambda_support = True
 #
 # If we have trustymail data, use it to identify any mail servers that
 # support STARTTLS so we can scan them.
+#
+# Check the fastcache to determine if we have already tested any of
+# the mail servers when scanning other domains.
 def init_domain(domain, environment, options):
     hosts_to_scan = []
-    cache_dir = options.get("_", {}).get("cache_dir", "./cache")
+    cached_data = []
+    cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
     # If we have pshtt data, skip domains which pshtt saw as not
     # supporting HTTPS at all.
@@ -56,7 +64,7 @@ def init_domain(domain, environment, options):
         # If we have pshtt data and it says canonical endpoint uses
         # www and the given domain is bare, add www.
         if utils.domain_uses_www(domain, cache_dir=cache_dir):
-            hostname = "www.%s" % domain
+            hostname = 'www.%s' % domain
         else:
             hostname = domain
 
@@ -70,17 +78,39 @@ def init_domain(domain, environment, options):
     # that support STARTTLS that we should scan
     mail_servers_to_test = utils.domain_mail_servers_that_support_starttls(domain, cache_dir=cache_dir)
     for mail_server in mail_servers_to_test:
-        hostname_and_port = mail_server.split(':')
-        hosts_to_scan.append({
-            'hostname': hostname_and_port[0],
-            'port': int(hostname_and_port[1]),
-            'starttls_smtp': True
-        })
+        # Check if we already have results for this mail server,
+        # possibly from a different domain.
+        #
+        # I have found that SMTP servers (as compared to HTTP/HTTPS
+        # servers) are MUCH more sensitive to having multiple
+        # connections made to them.  In testing the various cyphers we
+        # make a lot of connections, and multiple government domains
+        # often use the same SMTP servers, so it makes sense to check
+        # if we have already hit this mail server when testing a
+        # different domain.
+        cached_value = None
+        if FAST_CACHE_KEY in environment:
+            cached_value = environment[FAST_CACHE_KEY].get(mail_server, None)
+
+        if cached_value is None:
+            logging.debug('Adding {} to list to be scanned'.format(mail_server))
+            hostname_and_port = mail_server.split(':')
+            hosts_to_scan.append({
+                'hostname': hostname_and_port[0],
+                'port': int(hostname_and_port[1]),
+                'starttls_smtp': True
+            })
+        else:
+            logging.debug('Using cached data for {}'.format(mail_server))
+            cached_data.append(cached_value)
 
     if not hosts_to_scan:
         logging.warning('\tNo hosts to scan for {}'.format(domain))
 
-    return {'hosts_to_scan': hosts_to_scan}
+    return {
+        'hosts_to_scan': hosts_to_scan,
+        'cached_data': cached_data
+    }
 
 
 # Run sslyze on the given domain.
@@ -119,7 +149,52 @@ def scan(domain, environment, options):
 
         retVal.append(data)
 
+    # Return the scan results together with the already-cached results
+    # (if there were any)
+    retVal.extend(environment['cached_data'])
     return retVal
+
+
+def post_scan(domain: str, data: Any, environment: dict, options: dict):
+    """Post-scan hook for sslyze
+
+    Add SMTP results to the fast cache, keyed by the concatenation of
+    the mail server and host.  Do not update if an appropriate cache
+    entry appeared while we were running, since the earlier entry is
+    more likely to be correct because it is less likely to have
+    triggered any defenses that are in place.
+
+    Parameters
+    ----------
+    domain : str
+        The domain being scanned.
+
+    data : Any
+        The result returned by the scan function for the domain
+        currently being scanned.
+
+    environment: dict
+        The environment data structure associated with the scan that
+        produced the results in data.
+
+    options: dict
+        The CLI options.
+    """
+    # Make sure fast caching hasn't been disabled
+    if not options['no_fast_cache'] and data is not None:
+        if FAST_CACHE_KEY not in environment:
+            environment[FAST_CACHE_KEY] = {}
+
+        fast_cache = environment[FAST_CACHE_KEY]
+        # Add the SMTP host results to the fast cache
+        for record in data:
+            if record['starttls_smtp']:
+                key = '{}:{}'.format(record['hostname'],
+                                     record['port'])
+                # Avoid overwriting the cached data if someone
+                # else wrote it while we were running
+                if key not in fast_cache:
+                    fast_cache[key] = record
 
 
 # Given a response dict, turn it into CSV rows.
@@ -519,7 +594,7 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         # logging.debug("\tTesting connectivity with timeout of %is." % network_timeout)
         server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
         server_info = server_tester.perform(network_timeout=network_timeout)
-    except ServerConnectivityError as err:
+    except ServerConnectivityError:
         logging.warning("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
@@ -592,12 +667,12 @@ def scan_parallel(scanner, server_info, data, options):
     def queue(command):
         try:
             return scanner.queue_scan_command(server_info, command)
-        except OSError as err:
+        except OSError:
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
             logging.warning("%s\n%s" % (text, utils.format_last_exception()))
             return None, None, None, None, None, None, None
-        except Exception as err:
+        except Exception:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
             logging.warning(text)
@@ -652,7 +727,7 @@ def scan_parallel(scanner, server_info, data, options):
                 data['errors'].append(error)
                 was_error = True
 
-        except Exception as err:
+        except Exception:
             was_error = True
             text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
             data['errors'].append(text)

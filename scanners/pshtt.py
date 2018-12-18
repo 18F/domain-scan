@@ -121,7 +121,7 @@ def to_rows(data):
 
 
 headers = [
-    "Canonical URL", "Live", "HTTPS Full Connection", "HTTPS Client Auth Required", 
+    "Canonical URL", "Live",
     "Redirect", "Redirect To",
     "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS",
     "Strictly Forces HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
@@ -129,7 +129,8 @@ headers = [
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preload Pending", "HSTS Preloaded",
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
-    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", 
+    "Domain Enforces HTTPS", "Domain Uses Strong HSTS",
+    "HTTPS Full Connection", "HTTPS Client Auth Required",
     "HTTPS Publicly Trusted", "HTTPS Custom Truststore Trusted",
     "IP", "Server Header", "Server Version", "Notes",
     "Unknown Error",
@@ -137,4 +138,4 @@ headers = [
 
 
 def format_domain(domain):
-    return re.sub("^(https?://)?(www\.)?", "", domain)
+    return re.sub(r"^(https?://)?(www\.)?", "", domain)

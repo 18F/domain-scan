@@ -19,12 +19,12 @@ from gatherers.gathererabc import Gatherer
 # Best-effort filter for hostnames which are just reflected IPs.
 # IP addresses often use dots or dashes.
 # Some also start with "u-" before the IP address.
-ip_filter = re.compile("^(\w+[\-\.]?)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
+ip_filter = re.compile(r"^(\w+[\-\.]?)?\d+[\-\.]\d+[\-\.]\d+[\-\.]\d+")
 
 # Best-effort filter for hostnames with just numbers on the base domain.
 # (Note: this won't work for fed.us subdomains, but that's okay, this
 # is just a best-effort to cut down noise.)
-number_filter = re.compile("^[\d\-]+\.")
+number_filter = re.compile(r"^[\d\-]+\.")
 
 
 class Gatherer(Gatherer):
