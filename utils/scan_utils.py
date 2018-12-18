@@ -438,6 +438,8 @@ def build_scan_options_parser() -> ArgumentParser:
                         help="sslyze: If set, will use a synchronous (single-threaded in-process) scanner. Defaults to true.")
     parser.add_argument("--sslyze-certs",
                         help="sslyze: If set, will use the CertificateInfoScanner and return certificate info. Defaults to true.")
+    parser.add_argument("--sslyze-reneg",
+                        help="sslyze: If set, will use the SessionRenegotiationScanner and return session renegotiation info. Defaults to true.")
     # trustymail:
     parser.add_argument("--starttls", help="trustymail: ?")
     parser.add_argument("--timeout", help="trustymail: ?")

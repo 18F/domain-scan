@@ -10,7 +10,7 @@ from utils import utils
 # Measure a site's HTTP behavior using DHS NCATS' pshtt tool.
 
 # Network timeout for each internal pshtt HTTP request.
-pshtt_timeout = 20
+pshtt_timeout = 5
 
 # Default to a custom user agent that can be overridden via an environment
 # variable
@@ -131,6 +131,7 @@ headers = [
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
     "Domain Enforces HTTPS", "Domain Uses Strong HSTS", 
     "HTTPS Publicly Trusted", "HTTPS Custom Truststore Trusted",
+    "IP", "Server Header", "Server Version", "Notes",
     "Unknown Error",
 ]
 
