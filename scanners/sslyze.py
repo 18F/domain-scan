@@ -232,7 +232,7 @@ def to_rows(data):
             row['config'].get('any_NULL'),
             row['config'].get('any_MD5'),
             row['config'].get('any_less_than_128_bits'),
-             
+
             row['config'].get('insecure_renegotiation'),
 
             row['certs'].get('certificate_less_than_2048'),
@@ -271,10 +271,10 @@ headers = [
     "Is Symantec Cert", "Symantec Distrust Date",
 
     "Any Export", "Any NULL", "Any MD5", "Any Less Than 128 Bits",
-    "Insecure Renegotiation", 
-    "Certificate Less Than 2048", 
+    "Insecure Renegotiation",
+    "Certificate Less Than 2048",
     "MD5 Signed Certificate", "SHA-1 Signed Certificate",
-    "Expired Certificate", 
+    "Expired Certificate",
 
     "Accepted Ciphers",
 
@@ -360,7 +360,7 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         any_3des = False
         any_export = False
         any_NULL = False
-        any_MD5 = False 
+        any_MD5 = False
         any_less_than_128_bits = False
 
         for cipher in accepted_ciphers:
@@ -399,7 +399,7 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         data['config']['any_3des'] = any_3des
         data['config']['any_export'] = any_export
         data['config']['any_NULL'] = any_NULL
-        data['config']['any_MD5'] = any_MD5 
+        data['config']['any_MD5'] = any_MD5
         data['config']['any_less_than_128_bits'] = any_less_than_128_bits
 
 
@@ -564,11 +564,12 @@ def cert_issuer_name(parsed):
         return None
     return attrs[0].value
 
+
 # Analyze the results of a renegotiation test
 def analyze_reneg(data, reneg):
     if (reneg.accepts_client_renegotiation is True) and (reneg.supports_secure_renegotiation is False):
         data['config']['insecure_renegotiation'] = True
-    else: 
+    else:
         data['config']['insecure_renegotiation'] = False
 
 
@@ -646,7 +647,7 @@ def scan_serial(scanner, server_info, data, options):
             reneg = scanner.run_scan_command(server_info, SessionRenegotiationScanCommand())
         except Exception as err:
             logging.warning("Error during renegotiation test.")
-            #logging.debug(utils.format_last_exception())
+            # logging.debug(utils.format_last_exception())
             logging.debug("Exception: {}".format(err))
     else:
         reneg = None
