@@ -325,7 +325,7 @@ def run_sslyze(data, environment, options):
 
     if reneg:
         analyze_reneg(data, reneg)
-
+    
     return data
 
 
@@ -611,44 +611,47 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
 def scan_serial(scanner, server_info, data, options):
+    errors = 0
 
+    def run_scan(scan_type, command, errors):
+        if(errors >= 2):
+            return None, errors
+        logging.debug("\t\t{} scan.".format(scan_type))
+        result = None
+        try:
+            result = scanner.run_scan_command(server_info, command)
+        except Exception as err:
+            logging.warning("{}: Error during {} scan.".format(server_info.hostname, scan_type))
+            logging.debug("{}: Exception during {} scan: {}".format(server_info.hostname, scan_type, err))
+            errors = errors + 1
+        return result, errors
+            
     logging.debug("\tRunning scans in serial.")
-    logging.debug("\t\tSSLv2 scan.")
-    sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
-    logging.debug("\t\tSSLv3 scan.")
-    sslv3 = scanner.run_scan_command(server_info, Sslv30ScanCommand())
-    logging.debug("\t\tTLSv1.0 scan.")
-    tlsv1 = scanner.run_scan_command(server_info, Tlsv10ScanCommand())
-    logging.debug("\t\tTLSv1.1 scan.")
-    tlsv1_1 = scanner.run_scan_command(server_info, Tlsv11ScanCommand())
-    logging.debug("\t\tTLSv1.2 scan.")
-    tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
-    logging.debug("\t\tTLSv1.3 scan.")
-    tlsv1_3 = scanner.run_scan_command(server_info, Tlsv13ScanCommand())
+    sslv2, errors = run_scan("SSLv2", Sslv20ScanCommand(), errors)
+    sslv3, errors = run_scan("SSLv3", Sslv30ScanCommand(), errors)    
+    tlsv1, errors = run_scan("TLSv1.0", Tlsv10ScanCommand(), errors)
+    tlsv1_1, errors = run_scan("TLSv1.1", Tlsv11ScanCommand(), errors)
+    tlsv1_2, errors = run_scan("TLSv1.2", Tlsv12ScanCommand(), errors)
+    tlsv1_3, errors = run_scan("TLSv1.3", Tlsv13ScanCommand(), errors)
 
     certs = None
-    if options.get("sslyze_certs", True) is True:
-
+    if errors < 2 and options.get("sslyze_certs", True) is True:
         try:
             logging.debug("\t\tCertificate information scan.")
             certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
-        # Let generic exceptions bubble up.
         except idna.core.InvalidCodepoint:
             logging.warning(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
             certs = None
+        except Exception as err:
+            logging.warning("{}: Error during certificate information scan.".format(server_info.hostname))
+            logging.debug("{}: Exception during certificate information scan: {}".format(server_info.hostname, err))
     else:
         certs = None
 
     reneg = None
     if options.get("sslyze_reneg", True) is True:
-        logging.debug("\t\tRenegotiation scan.")
-        try:
-            reneg = scanner.run_scan_command(server_info, SessionRenegotiationScanCommand())
-        except Exception as err:
-            logging.warning("Error during renegotiation test.")
-            # logging.debug(utils.format_last_exception())
-            logging.debug("Exception: {}".format(err))
+        reneg, errors = run_scan("Renegotiation", SessionRenegotiationScanCommand(), errors)
     else:
         reneg = None
 
