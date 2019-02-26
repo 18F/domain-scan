@@ -18,10 +18,6 @@ default_smtp_timeout = 5
 # These are the same default ports used in trustymail/scripts/trustymail
 default_smtp_ports = '25,465,587'
 
-# We want to enforce the use of Google DNS by default.  This gives
-# more consistent results.
-default_dns = '8.8.8.8,8.8.4.4'
-
 # Advertise lambda support
 lambda_support = True
 
@@ -42,10 +38,10 @@ def init_domain(domain, environment, options):
             int(port)
             for port in options.get('smtp_ports', default_smtp_ports).split(',')
         }
-        dns_hostnames = options.get('dns', default_dns).split(',')
-        # Note that we _do not_ use the system configuration in
-        # /etc/resolv.conf.
-        resolver = dns.resolver.Resolver(configure=False)
+        dns_hostnames = options.get('dns')
+        if dns_hostnames is not None:
+            dns_hostnames = dns_hostnames.split(',')
+        resolver = dns.resolver.Resolver(configure=dns_hostnames is None)
         # This is a setting that controls whether we retry DNS servers
         # if we receive a SERVFAIL response from them.  We set this to
         # False because, unless the reason for the SERVFAIL is truly
@@ -64,7 +60,8 @@ def init_domain(domain, environment, options):
         # http://www.dnspython.org/docs/1.14.0/dns.resolver-pysrc.html#Resolver._compute_timeout.
         resolver.timeout = float(timeout)
         resolver.lifetime = float(timeout)
-        resolver.nameservers = dns_hostnames
+        if dns_hostnames is not None:
+            resolver.nameservers = dns_hostnames
         # Use TCP, since we care about the content and correctness of
         # the records more than whether their records fit in a single
         # UDP packet.
@@ -131,7 +128,9 @@ def scan(domain, environment, options):
         int(port)
         for port in options.get('smtp_ports', default_smtp_ports).split(',')
     }
-    dns_hostnames = options.get('dns', default_dns).split(',')
+    dns_hostnames = options.get('dns')
+    if dns_hostnames is not None:
+        dns_hostnames = dns_hostnames.split(',')
 
     # --starttls implies --mx
     if options.get('starttls', False):
