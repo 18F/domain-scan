@@ -38,10 +38,10 @@ def init_domain(domain, environment, options):
             int(port)
             for port in options.get('smtp_ports', default_smtp_ports).split(',')
         }
-        dns_hostnames = options.get('dns')
-        if dns_hostnames is not None:
-            dns_hostnames = dns_hostnames.split(',')
-        resolver = dns.resolver.Resolver(configure=dns_hostnames is None)
+        dns_hostnames = list_from_dict_key(options, 'dns')
+        resolver = dns.resolver.Resolver(configure=not dns_hostnames)
+        if dns_hostnames:
+            resolver.nameservers = dns_hostnames
         # This is a setting that controls whether we retry DNS servers
         # if we receive a SERVFAIL response from them.  We set this to
         # False because, unless the reason for the SERVFAIL is truly
@@ -60,8 +60,6 @@ def init_domain(domain, environment, options):
         # http://www.dnspython.org/docs/1.14.0/dns.resolver-pysrc.html#Resolver._compute_timeout.
         resolver.timeout = float(timeout)
         resolver.lifetime = float(timeout)
-        if dns_hostnames is not None:
-            resolver.nameservers = dns_hostnames
         # Use TCP, since we care about the content and correctness of
         # the records more than whether their records fit in a single
         # UDP packet.
@@ -128,9 +126,7 @@ def scan(domain, environment, options):
         int(port)
         for port in options.get('smtp_ports', default_smtp_ports).split(',')
     }
-    dns_hostnames = options.get('dns')
-    if dns_hostnames is not None:
-        dns_hostnames = dns_hostnames.split(',')
+    dns_hostnames = list_from_dict_key(options, 'dns')
 
     # --starttls implies --mx
     if options.get('starttls', False):
