@@ -42,6 +42,8 @@ def init_domain(domain, environment, options):
         resolver = dns.resolver.Resolver(configure=not dns_hostnames)
         if dns_hostnames:
             resolver.nameservers = dns_hostnames
+        # else: use the system configuration: `/etc/resolv.conf`
+
         # This is a setting that controls whether we retry DNS servers
         # if we receive a SERVFAIL response from them.  We set this to
         # False because, unless the reason for the SERVFAIL is truly
