@@ -230,8 +230,8 @@ def options_for_gather():
     services = [s.strip() for s in sys.argv[1].split(",")
                 if s not in set_services and s.strip()]
     if services and services[0].startswith("--"):
-            raise argparse.ArgumentTypeError(
-                "First argument must be a list of gatherers.")
+        raise argparse.ArgumentTypeError(
+            "First argument must be a list of gatherers.")
 
     parser = build_gather_options_parser(services)
     parsed, remaining = parser.parse_known_args()
