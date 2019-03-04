@@ -504,8 +504,8 @@ def options() -> Tuple[dict, list]:
     opts = {k: v for k, v in vars(parsed).items() if v is not None}
 
     if opts.get("lambda_profile") and not opts.get("lambda"):
-            raise argparse.ArgumentTypeError(
-                "Can't set lambda profile unless lambda flag is set.")
+        raise argparse.ArgumentTypeError(
+            "Can't set lambda profile unless lambda flag is set.")
 
     # We know we want one value, but the ``nargs`` flag means we get a list.
     should_be_singles = (
