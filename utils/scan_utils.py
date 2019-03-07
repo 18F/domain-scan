@@ -441,6 +441,8 @@ def build_scan_options_parser() -> ArgumentParser:
     # pshtt:
     parser.add_argument("--ca_file",
                         help="ca_file: Location of PEM file of trust store to verify certs with.")
+    parser.add_argument("--pt_int_ca_file",
+                        help="pt_int_ca_file: Location of PEM file of public trust store with any needed intermediate certificates to verify certs with.")
 
     # sslyze:
     parser.add_argument("--sslyze-serial",

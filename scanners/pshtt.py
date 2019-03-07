@@ -93,7 +93,8 @@ def scan(domain, environment, options):
             'timeout': pshtt_timeout,
             'user_agent': user_agent,
             'debug': options.get("debug", False),
-            'ca_file': options.get("ca_file")
+            'ca_file': options.get("ca_file"),
+            'pt_int_ca_file': options.get("pt_int_ca_file")
         }
     )
 
@@ -132,7 +133,8 @@ headers = [
     "Domain Enforces HTTPS", "Domain Uses Strong HSTS", 
     "HTTPS Live", "HTTPS Full Connection", "HTTPS Client Auth Required",
     "HTTPS Publicly Trusted", "HTTPS Custom Truststore Trusted",
-    "IP", "Server Header", "Server Version", "Notes",
+    "IP", "Server Header", "Server Version", "HTTPS Cert Chain Length", 
+    "HTTPS Probably Missing Intermediate Cert", "Notes",
     "Unknown Error",
 ]
 
