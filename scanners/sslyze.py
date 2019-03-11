@@ -325,7 +325,7 @@ def run_sslyze(data, environment, options):
 
     if reneg:
         analyze_reneg(data, reneg)
-    
+
     return data
 
 
@@ -625,10 +625,10 @@ def scan_serial(scanner, server_info, data, options):
             logging.debug("{}: Exception during {} scan: {}".format(server_info.hostname, scan_type, err))
             errors = errors + 1
         return result, errors
-            
+
     logging.debug("\tRunning scans in serial.")
     sslv2, errors = run_scan("SSLv2", Sslv20ScanCommand(), errors)
-    sslv3, errors = run_scan("SSLv3", Sslv30ScanCommand(), errors)    
+    sslv3, errors = run_scan("SSLv3", Sslv30ScanCommand(), errors)
     tlsv1, errors = run_scan("TLSv1.0", Tlsv10ScanCommand(), errors)
     tlsv1_1, errors = run_scan("TLSv1.1", Tlsv11ScanCommand(), errors)
     tlsv1_2, errors = run_scan("TLSv1.2", Tlsv12ScanCommand(), errors)
