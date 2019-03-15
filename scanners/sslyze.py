@@ -39,6 +39,9 @@ network_timeout = 5
 # Advertise Lambda support
 lambda_support = True
 
+# File with custom root and intermediate certs that should be trusted for 
+# verifying the cert chain
+CA_FILE = None
 
 # If we have pshtt data, use it to skip some domains, and to adjust
 # scan hostnames to canonical URLs where we can.
@@ -580,9 +583,11 @@ def supported_protocol(result):
 
 # SSlyze initialization boilerplate
 def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
-    global network_timeout
+    global network_timeout, CA_FILE
 
     network_timeout = int(options.get("network_timeout", network_timeout))
+    if options.get('ca_file'):
+        CA_FILE = options['ca_file']
 
     tls_wrapped_protocol = TlsWrappedProtocolEnum.PLAIN_TLS
     if starttls_smtp:
@@ -638,7 +643,7 @@ def scan_serial(scanner, server_info, data, options):
     if errors < 2 and options.get("sslyze_certs", True) is True:
         try:
             logging.debug("\t\tCertificate information scan.")
-            certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
+            certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand(ca_file=CA_FILE))
         except idna.core.InvalidCodepoint:
             logging.warning(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
