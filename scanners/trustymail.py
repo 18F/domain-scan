@@ -18,10 +18,6 @@ default_smtp_timeout = 5
 # These are the same default ports used in trustymail/scripts/trustymail
 default_smtp_ports = '25,465,587'
 
-# We want to enforce the use of Google DNS by default.  This gives
-# more consistent results.
-default_dns = '8.8.8.8,8.8.4.4'
-
 # Advertise lambda support
 lambda_support = True
 
@@ -42,10 +38,12 @@ def init_domain(domain, environment, options):
             int(port)
             for port in options.get('smtp_ports', default_smtp_ports).split(',')
         }
-        dns_hostnames = options.get('dns', default_dns).split(',')
-        # Note that we _do not_ use the system configuration in
-        # /etc/resolv.conf.
-        resolver = dns.resolver.Resolver(configure=False)
+        dns_hostnames = list_from_dict_key(options, 'dns')
+        resolver = dns.resolver.Resolver(configure=not dns_hostnames)
+        if dns_hostnames:
+            resolver.nameservers = dns_hostnames
+        # else: use the system configuration: `/etc/resolv.conf`
+
         # This is a setting that controls whether we retry DNS servers
         # if we receive a SERVFAIL response from them.  We set this to
         # False because, unless the reason for the SERVFAIL is truly
@@ -64,7 +62,6 @@ def init_domain(domain, environment, options):
         # http://www.dnspython.org/docs/1.14.0/dns.resolver-pysrc.html#Resolver._compute_timeout.
         resolver.timeout = float(timeout)
         resolver.lifetime = float(timeout)
-        resolver.nameservers = dns_hostnames
         # Use TCP, since we care about the content and correctness of
         # the records more than whether their records fit in a single
         # UDP packet.
@@ -131,7 +128,7 @@ def scan(domain, environment, options):
         int(port)
         for port in options.get('smtp_ports', default_smtp_ports).split(',')
     }
-    dns_hostnames = options.get('dns', default_dns).split(',')
+    dns_hostnames = list_from_dict_key(options, 'dns')
 
     # --starttls implies --mx
     if options.get('starttls', False):
@@ -311,11 +308,19 @@ headers = [
     "MX Record", "MX Record DNSSEC", "Mail Servers", "Mail Server Ports Tested",
     "Domain Supports SMTP", "Domain Supports SMTP Results",
     "Domain Supports STARTTLS", "Domain Supports STARTTLS Results",
+<<<<<<< HEAD
     "SPF Record", "SPF Record DNSSEC", "Valid SPF", "SPF Results",
     "DMARC Record", "DMARC Record DNSSEC", "Valid DMARC", "DMARC Results",
     "DMARC Record on Base Domain", "DMARC Record on Base Domain DNSSEC",
     "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain", 
     "DMARC Policy", "DMARC Subdomain Policy", "DMARC Policy Percentage",
+=======
+    "SPF Record", "Valid SPF", "SPF Results",
+    "DMARC Record", "Valid DMARC", "DMARC Results",
+    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain",
+    "DMARC Results on Base Domain", "DMARC Policy", "DMARC Subdomain Policy",
+    "DMARC Policy Percentage",
+>>>>>>> 07be17980d3ffa12794b9fefd7011e2a4b083279
     "DMARC Aggregate Report URIs", "DMARC Forensic Report URIs",
     "DMARC Has Aggregate Report URI", "DMARC Has Forensic Report URI",
     "DMARC Reporting Address Acceptance Error",

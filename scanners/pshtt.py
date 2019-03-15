@@ -130,10 +130,10 @@ headers = [
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preload Pending", "HSTS Preloaded",
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
-    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", 
+    "Domain Enforces HTTPS", "Domain Uses Strong HSTS",
     "HTTPS Live", "HTTPS Full Connection", "HTTPS Client Auth Required",
     "HTTPS Publicly Trusted", "HTTPS Custom Truststore Trusted",
-    "IP", "Server Header", "Server Version", "HTTPS Cert Chain Length", 
+    "IP", "Server Header", "Server Version", "HTTPS Cert Chain Length",
     "HTTPS Probably Missing Intermediate Cert", "Notes",
     "Unknown Error",
 ]
