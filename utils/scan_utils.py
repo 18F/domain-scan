@@ -452,7 +452,7 @@ def build_scan_options_parser() -> ArgumentParser:
     parser.add_argument("--sslyze-reneg",
                         help="sslyze: If set, will use the SessionRenegotiationScanner and return session renegotiation info. Defaults to true.")
     # trustymail:
-    parser.add_argument("--starttls", action='store_true', help="".join([
+    parser.add_argument("--starttls", help="".join([
         "trustymail: Only check mx records and STARTTLS support.  ",
         "(Implies --mx.)"
     ]))
@@ -486,13 +486,13 @@ def build_scan_options_parser() -> ArgumentParser:
         "may results in slower scans due to testing the ",
         "same mail servers multiple times."
     ]))
-    parser.add_argument("--mx", action='store_true', help="".join([
+    parser.add_argument("--mx", help="".join([
         "trustymail: Only check MX records"
     ]))
-    parser.add_argument("--spf", action='store_true', help="".join([
+    parser.add_argument("--spf", help="".join([
         "trustymail: Only check SPF records"
     ]))
-    parser.add_argument("--dmarc", action='store_true', help="".join([
+    parser.add_argument("--dmarc", help="".join([
         "trustymail: Only check DMARC records"
     ]))
 
