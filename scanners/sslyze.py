@@ -39,9 +39,10 @@ network_timeout = 5
 # Advertise Lambda support
 lambda_support = True
 
-# File with custom root and intermediate certs that should be trusted for 
-# verifying the cert chain
+# File with custom root and intermediate certs that should be trusted
+# for verifying the cert chain
 CA_FILE = None
+
 
 # If we have pshtt data, use it to skip some domains, and to adjust
 # scan hostnames to canonical URLs where we can.
