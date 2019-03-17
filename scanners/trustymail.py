@@ -308,19 +308,11 @@ headers = [
     "MX Record", "MX Record DNSSEC", "Mail Servers", "Mail Server Ports Tested",
     "Domain Supports SMTP", "Domain Supports SMTP Results",
     "Domain Supports STARTTLS", "Domain Supports STARTTLS Results",
-<<<<<<< HEAD
     "SPF Record", "SPF Record DNSSEC", "Valid SPF", "SPF Results",
     "DMARC Record", "DMARC Record DNSSEC", "Valid DMARC", "DMARC Results",
     "DMARC Record on Base Domain", "DMARC Record on Base Domain DNSSEC",
-    "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain", 
+    "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain",
     "DMARC Policy", "DMARC Subdomain Policy", "DMARC Policy Percentage",
-=======
-    "SPF Record", "Valid SPF", "SPF Results",
-    "DMARC Record", "Valid DMARC", "DMARC Results",
-    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain",
-    "DMARC Results on Base Domain", "DMARC Policy", "DMARC Subdomain Policy",
-    "DMARC Policy Percentage",
->>>>>>> 07be17980d3ffa12794b9fefd7011e2a4b083279
     "DMARC Aggregate Report URIs", "DMARC Forensic Report URIs",
     "DMARC Has Aggregate Report URI", "DMARC Has Forensic Report URI",
     "DMARC Reporting Address Acceptance Error",
