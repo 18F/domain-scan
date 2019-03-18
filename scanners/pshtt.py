@@ -110,12 +110,6 @@ def to_rows(data):
     row = []
     for field in headers:
         value = data[field]
-
-        # TODO: Fix this upstream
-        if (field != "HSTS Header") and (field != "HSTS Max Age") and (field != "Redirect To"):
-            if value is None:
-                value = False
-
         row.append(value)
 
     return [row]
