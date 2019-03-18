@@ -178,6 +178,10 @@ def test_determine_scan_workers(scanner, options, w_default, w_max, expected):
                 "no_fast_cache": False,
                 "serial": False,
                 "sort": False,
+                "dmarc": False,
+                "mx": False,
+                "starttls": False,
+                "spf": False,
                 "output": "./",
                 "_": {
                     "cache_dir": "./cache",
@@ -201,6 +205,10 @@ def test_determine_scan_workers(scanner, options, w_default, w_max, expected):
                 "no_fast_cache": False,
                 "serial": False,
                 "sort": False,
+                "dmarc": False,
+                "mx": False,
+                "starttls": False,
+                "spf": False,
                 "output": "./",
                 "_": {
                     "cache_dir": "./cache",
