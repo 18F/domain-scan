@@ -13,6 +13,7 @@
 ###
 
 import logging
+import datetime
 from typing import Any
 
 from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerConnectivityError
@@ -20,6 +21,7 @@ from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
 from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+from sslyze.plugins.session_renegotiation_plugin import SessionRenegotiationScanCommand
 from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
 import idna
@@ -36,6 +38,10 @@ network_timeout = 5
 
 # Advertise Lambda support
 lambda_support = True
+
+# File with custom root and intermediate certs that should be trusted
+# for verifying the cert chain
+CA_FILE = None
 
 
 # If we have pshtt data, use it to skip some domains, and to adjust
@@ -225,6 +231,19 @@ def to_rows(data):
 
             row['certs'].get('is_symantec_cert'),
             row['certs'].get('symantec_distrust_date'),
+
+            row['config'].get('any_export'),
+            row['config'].get('any_NULL'),
+            row['config'].get('any_MD5'),
+            row['config'].get('any_less_than_128_bits'),
+
+            row['config'].get('insecure_renegotiation'),
+
+            row['certs'].get('certificate_less_than_2048'),
+            row['certs'].get('md5_signed_certificate'),
+            row['certs'].get('sha1_signed_certificate'),
+            row['certs'].get('expired_certificate'),
+
             str.join(', ', row.get('ciphers', [])),
 
             row.get('errors')
@@ -254,6 +273,13 @@ headers = [
     "EV Trusted OIDs", "EV Trusted Browsers",
 
     "Is Symantec Cert", "Symantec Distrust Date",
+
+    "Any Export", "Any NULL", "Any MD5", "Any Less Than 128 Bits",
+    "Insecure Renegotiation",
+    "Certificate Less Than 2048",
+    "MD5 Signed Certificate", "SHA-1 Signed Certificate",
+    "Expired Certificate",
+
     "Accepted Ciphers",
 
     "Errors"
@@ -289,9 +315,9 @@ def run_sslyze(data, environment, options):
 
     # Whether sync or concurrent, get responses for all scans.
     if sync:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs = scan_serial(scanner, server_info, data, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs, reneg = scan_serial(scanner, server_info, data, options)
     else:
-        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs = scan_parallel(scanner, server_info, data, options)
+        sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs, reneg = scan_parallel(scanner, server_info, data, options)
 
     # Only analyze protocols if all the scanners functioned.
     # Very difficult to draw conclusions if some worked and some did not.
@@ -300,6 +326,9 @@ def run_sslyze(data, environment, options):
 
     if certs:
         data['certs'] = analyze_certs(certs)
+
+    if reneg:
+        analyze_reneg(data, reneg)
 
     return data
 
@@ -333,6 +362,10 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
         all_rc4 = True
         all_dhe = True
         any_3des = False
+        any_export = False
+        any_NULL = False
+        any_MD5 = False
+        any_less_than_128_bits = False
 
         for cipher in accepted_ciphers:
             name = cipher.openssl_name
@@ -349,11 +382,29 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
             else:
                 all_dhe = False
 
+            if ("EXPORT" in name):
+                any_export = True
+
+            if ("NULL" in name):
+                any_NULL = True
+
+            if ("MD5" in name):
+                any_MD5 = True
+
+            parts = name.split('_')
+            for p in parts:
+                if (p.isdigit()) and (int(p) < 128):
+                    any_less_than_128_bits = True
+
         data['config']['any_rc4'] = any_rc4
         data['config']['all_rc4'] = all_rc4
         data['config']['any_dhe'] = any_dhe
         data['config']['all_dhe'] = all_dhe
         data['config']['any_3des'] = any_3des
+        data['config']['any_export'] = any_export
+        data['config']['any_NULL'] = any_NULL
+        data['config']['any_MD5'] = any_MD5
+        data['config']['any_less_than_128_bits'] = any_less_than_128_bits
 
 
 def analyze_certs(certs):
@@ -391,6 +442,11 @@ def analyze_certs(certs):
     else:
         data['certs']['key_length'] = None
 
+    if(data['certs']['key_length'] < 2048):
+        data['certs']['certificate_less_than_2048'] = True
+    else:
+        data['certs']['certificate_less_than_2048'] = False
+
     if isinstance(leaf_key, rsa.RSAPublicKey):
         leaf_key_type = "RSA"
     elif isinstance(leaf_key, dsa.DSAPublicKey):
@@ -405,9 +461,25 @@ def analyze_certs(certs):
     # Signature of the leaf certificate only.
     data['certs']['leaf_signature'] = leaf.signature_hash_algorithm.name
 
+    if(leaf.signature_hash_algorithm.name == "MD5"):
+        data['certs']['md5_signed_certificate'] = True
+    else:
+        data['certs']['md5_signed_certificate'] = False
+
+    if(leaf.signature_hash_algorithm.name == "SHA1"):
+        data['certs']['sha1_signed_certificate'] = True
+    else:
+        data['certs']['sha1_signed_certificate'] = False
+
     # Beginning and expiration dates of the leaf certificate
     data['certs']['not_before'] = leaf.not_valid_before
     data['certs']['not_after'] = leaf.not_valid_after
+
+    now = datetime.datetime.now()
+    if (now < leaf.not_valid_before) or (now > leaf.not_valid_after):
+        data['certs']['expired_certificate'] = True
+    else:
+        data['certs']['expired_certificate'] = False
 
     any_sha1_served = False
     for cert in served_chain:
@@ -497,6 +569,14 @@ def cert_issuer_name(parsed):
     return attrs[0].value
 
 
+# Analyze the results of a renegotiation test
+def analyze_reneg(data, reneg):
+    if (reneg.accepts_client_renegotiation is True) and (reneg.supports_secure_renegotiation is False):
+        data['config']['insecure_renegotiation'] = True
+    else:
+        data['config']['insecure_renegotiation'] = False
+
+
 # Given CipherSuiteScanResult, whether the protocol is supported
 def supported_protocol(result):
     return (len(result.accepted_cipher_list) > 0)
@@ -504,9 +584,11 @@ def supported_protocol(result):
 
 # SSlyze initialization boilerplate
 def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
-    global network_timeout
+    global network_timeout, CA_FILE
 
     network_timeout = int(options.get("network_timeout", network_timeout))
+    if options.get('ca_file'):
+        CA_FILE = options['ca_file']
 
     tls_wrapped_protocol = TlsWrappedProtocolEnum.PLAIN_TLS
     if starttls_smtp:
@@ -535,38 +617,53 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
 # Run each scan in-process, one at a time.
 # Takes longer, but no multi-process funny business.
 def scan_serial(scanner, server_info, data, options):
+    errors = 0
+
+    def run_scan(scan_type, command, errors):
+        if(errors >= 2):
+            return None, errors
+        logging.debug("\t\t{} scan.".format(scan_type))
+        result = None
+        try:
+            result = scanner.run_scan_command(server_info, command)
+        except Exception as err:
+            logging.warning("{}: Error during {} scan.".format(server_info.hostname, scan_type))
+            logging.debug("{}: Exception during {} scan: {}".format(server_info.hostname, scan_type, err))
+            errors = errors + 1
+        return result, errors
 
     logging.debug("\tRunning scans in serial.")
-    logging.debug("\t\tSSLv2 scan.")
-    sslv2 = scanner.run_scan_command(server_info, Sslv20ScanCommand())
-    logging.debug("\t\tSSLv3 scan.")
-    sslv3 = scanner.run_scan_command(server_info, Sslv30ScanCommand())
-    logging.debug("\t\tTLSv1.0 scan.")
-    tlsv1 = scanner.run_scan_command(server_info, Tlsv10ScanCommand())
-    logging.debug("\t\tTLSv1.1 scan.")
-    tlsv1_1 = scanner.run_scan_command(server_info, Tlsv11ScanCommand())
-    logging.debug("\t\tTLSv1.2 scan.")
-    tlsv1_2 = scanner.run_scan_command(server_info, Tlsv12ScanCommand())
-    logging.debug("\t\tTLSv1.3 scan.")
-    tlsv1_3 = scanner.run_scan_command(server_info, Tlsv13ScanCommand())
+    sslv2, errors = run_scan("SSLv2", Sslv20ScanCommand(), errors)
+    sslv3, errors = run_scan("SSLv3", Sslv30ScanCommand(), errors)
+    tlsv1, errors = run_scan("TLSv1.0", Tlsv10ScanCommand(), errors)
+    tlsv1_1, errors = run_scan("TLSv1.1", Tlsv11ScanCommand(), errors)
+    tlsv1_2, errors = run_scan("TLSv1.2", Tlsv12ScanCommand(), errors)
+    tlsv1_3, errors = run_scan("TLSv1.3", Tlsv13ScanCommand(), errors)
 
     certs = None
-    if options.get("sslyze_certs", True) is True:
-
+    if errors < 2 and options.get("sslyze_certs", True) is True:
         try:
             logging.debug("\t\tCertificate information scan.")
-            certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand())
-        # Let generic exceptions bubble up.
+            certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand(ca_file=CA_FILE))
         except idna.core.InvalidCodepoint:
             logging.warning(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
             certs = None
+        except Exception as err:
+            logging.warning("{}: Error during certificate information scan.".format(server_info.hostname))
+            logging.debug("{}: Exception during certificate information scan: {}".format(server_info.hostname, err))
     else:
         certs = None
 
+    reneg = None
+    if options.get("sslyze_reneg", True) is True:
+        reneg, errors = run_scan("Renegotiation", SessionRenegotiationScanCommand(), errors)
+    else:
+        reneg = None
+
     logging.debug("\tDone scanning.")
 
-    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs
+    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs, reneg
 
 
 # Run each scan in parallel, using multi-processing.
@@ -589,7 +686,7 @@ def scan_parallel(scanner, server_info, data, options):
             return None, None, None, None, None, None, None
 
     # Initialize commands and result containers
-    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs = None, None, None, None, None, None
+    sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs, reneg = None, None, None, None, None, None, None, None
 
     # Queue them all up
     queue(Sslv20ScanCommand())
@@ -600,6 +697,9 @@ def scan_parallel(scanner, server_info, data, options):
     queue(Tlsv13ScanCommand())
 
     if options.get("sslyze-certs", True) is True:
+        queue(CertificateInfoScanCommand())
+
+    if options.get("sslyze-reneg", True) is True:
         queue(CertificateInfoScanCommand())
 
     # Reassign them back to predictable places after they're all done
@@ -626,6 +726,8 @@ def scan_parallel(scanner, server_info, data, options):
                 tlsv1_3 = result
             elif type(result.scan_command) == CertificateInfoScanCommand:
                 certs = result
+            elif type(result.scan_command) == SessionRenegotiationScanCommand:
+                reneg = result
             else:
                 error = "Couldn't match scan result with command! %s" % result
                 logging.warning("\t%s" % error)
@@ -640,11 +742,11 @@ def scan_parallel(scanner, server_info, data, options):
 
     # There was an error during async processing.
     if was_error:
-        return None, None, None, None, None, None, None
+        return None, None, None, None, None, None, None, None
 
     logging.debug("\tDone scanning.")
 
-    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs
+    return sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, tlsv1_3, certs, reneg
 
 
 # EV Guidelines OID

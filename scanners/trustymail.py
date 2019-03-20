@@ -305,15 +305,16 @@ def to_rows(data):
 
 headers = [
     "Live",
-    "MX Record", "Mail Servers", "Mail Server Ports Tested",
+    "MX Record", "MX Record DNSSEC", "Mail Servers", "Mail Server Ports Tested",
     "Domain Supports SMTP", "Domain Supports SMTP Results",
     "Domain Supports STARTTLS", "Domain Supports STARTTLS Results",
-    "SPF Record", "Valid SPF", "SPF Results",
-    "DMARC Record", "Valid DMARC", "DMARC Results",
-    "DMARC Record on Base Domain", "Valid DMARC Record on Base Domain",
-    "DMARC Results on Base Domain", "DMARC Policy", "DMARC Subdomain Policy",
-    "DMARC Policy Percentage",
+    "SPF Record", "SPF Record DNSSEC", "Valid SPF", "SPF Results",
+    "DMARC Record", "DMARC Record DNSSEC", "Valid DMARC", "DMARC Results",
+    "DMARC Record on Base Domain", "DMARC Record on Base Domain DNSSEC",
+    "Valid DMARC Record on Base Domain", "DMARC Results on Base Domain",
+    "DMARC Policy", "DMARC Subdomain Policy", "DMARC Policy Percentage",
     "DMARC Aggregate Report URIs", "DMARC Forensic Report URIs",
     "DMARC Has Aggregate Report URI", "DMARC Has Forensic Report URI",
+    "DMARC Reporting Address Acceptance Error",
     "Syntax Errors", "Debug Info"
 ]

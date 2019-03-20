@@ -10,7 +10,7 @@ from utils import utils
 # Measure a site's HTTP behavior using DHS NCATS' pshtt tool.
 
 # Network timeout for each internal pshtt HTTP request.
-pshtt_timeout = 20
+pshtt_timeout = 5
 
 # Default to a custom user agent that can be overridden via an environment
 # variable
@@ -92,7 +92,9 @@ def scan(domain, environment, options):
         {
             'timeout': pshtt_timeout,
             'user_agent': user_agent,
-            'debug': options.get("debug", False)
+            'debug': options.get("debug", False),
+            'ca_file': options.get("ca_file"),
+            'pt_int_ca_file': options.get("pt_int_ca_file")
         }
     )
 
@@ -108,26 +110,26 @@ def to_rows(data):
     row = []
     for field in headers:
         value = data[field]
-
-        # TODO: Fix this upstream
-        if (field != "HSTS Header") and (field != "HSTS Max Age") and (field != "Redirect To"):
-            if value is None:
-                value = False
-
         row.append(value)
 
     return [row]
 
 
 headers = [
-    "Canonical URL", "Live", "Redirect", "Redirect To",
+    "Canonical URL", "Live",
+    "Redirect", "Redirect To",
     "Valid HTTPS", "Defaults to HTTPS", "Downgrades HTTPS",
     "Strictly Forces HTTPS", "HTTPS Bad Chain", "HTTPS Bad Hostname",
     "HTTPS Expired Cert", "HTTPS Self Signed Cert",
     "HSTS", "HSTS Header", "HSTS Max Age", "HSTS Entire Domain",
     "HSTS Preload Ready", "HSTS Preload Pending", "HSTS Preloaded",
     "Base Domain HSTS Preloaded", "Domain Supports HTTPS",
-    "Domain Enforces HTTPS", "Domain Uses Strong HSTS", "Unknown Error",
+    "Domain Enforces HTTPS", "Domain Uses Strong HSTS",
+    "HTTPS Live", "HTTPS Full Connection", "HTTPS Client Auth Required",
+    "HTTPS Publicly Trusted", "HTTPS Custom Truststore Trusted",
+    "IP", "Server Header", "Server Version", "HTTPS Cert Chain Length",
+    "HTTPS Probably Missing Intermediate Cert", "Notes",
+    "Unknown Error",
 ]
 
 

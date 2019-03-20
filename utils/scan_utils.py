@@ -435,16 +435,24 @@ def build_scan_options_parser() -> ArgumentParser:
     # a11y:
     parser.add_argument("--a11y-config",
                         help="a11y: Location of pa11y config file (used with a11y scanner.")
-
     parser.add_argument("--a11y-redirects",
                         help="a11y: Location of YAML file with redirects to inform the a11y scanner.")
+
+    # pshtt:
+    parser.add_argument("--ca_file",
+                        help="ca_file: Location of PEM file of trust store to verify certs with.")
+    parser.add_argument("--pt_int_ca_file",
+                        help="pt_int_ca_file: Location of PEM file of public trust store with any needed intermediate certificates to verify certs with.")
+
     # sslyze:
     parser.add_argument("--sslyze-serial",
                         help="sslyze: If set, will use a synchronous (single-threaded in-process) scanner. Defaults to true.")
     parser.add_argument("--sslyze-certs",
                         help="sslyze: If set, will use the CertificateInfoScanner and return certificate info. Defaults to true.")
+    parser.add_argument("--sslyze-reneg",
+                        help="sslyze: If set, will use the SessionRenegotiationScanner and return session renegotiation info. Defaults to true.")
     # trustymail:
-    parser.add_argument("--starttls", help="".join([
+    parser.add_argument("--starttls", action='store_true', help="".join([
         "trustymail: Only check mx records and STARTTLS support.  ",
         "(Implies --mx.)"
     ]))
@@ -478,13 +486,13 @@ def build_scan_options_parser() -> ArgumentParser:
         "may results in slower scans due to testing the ",
         "same mail servers multiple times."
     ]))
-    parser.add_argument("--mx", help="".join([
+    parser.add_argument("--mx", action='store_true', help="".join([
         "trustymail: Only check MX records"
     ]))
-    parser.add_argument("--spf", help="".join([
+    parser.add_argument("--spf", action='store_true', help="".join([
         "trustymail: Only check SPF records"
     ]))
-    parser.add_argument("--dmarc", help="".join([
+    parser.add_argument("--dmarc", action='store_true', help="".join([
         "trustymail: Only check DMARC records"
     ]))
 
@@ -667,7 +675,7 @@ def _df_path(arg: Path, domain_suffix: Union[str, None]=None) -> Iterable[str]:
     if arg.suffix == ".csv":
         with arg.open(encoding='utf-8', newline='') as csvfile:
             for row in csv.reader(csvfile):
-                if (not row[0]) or (row[0].lower() == "domain") or (row[0].lower() == "domain name"):
+                if (not row) or (not row[0]) or (row[0].lower() == "domain") or (row[0].lower() == "domain name"):
                     continue
                 domain = row[0].lower()
                 if domain_suffix:

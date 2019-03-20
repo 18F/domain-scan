@@ -553,7 +553,9 @@ def domain_doesnt_support_https(domain, cache_dir="./cache"):
     httpswww = inspection.get("endpoints").get("httpswww")
 
     def endpoint_used(endpoint):
-        return endpoint.get("live") and (not endpoint.get("https_bad_hostname"))
+        # commented out next line to remove bad hostname check so we can still get info about weak crypto even if the cert doesn't match
+        # return endpoint.get("live") and (not endpoint.get("https_bad_hostname"))
+        return endpoint.get("live")
 
     return (not (endpoint_used(https) or endpoint_used(httpswww)))
 
