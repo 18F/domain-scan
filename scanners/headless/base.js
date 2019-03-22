@@ -2,7 +2,6 @@
 
 
 var scan = async function (domain, environment, options, getBrowser, scanner, callback) {
-
   const browser = await getBrowser();
 
   const page = await browser.newPage();
@@ -13,7 +12,7 @@ var scan = async function (domain, environment, options, getBrowser, scanner, ca
     data = await scanner.scan(domain, environment, options, browser, page);
   } catch (exc) {
     await browser.close();
-    return callback(exc)
+    return callback(exc);
   }
 
   await browser.close();
@@ -22,4 +21,4 @@ var scan = async function (domain, environment, options, getBrowser, scanner, ca
   return callback(null, data);
 };
 
-module.exports = {scan: scan}
+module.exports = {scan: scan};

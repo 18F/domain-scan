@@ -20,7 +20,7 @@ exports.handler = (event, context, callback) => {
   console.log(event);
 
   // TODO: error handling around these.
-  var base = require("./scanners/headless/base")
+  var base = require("./scanners/headless/base");
   var scanner = require("./scanners/" + name);
 
   base.scan(
@@ -126,7 +126,7 @@ var getBrowser = (() => {
         // dumpio: true
       });
 
-      var version = await browser.version()
+      var version = await browser.version();
       console.log("Launched: " + version);
     }
     return browser;
