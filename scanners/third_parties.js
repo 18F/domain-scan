@@ -63,7 +63,7 @@ module.exports = {
 
     return data;
   }
-}
+};
 
 var processUrl = (href, sourceHref, data) => {
   if (debug) console.log("URI: " + href);
@@ -88,11 +88,11 @@ var processUrl = (href, sourceHref, data) => {
   // Isolate the hostname with or without a www prefix,
   // and treat them effectively as the same hostname.
   if (url.hostname.startsWith("www.")) {
-    www_host = url.hostname
-    root_host = www_host.replace(/^www\./, "")
+    www_host = url.hostname;
+    root_host = www_host.replace(/^www\./, "");
   } else {
-    www_host = "www." + url.hostname
-    root_host = url.hostname
+    www_host = "www." + url.hostname;
+    root_host = url.hostname;
   }
 
   var base_host = baseDomainFor(root_host);
@@ -167,7 +167,7 @@ var processUrl = (href, sourceHref, data) => {
       ) {
 
         if (!data.known_services.includes(name))
-          data.known_services.push(name)
+          data.known_services.push(name);
 
         known = true;
         break;

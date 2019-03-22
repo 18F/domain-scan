@@ -152,7 +152,7 @@ def build_gather_options_parser(services):
     :rtype: ArgumentParser
     """
     usage_message = "".join([
-        "%(prog)s GATHERERS --suffix [SUFFIX] "
+        "%(prog)s GATHERERS --suffix [SUFFIX] ",
         "--[GATHERER] [GATHERER OPTIONS] [options] ",
         "(GATHERERS and SUFFIX are comma-separated lists)\n",
         "For example:\n",

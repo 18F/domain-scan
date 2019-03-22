@@ -478,7 +478,7 @@ def build_scan_options_parser() -> ArgumentParser:
         "value --dns-hostnames='8.8.8.8,8.8.4.4'.  By ",
         "default the DNS configuration of the host OS ",
         "(/etc/resolv.conf) is used.  Note that ",
-        "the host's DNS configuration is not used at all "
+        "the host's DNS configuration is not used at all ",
         "if this option is used."
     ]))
     parser.add_argument("--no-smtp-cache", help="".join([
