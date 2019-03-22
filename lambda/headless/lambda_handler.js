@@ -23,7 +23,7 @@ exports.handler = (event, context, callback) => {
   var base = require("./scanners/headless/base")
   var scanner = require("./scanners/" + name);
 
-  var data = base.scan(
+  base.scan(
     domain, environment, options,
     getBrowser, scanner,
     function(err, data) {
