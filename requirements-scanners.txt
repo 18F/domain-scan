@@ -2,13 +2,13 @@
 # Requirements used by specific scanners.
 
 # pshtt
-pshtt>=0.6.1
+pshtt>=0.6.2
 
 # trustymail
-trustymail>=0.7.0
+trustymail>=0.7.1
 
 # sslyze
-sslyze>=2.0.1
+sslyze>=2.0.6
 
 # a11y / csp
 pyyaml
