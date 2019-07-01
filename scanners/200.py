@@ -55,7 +55,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             logging.debug("could not get data from %s%s", domain, page)
             results[page] = "query failed"
 
-    logging.warning("Complete!")
+    logging.warning("%s Complete!", domain)
 
     return results
 
