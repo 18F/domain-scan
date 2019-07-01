@@ -1,6 +1,4 @@
 import logging
-from typing import Tuple
-from utils.scan_utils import ArgumentParser, make_values_single
 import requests
 
 ###
@@ -9,8 +7,8 @@ import requests
 
 
 # Set a default number of workers for a particular scan type.
-# Overridden by a --workers flag.
-workers = 2
+# Overridden by a --workers flag. XXX not actually overridden?
+workers = 50
 
 
 # This is the list of pages that we will be checking.
@@ -50,8 +48,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # Perform the "task".
     for page in environment['pages']:
-        response = requests.head("http://" + domain + page, allow_redirects=True)
-        results[page] = str(response.status_code)
+        try:
+            response = requests.head("http://" + domain + page, allow_redirects=True, timeout=4)
+            results[page] = str(response.status_code)
+        except:
+            logging.debug("could not get data from %s%s", domain, page)
+            results[page] = "query failed"
 
     logging.warning("Complete!")
 
@@ -72,4 +74,3 @@ def to_rows(data):
 
 # CSV headers for each row of data. Referenced locally.
 headers = pages
-
