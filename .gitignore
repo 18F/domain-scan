@@ -28,6 +28,7 @@ __pycache__
 scripts/pulse-results/*.json
 .DS_Store
 venv
+env
 build/
 dist/
 dist_back/

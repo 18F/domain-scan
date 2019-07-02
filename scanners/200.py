@@ -65,11 +65,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 # Run locally.
 def to_rows(data):
     row = []
-    # XXX This is commented out because somehow the CSV writer throws an exception,
-    # XXX and this scanner is only going to be used to generate json.
-    # for page in headers:
-    #     row.append(data[page])
-    return row
+    for page in headers:
+        row.extend([data[page]])
+    return [row]
 
 
 # CSV headers for each row of data. Referenced locally.
