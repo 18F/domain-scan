@@ -80,6 +80,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if res:
             results["merriweather_detected"] = len(res)
 
+        # check for PublicSans font in CSS files
+        res = re.findall(r'[Pp]ublic ?[Ss]ans', cssbody)
+        if res:
+            results["publicsans_detected"] = len(res)
+
         # check for uswds string in CSS files
         res = re.findall(r'uswds', cssbody)
         if res:
@@ -129,5 +134,6 @@ headers = [
     "sourcesans_detected",
     "uswdsincss_detected",
     "merriweather_detected",
+    "publicsans_detected",
     "total_score"
 ]
