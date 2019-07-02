@@ -1,6 +1,7 @@
 import logging
 import requests
 import re
+from lxml import html
 
 ###
 # Scanner to search for uswds compliance.  It is just scraping the front page
@@ -52,6 +53,35 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if res:
         results["usa_detected"] = len(res)
 
+    # check for favicon-57.png (flag) in text anywhere
+    res = re.findall(r'favicon-57.png', body)
+    if res:
+        results["flag_detected"] = len(res)
+
+    # check for things in CSS files
+    tree = html.fromstring(response.content)
+    csspages = tree.xpath('/html/head/link[@rel="stylesheet"]/@href')
+    for csspage in csspages:
+        url = "https://" + domain + csspage
+        try:
+            cssresponse = requests.get(url, timeout=5)
+        except:
+            logging.debug("got error while querying for css page %s", url)
+            continue
+        cssbody = cssresponse.text
+
+        # check for Source Sans font in CSS files
+        res = re.findall(r'[sS]ource ?[Ss]ans', cssbody)
+        if res:
+            results["sourcesans_detected"] = len(res)
+
+        # check for uswds string in CSS files
+        res = re.findall(r'uswds', cssbody)
+        if res:
+            results["uswdsincss_detected"] = len(res)
+
+
+
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
     score = 0
@@ -86,5 +116,8 @@ headers = [
     "official_website_detected",
     "uswds_detected",
     "usa_detected",
+    "flag_detected",
+    "sourcesans_detected",
+    "uswdsincss_detected",
     "total_score"
 ]

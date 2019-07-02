@@ -12,3 +12,6 @@ sslyze>=2.0.6
 
 # a11y / csp
 pyyaml
+
+# uswds2
+lxml
