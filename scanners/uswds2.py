@@ -80,8 +80,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if res:
             results["uswdsincss_detected"] = len(res)
 
-
-
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
     score = 0
