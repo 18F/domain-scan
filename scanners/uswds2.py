@@ -52,6 +52,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         results["usa_detected"] = len(res)
 
     # generate a final score
+    # The quick-n-dirty score is to add up all the number of things we found.
     score = 0
     for i in results.keys():
         score += results[i]
@@ -60,7 +61,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # add the status code
     results["status_code"] = response.status_code
 
-    logging.warning("%s Complete!", domain)
+    logging.warning("uswds2 %s Complete!", domain)
 
     return results
 
