@@ -26,6 +26,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         response = requests.get("http://" + domain, timeout=5)
     except:
         logging.debug("got error while querying %s", domain)
+        results["domain"] = domain
         results["status_code"] = "error"
         return results
 
@@ -58,8 +59,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         score += results[i]
     results["total_score"] = score
 
-    # add the status code
+    # add the status code and domain
     results["status_code"] = response.status_code
+    results["domain"] = domain
 
     logging.warning("uswds2 %s Complete!", domain)
 
@@ -78,6 +80,7 @@ def to_rows(data):
 
 # CSV headers for each row of data. Referenced locally.
 headers = [
+    "domain",
     "status_code",
     "usa_classes_detected",
     "official_website_detected",
