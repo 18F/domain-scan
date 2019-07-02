@@ -80,6 +80,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if res:
             results["uswdsincss_detected"] = len(res)
 
+        # check for favicon-57.png (flag) in css anywhere
+        res = re.findall(r'favicon-57.png', cssbody)
+        if res:
+            results["flagincss_detected"] = len(res)
+
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
     score = 0
@@ -117,5 +122,6 @@ headers = [
     "flag_detected",
     "sourcesans_detected",
     "uswdsincss_detected",
+    "flagincss_detected",
     "total_score"
 ]
