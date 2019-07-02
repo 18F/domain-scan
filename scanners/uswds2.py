@@ -38,10 +38,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if res:
         results["usa_classes_detected"] = len(res)
 
-    # check for official text
-    res = re.findall(r'Official website of the U.S. Government', body)
-    if res:
-        results["official_website_detected"] = len(res)
+    # # check for official text
+    # # (testing revealed that this generated FPs)
+    # res = re.findall(r'fficial website of the', body)
+    # if res:
+    #     results["official_website_detected"] = len(res)
 
     # check for uswds in text anywhere
     res = re.findall(r'uswds', body)
@@ -73,27 +74,38 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # check for Source Sans font in CSS files
         res = re.findall(r'[sS]ource ?[Ss]ans', cssbody)
         if res:
-            results["sourcesans_detected"] = len(res)
+            results["sourcesansfont_detected"] += len(res)
 
         # check for Merriweather font in CSS files
         res = re.findall(r'[Mm]erriweather', cssbody)
         if res:
-            results["merriweather_detected"] = len(res)
+            results["merriweatherfont_detected"] += len(res)
 
         # check for PublicSans font in CSS files
         res = re.findall(r'[Pp]ublic ?[Ss]ans', cssbody)
         if res:
-            results["publicsans_detected"] = len(res)
+            results["publicsansfont_detected"] += len(res)
 
         # check for uswds string in CSS files
         res = re.findall(r'uswds', cssbody)
         if res:
-            results["uswdsincss_detected"] = len(res)
+            results["uswdsincss_detected"] += len(res)
 
-        # check for favicon-57.png (flag) in css anywhere
+        # check for favicon-57.png (flag) in css
         res = re.findall(r'favicon-57.png', cssbody)
         if res:
-            results["flagincss_detected"] = len(res)
+            results["flagincss_detected"] += len(res)
+
+        # # check for standard USWDS 1.x colors in css
+        # # (testing showed that this did not detect more, and it also caused FPs)
+        # res = re.findall(r'#0071bc|#205493|#112e51|#212121|#323a45|#aeb0b5', cssbody)
+        # if res:
+        #     results["stdcolors_detected"] += len(res)
+
+        # check for grid-col or grid-row in css
+        res = re.findall(r'grid-col|grid-row', cssbody)
+        if res:
+            results["grid_detected"] += len(res)
 
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
@@ -126,14 +138,16 @@ headers = [
     "domain",
     "status_code",
     "usa_classes_detected",
-    "official_website_detected",
+    # "official_website_detected",
     "uswds_detected",
     "usa_detected",
     "flag_detected",
     "flagincss_detected",
-    "sourcesans_detected",
+    "sourcesansfont_detected",
     "uswdsincss_detected",
-    "merriweather_detected",
-    "publicsans_detected",
+    "merriweatherfont_detected",
+    "publicsansfont_detected",
+    # "stdcolors_detected",
+    "grid_detected",
     "total_score"
 ]
