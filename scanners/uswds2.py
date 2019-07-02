@@ -5,7 +5,7 @@ from lxml import html
 
 ###
 # Scanner to search for uswds compliance.  It is just scraping the front page
-# and searching for particular content.
+# and CSS files and searching for particular content.
 
 
 # Set a default number of workers for a particular scan type.
@@ -38,7 +38,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if res:
         results["usa_classes_detected"] = len(res)
 
-    # check for "Federal government websites always use a .gov or .mil domain"
+    # check for official text
     res = re.findall(r'Official website of the U.S. Government', body)
     if res:
         results["official_website_detected"] = len(res)
@@ -52,11 +52,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     res = re.findall(r'usa-', body)
     if res:
         results["usa_detected"] = len(res)
-
-    # check for favicon-57.png (flag) in text anywhere
-    res = re.findall(r'favicon-57.png', body)
-    if res:
-        results["flag_detected"] = len(res)
 
     # check for things in CSS files
     tree = html.fromstring(response.content)
@@ -75,6 +70,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if res:
             results["sourcesans_detected"] = len(res)
 
+        # check for Merriweather font in CSS files
+        res = re.findall(r'[Mm]erriweather', cssbody)
+        if res:
+            results["merriweather_detected"] = len(res)
+
         # check for uswds string in CSS files
         res = re.findall(r'uswds', cssbody)
         if res:
@@ -83,7 +83,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # check for favicon-57.png (flag) in css anywhere
         res = re.findall(r'favicon-57.png', cssbody)
         if res:
-            results["flagincss_detected"] = len(res)
+            results["flag_detected"] = len(res)
 
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
@@ -122,6 +122,6 @@ headers = [
     "flag_detected",
     "sourcesans_detected",
     "uswdsincss_detected",
-    "flagincss_detected",
+    "merriweather_detected",
     "total_score"
 ]
