@@ -49,8 +49,8 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if res:
         results["uswds_detected"] = len(res)
 
-    # check for usa- in text anywhere
-    res = re.findall(r'usa-', body)
+    # check for .usa- in text anywhere
+    res = re.findall(r'\.usa-', body)
     if res:
         results["usa_detected"] = len(res)
 
