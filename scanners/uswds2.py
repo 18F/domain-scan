@@ -53,6 +53,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if res:
         results["usa_detected"] = len(res)
 
+    # check for favicon-57.png (flag) in text anywhere
+    res = re.findall(r'favicon-57.png', body)
+    if res:
+        results["flag_detected"] = len(res)
+
     # check for things in CSS files
     tree = html.fromstring(response.content)
     csspages = tree.xpath('/html/head/link[@rel="stylesheet"]/@href')
@@ -83,7 +88,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # check for favicon-57.png (flag) in css anywhere
         res = re.findall(r'favicon-57.png', cssbody)
         if res:
-            results["flag_detected"] = len(res)
+            results["flagincss_detected"] = len(res)
 
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
@@ -120,6 +125,7 @@ headers = [
     "uswds_detected",
     "usa_detected",
     "flag_detected",
+    "flagincss_detected",
     "sourcesans_detected",
     "uswdsincss_detected",
     "merriweather_detected",
