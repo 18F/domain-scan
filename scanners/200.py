@@ -53,7 +53,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             results[page] = str(response.status_code)
         except:
             logging.debug("could not get data from %s%s", domain, page)
-            results[page] = "query failed"
+            results[page] = -1
 
     logging.warning("200 %s Complete!", domain)
 

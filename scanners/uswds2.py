@@ -28,7 +28,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     except:
         logging.debug("got error while querying %s", domain)
         results["domain"] = domain
-        results["status_code"] = "error"
+        results["status_code"] = -1
         return results
 
     body = response.text
