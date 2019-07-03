@@ -40,6 +40,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # # check for official text
     # # (testing revealed that this generated FPs)
+    # # XXX Try this in the header only?
     # res = re.findall(r'fficial website of the', body)
     # if res:
     #     results["official_website_detected"] = len(res)
@@ -91,6 +92,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if res:
             results["uswdsincss_detected"] += len(res)
 
+        # check for uswds version in CSS files
+        res = re.findall(r'uswds v[0-9.]* ', cssbody)
+        if res:
+            vstuff = res[0].split(' ')
+            results["uswdsversion"] = vstuff[1]
+
         # check for favicon-57.png (flag) in css
         res = re.findall(r'favicon-57.png', cssbody)
         if res:
@@ -111,12 +118,15 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # The quick-n-dirty score is to add up all the number of things we found.
     score = 0
     for i in results.keys():
-        score += results[i]
+        if isinstance(results[i], int):
+            score += results[i]
     results["total_score"] = score
 
     # add the status code and domain
     results["status_code"] = response.status_code
     results["domain"] = domain
+    if results["uswdsversion"] == 0:
+        results["uswdsversion"] = ""
 
     logging.warning("uswds2 %s Complete!", domain)
 
@@ -149,5 +159,6 @@ headers = [
     "publicsansfont_detected",
     # "stdcolors_detected",
     "grid_detected",
+    "uswdsversion",
     "total_score"
 ]
