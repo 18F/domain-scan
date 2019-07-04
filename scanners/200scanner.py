@@ -16,7 +16,8 @@ pages = [
     "/",
     "/code.json",
     "/data.json",
-    "/data",
+    # Yes, there needs to be a space at the end here.  ES seems to not be able to index this otherwise.
+    "/data ",
     "/developer",
     "/digitalstrategy/",
     "/open",
