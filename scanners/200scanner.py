@@ -14,15 +14,15 @@ workers = 50
 # This is the list of pages that we will be checking.
 pages = [
     "/",
-    "/code.json",
-    "/data.json",
-    "/data",
-    "/developer",
-    "/digitalstrategy/",
-    "/open",
-    "/privacy",
-    "/robots.txt",
-    "/sitemap.xml"
+    "code.json",
+    "data.json",
+    "data",
+    "developer",
+    "digitalstrategy/",
+    "open",
+    "privacy",
+    "robots.txt",
+    "sitemap.xml"
 ]
 
 
@@ -49,10 +49,14 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # Perform the "task".
     for page in environment['pages']:
         try:
-            response = requests.head("http://" + domain + page, allow_redirects=True, timeout=4)
+            if page != '/':
+                prettypage = '/' + page
+            else:
+                prettypage = '/'
+            response = requests.head("http://" + domain + prettypage, allow_redirects=True, timeout=4)
             results[page] = str(response.status_code)
         except:
-            logging.debug("could not get data from %s%s", domain, page)
+            logging.debug("could not get data from %s/%s", domain, page)
             results[page] = -1
 
     logging.warning("200 %s Complete!", domain)
