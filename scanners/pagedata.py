@@ -53,7 +53,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         try:
             response = requests.get("https://" + domain + page, allow_redirects=True, timeout=60)
             try:
-                if re.match(r'\.json$', page):
+                if re.search(r'\.json$', page):
                     # This might be heavyweight if there is json and it is big
                     results[page]['opendata_conforms_to'] = str(response.json()['conformsTo'])
                 else:
