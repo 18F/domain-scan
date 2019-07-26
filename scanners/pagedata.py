@@ -37,6 +37,15 @@ def init(environment: dict, options: dict) -> dict:
     return {'pages': pages}
 
 
+# to count elements
+def num_elements(x):
+    if isinstance(x, dict):
+        return sum([num_elements(_x) for _x in x.values()])
+    elif isinstance(x, list):
+        return sum([num_elements(_x) for _x in x])
+    else: return 1
+
+
 # Required scan function. This is the meat of the scanner, where things
 # that use the network or are otherwise expensive would go.
 #
@@ -50,38 +59,57 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     for page in environment['pages']:
         results[page] = {}
 
+        # try the query and store the responsecode
         try:
             response = requests.get("https://" + domain + page, allow_redirects=True, timeout=60)
-            try:
-                if re.search(r'\.json$', page):
-                    # This might be heavyweight if there is json and it is big
-                    results[page]['opendata_conforms_to'] = str(response.json()['conformsTo'])
-                else:
-                    results[page]['opendata_conforms_to'] = ''
-            except:
-                results[page]['opendata_conforms_to'] = ''
-
-            try:
-                results[page]['content_type'] = str(response.headers['Content-Type'])
-            except:
-                results[page]['content_type'] = ''
-
-            try:
-                results[page]['content_length'] = str(response.headers['Content-Length'])
-            except:
-                results[page]['content_length'] = ''
-
-            results[page]['final_url'] = response.url
             results[page]['responsecode'] = response.status_code            
         except:
             logging.debug("could not get data from %s%s", domain, page)
-            results[page] = {
-                'responsecode': str(-1),
-                'opendata_conforms_to': '',
-                'content_type': '',
-                'content_length': '',
-                'final_url': '',
-            }
+            results[page]['responsecode'] = '-1'
+
+        # if it's supposed to be json, try parsing it so we can mine it later
+        try:
+            jsondata = {}
+            if re.search(r'\.json$', page):
+                # This might be heavyweight if there is json and it is big
+                jsondata = response.json()
+        except:
+            jsondata = {}
+
+        # see if there is a 'conformsTo' field, which indicates that it might
+        # be open-data compliant.
+        try:
+            results[page]['opendata_conforms_to'] = str(jsondata['conformsTo'])
+        except:
+            results[page]['opendata_conforms_to'] = ''
+
+        # see if there is a 'measurementType' field, which indicates that it might
+        # be code.gov compliant.
+        try:
+            results[page]['codegov_measurementtype'] = str(jsondata['measurementType'])
+        except:
+            results[page]['codegov_measurementtype'] = ''
+
+        # As a catchall, indicate how many items are in the json doc
+        results[page]['json_items'] = str(num_elements(jsondata))
+
+        # Get the content-type
+        try:
+            results[page]['content_type'] = str(response.headers['Content-Type'])
+        except:
+            results[page]['content_type'] = ''
+
+        # get the content-length
+        try:
+            results[page]['content_length'] = str(response.headers['Content-Length'])
+        except:
+            results[page]['content_length'] = ''
+
+        # This is the final url that we ended up at, in case of redirects.
+        try:
+            results[page]['final_url'] = response.url
+        except:
+            results[page]['final_url'] = ''
 
     logging.warning("pagedata %s Complete!", domain)
 
