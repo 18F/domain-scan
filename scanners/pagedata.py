@@ -43,7 +43,8 @@ def num_elements(x):
         return sum([num_elements(_x) for _x in x.values()])
     elif isinstance(x, list):
         return sum([num_elements(_x) for _x in x])
-    else: return 1
+    else:
+        return 1
 
 
 # Required scan function. This is the meat of the scanner, where things
@@ -62,7 +63,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # try the query and store the responsecode
         try:
             response = requests.get("https://" + domain + page, allow_redirects=True, timeout=60)
-            results[page]['responsecode'] = response.status_code            
+            results[page]['responsecode'] = response.status_code
         except:
             logging.debug("could not get data from %s%s", domain, page)
             results[page]['responsecode'] = '-1'
