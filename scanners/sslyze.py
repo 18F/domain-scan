@@ -20,7 +20,7 @@ from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerCo
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
-from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand, _SymantecDistructTester
 from sslyze.plugins.session_renegotiation_plugin import SessionRenegotiationScanCommand
 from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
@@ -411,7 +411,7 @@ def analyze_certs(certs):
     data = {'certs': {}}
 
     # Served chain.
-    served_chain = certs.certificate_chain
+    served_chain = certs.received_certificate_chain
 
     # Constructed chain may not be there if it didn't validate.
     constructed_chain = certs.verified_certificate_chain
@@ -489,7 +489,7 @@ def analyze_certs(certs):
     data['certs']['any_sha1_served'] = any_sha1_served
 
     if data['certs'].get('constructed_issuer'):
-        data['certs']['any_sha1_constructed'] = certs.has_sha1_in_certificate_chain
+        data['certs']['any_sha1_constructed'] = certs.verified_chain_has_sha1_signature
 
     extensions = leaf.extensions
     oids = []
@@ -539,10 +539,13 @@ def analyze_certs(certs):
                     data['certs']['ev']['trusted_browsers'].append(browser)
 
     # Is this cert issued by Symantec?
-    distrust_timeline = certs.symantec_distrust_timeline
-    is_symantec_cert = (distrust_timeline is not None)
+    is_symantec_cert = certs.verified_chain_has_legacy_symantec_anchor
     data['certs']['is_symantec_cert'] = is_symantec_cert
     if is_symantec_cert:
+        # The distrust date is no longer passed down from when this
+        # test is originally run, so we have to repeat the test here
+        # to determine it.  It shouldn't get run that often.
+        distrust_timeline = _SymantecDistructTester.get_distrust_timeline(constructed_chain)
         data['certs']['symantec_distrust_date'] = distrust_timeline.name
     else:
         data['certs']['symantec_distrust_date'] = None
