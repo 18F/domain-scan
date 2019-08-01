@@ -599,11 +599,11 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
         server_info = server_tester.perform(network_timeout=network_timeout)
     except ServerConnectivityError:
-        logging.warning("\tServer connectivity not established during test.")
+        logging.exception("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
         utils.notify(err)
-        logging.warning("\tUnknown exception when performing server connectivity info.")
+        logging.exception("\tUnknown exception when performing server connectivity info.")
         return None, None
 
     if sync:
@@ -627,7 +627,7 @@ def scan_serial(scanner, server_info, data, options):
         try:
             result = scanner.run_scan_command(server_info, command)
         except Exception as err:
-            logging.warning("{}: Error during {} scan.".format(server_info.hostname, scan_type))
+            logging.exception("{}: Error during {} scan.".format(server_info.hostname, scan_type))
             logging.debug("{}: Exception during {} scan: {}".format(server_info.hostname, scan_type, err))
             errors = errors + 1
         return result, errors
@@ -646,11 +646,11 @@ def scan_serial(scanner, server_info, data, options):
             logging.debug("\t\tCertificate information scan.")
             certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand(ca_file=CA_FILE))
         except idna.core.InvalidCodepoint:
-            logging.warning(utils.format_last_exception())
+            logging.exception(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
             certs = None
         except Exception as err:
-            logging.warning("{}: Error during certificate information scan.".format(server_info.hostname))
+            logging.exception("{}: Error during certificate information scan.".format(server_info.hostname))
             logging.debug("{}: Exception during certificate information scan: {}".format(server_info.hostname, err))
     else:
         certs = None
@@ -677,12 +677,12 @@ def scan_parallel(scanner, server_info, data, options):
         except OSError:
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
-            logging.warning("%s\n%s" % (text, utils.format_last_exception()))
+            logging.exception("%s\n%s" % (text, utils.format_last_exception()))
             return None, None, None, None, None, None, None
         except Exception:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warning(text)
+            logging.exception(text)
             return None, None, None, None, None, None, None
 
     # Initialize commands and result containers
@@ -738,7 +738,7 @@ def scan_parallel(scanner, server_info, data, options):
             was_error = True
             text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warning("\t%s" % text)
+            logging.exception("\t%s" % text)
 
     # There was an error during async processing.
     if was_error:
