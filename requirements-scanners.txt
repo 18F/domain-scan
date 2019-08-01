@@ -2,7 +2,7 @@
 # Requirements used by specific scanners.
 
 # pshtt
-pshtt>=0.6.4
+pshtt>=0.6.5
 
 # trustymail
 trustymail>=0.7.5
