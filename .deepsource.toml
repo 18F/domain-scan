@@ -1,0 +1,19 @@
+version = 1
+
+test_patterns = [
+  'tests/**'
+]
+
+exclude_patterns = [
+  'docs/**',
+  'lambda/**'
+]
+
+[[analyzers]]
+  name = 'python'
+  enabled = true
+  runtime_version = '3.x.x'
+  
+  [analyzers.meta]
+    max_line_length = 100
+    skip_doc_coverage = ["module", "magic", "class"]

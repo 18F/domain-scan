@@ -61,7 +61,7 @@ class Gatherer(Gatherer):
 
         # Construct the query.
         query = query_for(self.suffixes)
-        logging.debug("Censys query:\n%s\n" % query)
+        logging.debug("Censys query:\n%s\n", query)
 
         # Plan to store in cache/censys/export.csv.
         download_path = utils.cache_path(
