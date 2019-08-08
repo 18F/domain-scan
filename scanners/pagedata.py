@@ -71,10 +71,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # if it's supposed to be json, try parsing it so we can mine it later
         try:
             jsondata = {}
-            # XXX temporary, do not parse json to try to stay under memory limits
-            # if re.search(r'\.json$', page):
-            #     # This might be heavyweight if there is json and it is big
-            #     jsondata = response.json()
+            if re.search(r'\.json$', page):
+                # This might be heavyweight if there is json and it is big
+                jsondata = response.json()
         except:
             jsondata = {}
 
