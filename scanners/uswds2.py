@@ -61,8 +61,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         results["flag_detected"] = len(res)
 
     # check for things in CSS files
-    tree = html.fromstring(response.content)
-    csspages = tree.xpath('/html/head/link[@rel="stylesheet"]/@href')
+    try:
+        tree = html.fromstring(response.content)
+        csspages = tree.xpath('/html/head/link[@rel="stylesheet"]/@href')
+    except:
+        csspages = []
+
     for csspage in csspages:
         res = re.findall(r'^http.?://', csspage, re.IGNORECASE)
         if res:
