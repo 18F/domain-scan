@@ -64,55 +64,67 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     tree = html.fromstring(response.content)
     csspages = tree.xpath('/html/head/link[@rel="stylesheet"]/@href')
     for csspage in csspages:
-        url = "https://" + domain + csspage
+        res = re.findall(r'^http.?://', csspage, re.IGNORECASE)
+        if res:
+            url = csspage
+        else:
+            url = "https://" + domain + csspage
+
         try:
-            cssresponse = requests.get(url, timeout=5)
+            cssresponse = requests.get(url, timeout=5, stream=True)
         except:
             logging.debug("got error while querying for css page %s", url)
             continue
-        cssbody = cssresponse.text
 
-        # check for Source Sans font in CSS files
-        res = re.findall(r'[sS]ource ?[Ss]ans', cssbody)
-        if res:
-            results["sourcesansfont_detected"] += len(res)
+        # This is to try to not run out of memory.  This provides a sliding window
+        # so that if one of the patterns spans a chunk boundary, we will not miss it.
+        lastbody = ''
+        for nextbody in cssresponse.iter_content(chunk_size=20480):
+            nextbody = str(nextbody)
+            cssbody = lastbody + nextbody
+            lastbody = nextbody
 
-        # check for Merriweather font in CSS files
-        res = re.findall(r'[Mm]erriweather', cssbody)
-        if res:
-            results["merriweatherfont_detected"] += len(res)
+            # check for Source Sans font in CSS files
+            res = re.findall(r'[sS]ource ?[Ss]ans', cssbody)
+            if res:
+                results["sourcesansfont_detected"] += len(res)
 
-        # check for PublicSans font in CSS files
-        res = re.findall(r'[Pp]ublic ?[Ss]ans', cssbody)
-        if res:
-            results["publicsansfont_detected"] += len(res)
+            # check for Merriweather font in CSS files
+            res = re.findall(r'[Mm]erriweather', cssbody)
+            if res:
+                results["merriweatherfont_detected"] += len(res)
 
-        # check for uswds string in CSS files
-        res = re.findall(r'uswds', cssbody)
-        if res:
-            results["uswdsincss_detected"] += len(res)
+            # check for PublicSans font in CSS files
+            res = re.findall(r'[Pp]ublic ?[Ss]ans', cssbody)
+            if res:
+                results["publicsansfont_detected"] += len(res)
 
-        # check for uswds version in CSS files
-        res = re.findall(r'uswds v[0-9.]* ', cssbody)
-        if res:
-            vstuff = res[0].split(' ')
-            results["uswdsversion"] = vstuff[1]
+            # check for uswds string in CSS files
+            res = re.findall(r'uswds', cssbody)
+            if res:
+                results["uswdsincss_detected"] += len(res)
 
-        # check for favicon-57.png (flag) in css
-        res = re.findall(r'favicon-57.png', cssbody)
-        if res:
-            results["flagincss_detected"] += len(res)
+            # check for uswds version in CSS files
+            res = re.findall(r'uswds v[0-9.]* ', cssbody)
+            if res:
+                vstuff = res[0].split(' ')
+                results["uswdsversion"] = vstuff[1]
 
-        # # check for standard USWDS 1.x colors in css
-        # # (testing showed that this did not detect more, and it also caused FPs)
-        # res = re.findall(r'#0071bc|#205493|#112e51|#212121|#323a45|#aeb0b5', cssbody)
-        # if res:
-        #     results["stdcolors_detected"] += len(res)
+            # check for favicon-57.png (flag) in css
+            res = re.findall(r'favicon-57.png', cssbody)
+            if res:
+                results["flagincss_detected"] += len(res)
 
-        # check for grid-col or grid-row in css
-        res = re.findall(r'grid-col|grid-row', cssbody)
-        if res:
-            results["grid_detected"] += len(res)
+            # # check for standard USWDS 1.x colors in css
+            # # (testing showed that this did not detect more, and it also caused FPs)
+            # res = re.findall(r'#0071bc|#205493|#112e51|#212121|#323a45|#aeb0b5', cssbody)
+            # if res:
+            #     results["stdcolors_detected"] += len(res)
+
+            # check for grid-col or grid-row in css
+            res = re.findall(r'grid-col|grid-row', cssbody)
+            if res:
+                results["grid_detected"] += len(res)
 
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.

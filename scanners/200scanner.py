@@ -48,12 +48,15 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # Perform the "task".
     for page in environment['pages']:
+        results[page] = {}
         try:
             response = requests.head("http://" + domain + page, allow_redirects=True, timeout=4)
-            results[page] = str(response.status_code)
+            results[page]['status_code'] = str(response.status_code)
+            results[page]['final_url'] = str(response.url)
         except:
             logging.debug("could not get data from %s%s", domain, page)
-            results[page] = -1
+            results[page]['status_code'] = str(-1)
+            results[page]['final_url'] = ''
 
     logging.warning("200 %s Complete!", domain)
 
