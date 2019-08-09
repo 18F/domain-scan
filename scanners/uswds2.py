@@ -31,32 +31,30 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         results["status_code"] = -1
         return results
 
-    body = response.text
-
     # check for class.*usa- in body
-    res = re.findall(r'class.*"usa-', body)
+    res = re.findall(r'class.*"usa-', response.text)
     if res:
         results["usa_classes_detected"] = len(res)
 
     # # check for official text
     # # (testing revealed that this generated FPs)
     # # XXX Try this in the header only?
-    # res = re.findall(r'fficial website of the', body)
+    # res = re.findall(r'fficial website of the', response.text)
     # if res:
     #     results["official_website_detected"] = len(res)
 
     # check for uswds in text anywhere
-    res = re.findall(r'uswds', body)
+    res = re.findall(r'uswds', response.text)
     if res:
         results["uswds_detected"] = len(res)
 
     # check for .usa- in text anywhere
-    res = re.findall(r'\.usa-', body)
+    res = re.findall(r'\.usa-', response.text)
     if res:
         results["usa_detected"] = len(res)
 
     # check for favicon-57.png (flag) in text anywhere
-    res = re.findall(r'favicon-57.png', body)
+    res = re.findall(r'favicon-57.png', response.text)
     if res:
         results["flag_detected"] = len(res)
 
