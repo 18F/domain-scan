@@ -17,6 +17,9 @@ pages = [
     "/code.json",
     "/data.json",
     "/data",
+    "/data/",
+    "/data.html",
+    "/data/index.html"
     "/developer",
     "/digitalstrategy/",
     "/open",
