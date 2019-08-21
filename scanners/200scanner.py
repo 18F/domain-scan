@@ -19,7 +19,7 @@ pages = [
     "/data",
     "/data/",
     "/data.html",
-    "/data/index.html"
+    "/data/index.html",
     "/developer",
     "/digitalstrategy/",
     "/open",
