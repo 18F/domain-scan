@@ -37,16 +37,6 @@ def init(environment: dict, options: dict) -> dict:
     return {'pages': pages}
 
 
-# to count elements
-def num_elements(x):
-    if isinstance(x, dict):
-        return sum([num_elements(_x) for _x in x.values()])
-    elif isinstance(x, list):
-        return sum([num_elements(_x) for _x in x])
-    else:
-        return 1
-
-
 # Required scan function. This is the meat of the scanner, where things
 # that use the network or are otherwise expensive would go.
 #
@@ -57,42 +47,23 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results = {}
 
     # Perform the "task".
-    for page in environment['pages']:
+    for page in pages:
         results[page] = {}
+        results[page]['content_type'] = ''
+        results[page]['content_length'] = 0
+        results[page]['final_url'] = ''
+        results[page]['opendata_conforms_to'] = ''
+        results[page]['codegov_measurementtype'] = ''
+        results[page]['json_items'] = 0
 
         # try the query and store the responsecode
         try:
-            response = requests.get("https://" + domain + page, allow_redirects=True, timeout=30)
+            response = requests.get("https://" + domain + page, allow_redirects=True, stream=True, timeout=10)
             results[page]['responsecode'] = response.status_code
         except:
             logging.debug("could not get data from %s%s", domain, page)
             results[page]['responsecode'] = '-1'
-
-        # if it's supposed to be json, try parsing it so we can mine it later
-        try:
-            jsondata = {}
-            if re.search(r'\.json$', page):
-                # This might be heavyweight if there is json and it is big
-                jsondata = response.json()
-        except:
-            jsondata = {}
-
-        # see if there is a 'conformsTo' field, which indicates that it might
-        # be open-data compliant.
-        try:
-            results[page]['opendata_conforms_to'] = str(jsondata['conformsTo'])
-        except:
-            results[page]['opendata_conforms_to'] = ''
-
-        # see if there is a 'measurementType' field, which indicates that it might
-        # be code.gov compliant.
-        try:
-            results[page]['codegov_measurementtype'] = str(jsondata['measurementType'])
-        except:
-            results[page]['codegov_measurementtype'] = ''
-
-        # As a catchall, indicate how many items are in the json doc
-        results[page]['json_items'] = str(num_elements(jsondata))
+            continue
 
         # Get the content-type
         try:
@@ -104,13 +75,40 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         try:
             results[page]['content_length'] = str(response.headers['Content-Length'])
         except:
-            results[page]['content_length'] = ''
+            results[page]['content_length'] = 0
 
         # This is the final url that we ended up at, in case of redirects.
         try:
             results[page]['final_url'] = response.url
         except:
             results[page]['final_url'] = ''
+
+        # This is to try to not run out of memory.  This provides a sliding window
+        # so that if one of the patterns spans a chunk boundary, we will not miss it.
+        lastbody = ''
+        try:
+            for nextbody in response.iter_content(chunk_size=20480):
+                nextbody = str(nextbody)
+                body = lastbody + nextbody
+                lastbody = nextbody
+
+                # see if there is a 'conformsTo' field, which indicates that it might
+                # be open-data compliant.
+                conformstolist = re.findall(r'"conformsTo": "(.*?)"', body)
+                results[page]['opendata_conforms_to'] = ' '.join(conformstolist)
+
+                # see if there is a 'measurementType' field, which indicates that it might
+                # be code.gov compliant.
+                measurementtypelist = re.findall(r'"measurementType": "(.*?)"', body)
+                results[page]['codegov_measurementtype'] = ' '.join(measurementtypelist)
+
+                # As a catchall, indicate how many items are in the json doc.
+                # This is really kinda ugly, because it relies on json being properly formatted
+                # and also will not count the last block of data.  But parsing json
+                # will run us out of memory.
+                results[page]['json_items'] = results[page]['json_items'] + len(re.findall(r'": "', lastbody))
+        except Exception as err:
+            logging.debug("problem iterating over response from %s: %s", domain + page, err)
 
     logging.warning("pagedata %s Complete!", domain)
 
