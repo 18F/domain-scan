@@ -2,6 +2,7 @@ import logging
 import requests
 import re
 from lxml import html
+import math
 
 ###
 # Scanner to search for uswds compliance.  It is just scraping the front page
@@ -34,7 +35,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # check for class.*usa- in body
     res = re.findall(r'class.*"usa-', response.text)
     if res:
-        results["usa_classes_detected"] = len(res)
+        results["usa_classes_detected"] = round(math.sqrt(len(res))) * 5
 
     # # check for official text
     # # (testing revealed that this generated FPs)
@@ -56,7 +57,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # check for favicon-57.png (flag) in text anywhere
     res = re.findall(r'favicon-57.png', response.text)
     if res:
-        results["flag_detected"] = len(res)
+        results["flag_detected"] = 20
+
+    # count how many tables are in the, to deduct from the score
+    res = re.findall(r'<table ', response.text)
+    if res:
+        results["tables"] = len(res) * -10
 
     # check for things in CSS files
     try:
@@ -87,35 +93,38 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             lastbody = nextbody
 
             # check for Source Sans font in CSS files
+            # This is a widely-used font that USWDS uses.
             res = re.findall(r'[sS]ource ?[Ss]ans', cssbody)
             if res:
-                results["sourcesansfont_detected"] += len(res)
+                results["sourcesansfont_detected"] = 5
 
             # check for Merriweather font in CSS files
+            # This is a widely-used font that USWDS uses.
             res = re.findall(r'[Mm]erriweather', cssbody)
             if res:
-                results["merriweatherfont_detected"] += len(res)
+                results["merriweatherfont_detected"] = 5
 
-            # check for PublicSans font in CSS files
+            # Check for Public Sans font in CSS files
+            # This is an uncommon font, created by GSA.
             res = re.findall(r'[Pp]ublic ?[Ss]ans', cssbody)
             if res:
-                results["publicsansfont_detected"] += len(res)
+                results["publicsansfont_detected"] = 20
 
             # check for uswds string in CSS files
             res = re.findall(r'uswds', cssbody)
             if res:
-                results["uswdsincss_detected"] += len(res)
+                results["uswdsincss_detected"] = 20
 
             # check for uswds version in CSS files
+            # This means that a USWDS style sheet is included, though perhaps not used.
             res = re.findall(r'uswds v[0-9.]* ', cssbody)
             if res:
-                vstuff = res[0].split(' ')
-                results["uswdsversion"] = vstuff[1]
+                results["uswdsversion"] = 20
 
             # check for favicon-57.png (flag) in css
             res = re.findall(r'favicon-57.png', cssbody)
             if res:
-                results["flagincss_detected"] += len(res)
+                results["flagincss_detected"] = 20
 
             # # check for standard USWDS 1.x colors in css
             # # (testing showed that this did not detect more, and it also caused FPs)
@@ -123,17 +132,14 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             # if res:
             #     results["stdcolors_detected"] += len(res)
 
-            # check for grid-col or grid-row in css
-            res = re.findall(r'grid-col|grid-row', cssbody)
-            if res:
-                results["grid_detected"] += len(res)
-
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
     score = 0
     for i in results.keys():
         if isinstance(results[i], int):
             score += results[i]
+    if score < 0:
+        score = 0
     results["total_score"] = score
 
     # add the status code and domain
@@ -171,8 +177,7 @@ headers = [
     "uswdsincss_detected",
     "merriweatherfont_detected",
     "publicsansfont_detected",
-    # "stdcolors_detected",
-    "grid_detected",
     "uswdsversion",
+    "tables",
     "total_score"
 ]
