@@ -1,6 +1,8 @@
 import logging
 import requests
 import re
+import ijson
+import urllib.request
 
 ###
 # Very simple scanner that gets some basic info from a list of pages on a domain.
@@ -59,6 +61,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # Perform the "task".
     for page in environment['pages']:
         results[page] = {}
+        results[page]['opendata_conforms_to'] = ''
+        results[page]['codegov_measurementtype'] = ''
+        results[page]['json_items'] = str(0)
 
         # try the query and store the responsecode
         try:
@@ -68,31 +73,29 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             logging.debug("could not get data from %s%s", domain, page)
             results[page]['responsecode'] = '-1'
 
-        # if it's supposed to be json, try parsing it so we can mine it later
-        try:
-            jsondata = {}
-            if re.search(r'\.json$', page):
-                # This might be heavyweight if there is json and it is big
-                jsondata = response.json()
-        except:
-            jsondata = {}
+        # if it's supposed to be json, try parsing it as a stream
+        if page.endswith('.json'):
+            counter = 0
+            try:
+                with urllib.request.urlopen("https://" + domain + page) as jsondata:
+                    parser = ijson.parse(jsondata)
+                    for prefix, event, value in parser:
+                        # As a catchall, indicate how many items are in the json doc
+                        if event == 'string':
+                            counter = counter + 1
 
-        # see if there is a 'conformsTo' field, which indicates that it might
-        # be open-data compliant.
-        try:
-            results[page]['opendata_conforms_to'] = str(jsondata['conformsTo'])
-        except:
-            results[page]['opendata_conforms_to'] = ''
+                        # see if there is a 'conformsTo' field, which indicates that it might
+                        # be open-data compliant.
+                        if prefix.endswith('.conformsTo'):
+                            ' '.join([value, results[page]['opendata_conforms_to']])
 
-        # see if there is a 'measurementType' field, which indicates that it might
-        # be code.gov compliant.
-        try:
-            results[page]['codegov_measurementtype'] = str(jsondata['measurementType'])
-        except:
-            results[page]['codegov_measurementtype'] = ''
-
-        # As a catchall, indicate how many items are in the json doc
-        results[page]['json_items'] = str(num_elements(jsondata))
+                        # see if there is a 'measurementType' field, which indicates that it might
+                        # be code.gov compliant.
+                        if prefix.endswith('.measurementType'):
+                            ' '.join([value, results[page]['codegov_measurementtype']])
+                    results[page]['json_items'] = str(counter)
+            except:
+                logging.debug('error parsing json for %s', "https://" + domain + page)
 
         # Get the content-type
         try:
