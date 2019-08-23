@@ -35,7 +35,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # check for class.*usa- in body
     res = re.findall(r'class.*"usa-', response.text)
     if res:
-        results["usa_classes_detected"] = round(math.sqrt(len(res)))*5
+        results["usa_classes_detected"] = round(math.sqrt(len(res))) * 5
 
     # # check for official text
     # # (testing revealed that this generated FPs)
