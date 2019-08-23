@@ -1,6 +1,5 @@
 import logging
 import requests
-import re
 import ijson
 import urllib.request
 
