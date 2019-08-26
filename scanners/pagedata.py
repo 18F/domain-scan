@@ -84,7 +84,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                         if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
                             ' '.join([value, results[page]['codegov_measurementtype']])
                     results[page]['json_items'] = str(counter)
-                    logging.debug('memory usage', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+                    logging.warning('memory usage for %s: %d', "https://" + domain + page, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
             except:
                 logging.debug('error parsing json for %s', "https://" + domain + page)
 
