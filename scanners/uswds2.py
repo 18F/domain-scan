@@ -137,7 +137,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
     for i in results.keys():
-        if isinstance(results[i], int):
+        if isinstance(results[i], int) and i != 'total_score':
             results["total_score"] += results[i]
     if results["total_score"] < 0:
         results["total_score"] = 0
