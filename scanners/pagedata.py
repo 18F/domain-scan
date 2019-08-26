@@ -62,29 +62,29 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             logging.debug("could not get data from %s%s", domain, page)
             results[page]['responsecode'] = '-1'
 
-        # # if it's supposed to be json, try parsing it as a stream
-        # if page.endswith('.json'):
-        #     counter = 0
-        #     try:
-        #         with urllib.request.urlopen("https://" + domain + page) as jsondata:
-        #             parser = ijson.parse(jsondata)
-        #             for prefix, event, value in parser:
-        #                 # As a catchall, indicate how many items are in the json doc
-        #                 if event == 'string':
-        #                     counter = counter + 1
+        # if it's supposed to be json, try parsing it as a stream
+        if page.endswith('.json'):
+            counter = 0
+            try:
+                with urllib.request.urlopen("https://" + domain + page) as jsondata:
+                    parser = ijson.parse(jsondata)
+                    for prefix, event, value in parser:
+                        # As a catchall, indicate how many items are in the json doc
+                        if event == 'string':
+                            counter = counter + 1
 
-        #                 # see if there is a 'conformsTo' field, which indicates that it might
-        #                 # be open-data compliant.
-        #                 if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
-        #                     ' '.join([value, results[page]['opendata_conforms_to']])
+                        # see if there is a 'conformsTo' field, which indicates that it might
+                        # be open-data compliant.
+                        if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
+                            ' '.join([value, results[page]['opendata_conforms_to']])
 
-        #                 # see if there is a 'measurementType' field, which indicates that it might
-        #                 # be code.gov compliant.
-        #                 if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
-        #                     ' '.join([value, results[page]['codegov_measurementtype']])
-        #             results[page]['json_items'] = str(counter)
-        #     except:
-        #         logging.debug('error parsing json for %s', "https://" + domain + page)
+                        # see if there is a 'measurementType' field, which indicates that it might
+                        # be code.gov compliant.
+                        if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
+                            ' '.join([value, results[page]['codegov_measurementtype']])
+                    results[page]['json_items'] = str(counter)
+            except:
+                logging.debug('error parsing json for %s', "https://" + domain + page)
 
         # Get the content-type
         try:
