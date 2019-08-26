@@ -58,7 +58,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
         # try the query and store the responsecode
         try:
-            response = requests.head(url, allow_redirects=True, timeout=10)
+            response = requests.head(url, allow_redirects=True, timeout=4)
             results[page]['responsecode'] = str(response.status_code)
         except:
             logging.debug("could not get data from %s%s", domain, page)
