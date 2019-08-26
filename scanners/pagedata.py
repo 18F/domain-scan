@@ -110,8 +110,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         except:
             results[page]['final_url'] = ''
 
-        # try to clean up memory
-        response.close()
         logging.debug('memory usage after page %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
     logging.debug('memory usage for pagedata %s: %d', "https://" + domain, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
