@@ -50,6 +50,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # Perform the "task".
     for page in environment['pages']:
+        url = "https://" + domain + page
         results[page] = {}
         results[page]['opendata_conforms_to'] = ''
         results[page]['codegov_measurementtype'] = ''
@@ -57,7 +58,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
         # try the query and store the responsecode
         try:
-            response = requests.get("https://" + domain + page, allow_redirects=True, timeout=10)
+            response = requests.head(url, allow_redirects=True, timeout=10)
             results[page]['responsecode'] = str(response.status_code)
         except:
             logging.debug("could not get data from %s%s", domain, page)
@@ -67,26 +68,29 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if page.endswith('.json'):
             counter = 0
             try:
-                with urllib.request.urlopen("https://" + domain + page) as jsondata:
-                    parser = ijson.parse(jsondata)
-                    for prefix, event, value in parser:
-                        # As a catchall, indicate how many items are in the json doc
-                        if event == 'string':
-                            counter = counter + 1
+                with urllib.request.urlopen(url) as jsondata:
+                    try:
+                        parser = ijson.parse(jsondata)
+                        for prefix, event, value in parser:
+                            # As a catchall, indicate how many items are in the json doc
+                            if event == 'string':
+                                counter = counter + 1
 
-                        # see if there is a 'conformsTo' field, which indicates that it might
-                        # be open-data compliant.
-                        if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
-                            ' '.join([value, results[page]['opendata_conforms_to']])
+                            # see if there is a 'conformsTo' field, which indicates that it might
+                            # be open-data compliant.
+                            if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
+                                ' '.join([value, results[page]['opendata_conforms_to']])
 
-                        # see if there is a 'measurementType' field, which indicates that it might
-                        # be code.gov compliant.
-                        if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
-                            ' '.join([value, results[page]['codegov_measurementtype']])
-                    results[page]['json_items'] = str(counter)
-                    logging.warning('memory usage after parsing json for %s: %d', "https://" + domain + page, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+                            # see if there is a 'measurementType' field, which indicates that it might
+                            # be code.gov compliant.
+                            if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
+                                ' '.join([value, results[page]['codegov_measurementtype']])
+                        results[page]['json_items'] = str(counter)
+                        logging.debug('memory usage after parsing json for %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+                    except:
+                        logging.debug('error parsing json for %s', url)
             except:
-                logging.debug('error parsing json for %s', "https://" + domain + page)
+                logging.debug('could not open %s', url)
 
         # Get the content-type
         try:
@@ -106,7 +110,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         except:
             results[page]['final_url'] = ''
 
-    logging.warning('memory usage for pagedata %s: %d', "https://" + domain + page, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        # try to clean up memory
+        response.close()
+        logging.debug('memory usage after page %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
+    logging.debug('memory usage for pagedata %s: %d', "https://" + domain, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     logging.warning("pagedata %s Complete!", domain)
 
     return results
