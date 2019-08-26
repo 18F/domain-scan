@@ -10,7 +10,7 @@ import urllib.request
 
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag. XXX not actually overridden?
-workers = 13
+workers = 20
 
 
 # This is the list of pages that we will be checking.
@@ -79,12 +79,13 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                             # see if there is a 'conformsTo' field, which indicates that it might
                             # be open-data compliant.
                             if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
-                                ' '.join([value, results[page]['opendata_conforms_to']])
+                                results[page]['opendata_conforms_to'] = ' '.join([value, results[page]['opendata_conforms_to']])
 
                             # see if there is a 'measurementType' field, which indicates that it might
                             # be code.gov compliant.
                             if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
-                                ' '.join([value, results[page]['codegov_measurementtype']])
+                                results[page]['codegov_measurementtype'] = ' '.join([value, results[page]['codegov_measurementtype']])
+
                         results[page]['json_items'] = str(counter)
                         logging.debug('memory usage after parsing json for %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
                     except:
