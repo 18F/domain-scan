@@ -119,7 +119,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             # This means that a USWDS style sheet is included, though perhaps not used.
             res = re.findall(r'uswds v[0-9.]* ', cssbody)
             if res:
-                results["uswdsversion"] = 20
+                vstuff = res[0].split(' ')
+                results["uswdsversion"] = vstuff[1]
+                results["total_score"] = results["total_score"] + 20
 
             # check for favicon-57.png (flag) in css
             res = re.findall(r'favicon-57.png', cssbody)
@@ -134,13 +136,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # generate a final score
     # The quick-n-dirty score is to add up all the number of things we found.
-    score = 0
     for i in results.keys():
         if isinstance(results[i], int):
-            score += results[i]
-    if score < 0:
-        score = 0
-    results["total_score"] = score
+            results["total_score"] += results[i]
+    if results["total_score"] < 0:
+        results["total_score"] = 0
 
     # add the status code and domain
     results["status_code"] = response.status_code
