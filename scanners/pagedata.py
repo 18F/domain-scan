@@ -38,16 +38,6 @@ def init(environment: dict, options: dict) -> dict:
     return {'pages': pages}
 
 
-# to count elements
-def num_elements(x):
-    if isinstance(x, dict):
-        return sum([num_elements(_x) for _x in x.values()])
-    elif isinstance(x, list):
-        return sum([num_elements(_x) for _x in x])
-    else:
-        return 1
-
-
 # Required scan function. This is the meat of the scanner, where things
 # that use the network or are otherwise expensive would go.
 #
@@ -85,12 +75,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
                         # see if there is a 'conformsTo' field, which indicates that it might
                         # be open-data compliant.
-                        if prefix.endswith('.conformsTo'):
+                        if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
                             ' '.join([value, results[page]['opendata_conforms_to']])
 
                         # see if there is a 'measurementType' field, which indicates that it might
                         # be code.gov compliant.
-                        if prefix.endswith('.measurementType'):
+                        if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
                             ' '.join([value, results[page]['codegov_measurementtype']])
                     results[page]['json_items'] = str(counter)
             except:
