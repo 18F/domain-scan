@@ -50,7 +50,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     for page in environment['pages']:
         results[page] = {}
         try:
-            response = requests.head("http://" + domain + page, allow_redirects=True, timeout=4)
+            response = requests.head("https://" + domain + page, allow_redirects=True, timeout=4)
             results[page] = str(response.status_code)
         except:
             logging.debug("could not get data from %s%s", domain, page)
