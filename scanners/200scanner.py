@@ -18,7 +18,7 @@ pages = [
     "/data.json",
     "/data",
     "/developer",
-    "/digitalstrategy/",
+    "/digitalstrategy",
     "/open",
     "/privacy",
     "/robots.txt",
