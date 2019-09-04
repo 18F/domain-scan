@@ -15,3 +15,6 @@ pyyaml
 
 # uswds2
 lxml
+
+# pagedata
+ijson

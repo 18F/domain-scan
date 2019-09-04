@@ -53,7 +53,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     for page in environment['pages']:
         results[page] = {}
         try:
-            response = requests.head("http://" + domain + page, allow_redirects=True, timeout=4)
+            response = requests.head("https://" + domain + page, allow_redirects=True, timeout=4)
             # results[page] = str(response.status_code)
             results[page]['status_code'] = str(response.status_code)
             results[page]['final_url'] = str(response.url)

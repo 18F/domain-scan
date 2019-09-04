@@ -1,6 +1,8 @@
 import logging
 import requests
-import re
+import ijson
+import resource
+import urllib.request
 
 ###
 # Very simple scanner that gets some basic info from a list of pages on a domain.
@@ -8,7 +10,7 @@ import re
 
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag. XXX not actually overridden?
-workers = 50
+workers = 20
 
 
 # This is the list of pages that we will be checking.
@@ -47,23 +49,49 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results = {}
 
     # Perform the "task".
-    for page in pages:
+    for page in environment['pages']:
+        url = "https://" + domain + page
         results[page] = {}
-        results[page]['content_type'] = ''
-        results[page]['content_length'] = 0
-        results[page]['final_url'] = ''
         results[page]['opendata_conforms_to'] = ''
         results[page]['codegov_measurementtype'] = ''
-        results[page]['json_items'] = 0
+        results[page]['json_items'] = str(0)
 
         # try the query and store the responsecode
         try:
-            response = requests.get("https://" + domain + page, allow_redirects=True, stream=True, timeout=10)
-            results[page]['responsecode'] = response.status_code
+            response = requests.head(url, allow_redirects=True, timeout=4)
+            results[page]['responsecode'] = str(response.status_code)
         except:
             logging.debug("could not get data from %s%s", domain, page)
             results[page]['responsecode'] = '-1'
-            continue
+
+        # if it's supposed to be json, try parsing it as a stream
+        if page.endswith('.json'):
+            counter = 0
+            try:
+                with urllib.request.urlopen(url) as jsondata:
+                    try:
+                        parser = ijson.parse(jsondata)
+                        for prefix, event, value in parser:
+                            # As a catchall, indicate how many items are in the json doc
+                            if event == 'string':
+                                counter = counter + 1
+
+                            # see if there is a 'conformsTo' field, which indicates that it might
+                            # be open-data compliant.
+                            if prefix.endswith('.conformsTo') or prefix.endswith('.conformsto'):
+                                results[page]['opendata_conforms_to'] = ' '.join([value, results[page]['opendata_conforms_to']])
+
+                            # see if there is a 'measurementType' field, which indicates that it might
+                            # be code.gov compliant.
+                            if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
+                                results[page]['codegov_measurementtype'] = ' '.join([value, results[page]['codegov_measurementtype']])
+
+                        results[page]['json_items'] = str(counter)
+                        logging.debug('memory usage after parsing json for %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+                    except:
+                        logging.debug('error parsing json for %s', url)
+            except:
+                logging.debug('could not open %s', url)
 
         # Get the content-type
         try:
@@ -83,33 +111,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         except:
             results[page]['final_url'] = ''
 
-        # This is to try to not run out of memory.  This provides a sliding window
-        # so that if one of the patterns spans a chunk boundary, we will not miss it.
-        lastbody = ''
-        try:
-            for nextbody in response.iter_content(chunk_size=20480):
-                nextbody = str(nextbody)
-                body = lastbody + nextbody
-                lastbody = nextbody
+        logging.debug('memory usage after page %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-                # see if there is a 'conformsTo' field, which indicates that it might
-                # be open-data compliant.
-                conformstolist = re.findall(r'"conformsTo": "(.*?)"', body)
-                results[page]['opendata_conforms_to'] = ' '.join(conformstolist)
-
-                # see if there is a 'measurementType' field, which indicates that it might
-                # be code.gov compliant.
-                measurementtypelist = re.findall(r'"measurementType": "(.*?)"', body)
-                results[page]['codegov_measurementtype'] = ' '.join(measurementtypelist)
-
-                # As a catchall, indicate how many items are in the json doc.
-                # This is really kinda ugly, because it relies on json being properly formatted
-                # and also will not count the last block of data.  But parsing json
-                # will run us out of memory.
-                results[page]['json_items'] = results[page]['json_items'] + len(re.findall(r'": "', lastbody))
-        except Exception as err:
-            logging.debug("problem iterating over response from %s: %s", domain + page, err)
-
+    logging.debug('memory usage for pagedata %s: %d', "https://" + domain, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     logging.warning("pagedata %s Complete!", domain)
 
     return results
