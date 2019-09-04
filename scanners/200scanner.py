@@ -21,13 +21,15 @@ pages = [
     "/data.html",
     "/data/index.html",
     "/developer",
-    "/digitalstrategy/",
+    "/digitalstrategy",
+    "/developers",
+    "/privacy-policy",
+    "/privacy-statement",
     "/open",
     "/privacy",
     "/robots.txt",
     "/sitemap.xml"
 ]
-
 
 # Optional one-time initialization for all scans.
 # If defined, any data returned will be passed to every scan instance and used
