@@ -10,7 +10,7 @@ import urllib.request
 
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag. XXX not actually overridden?
-workers = 20
+workers = 30
 
 
 # This is the list of pages that we will be checking.
@@ -20,7 +20,7 @@ pages = [
     "/data.json",
     "/data",
     "/developer",
-    "/digitalstrategy/",
+    "/digitalstrategy",
     "/open",
     "/privacy",
     "/robots.txt",
