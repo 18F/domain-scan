@@ -6,8 +6,8 @@ import requests
 from urllib.error import URLError
 
 ###
-# Very simple scanner that follows redirects for a number of pages
-# per domain to see if there is a 200 at the end or not.
+# Scan focused on learning about the sitemap.xml file, as per
+# https://github.com/18F/site-scanning/issues/87.
 
 
 # Set a default number of workers for a particular scan type.
@@ -55,7 +55,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 line = line.decode().rstrip()
                 sitemaps = re.findall('[sS]itemap: (.*)', line)
                 if sitemaps:
-                    print('line is', line)
                     results['sitemap_locations_from_robotstxt'] = list(set().union(sitemaps, results['sitemap_locations_from_robotstxt']))
     except (TimeoutError, URLError, ConnectionRefusedError):
         logging.debug('error while trying to retrieve robots.txt for %s', url)
