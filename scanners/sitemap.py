@@ -3,7 +3,6 @@ import urllib.request
 from lxml import etree
 import re
 import requests
-from urllib.error import URLError
 
 ###
 # Scan focused on learning about the sitemap.xml file, as per

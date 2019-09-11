@@ -2,8 +2,6 @@ import logging
 import urllib.request
 import re
 import requests
-import socket
-from urllib.error import URLError
 
 ###
 # Scan focused on learning about the /privacy page, as per
@@ -66,7 +64,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                     results['h1'] = mergelists(h1s, results['h1'])
                     results['h2'] = mergelists(h2s, results['h2'])
                     results['h3'] = mergelists(h3s, results['h3'])
-    except (TimeoutError, URLError, ConnectionRefusedError):
+    except:
         logging.debug('error while trying to retrieve emails from %s', url)
 
     logging.warning("sitemap %s Complete!", domain)
