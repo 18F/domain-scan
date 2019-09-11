@@ -58,7 +58,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 sitemaps = re.findall('[sS]itemap: (.*)', line)
                 if sitemaps:
                     results['sitemap_locations_from_robotstxt'] = list(set().union(sitemaps, results['sitemap_locations_from_robotstxt']))
-    except (TimeoutError, URLError, ConnectionRefusedError):
+    except:
         logging.debug('error while trying to retrieve robots.txt for %s', url)
 
     logging.warning("sitemap %s Complete!", domain)

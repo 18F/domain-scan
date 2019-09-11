@@ -48,7 +48,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 emails = re.findall('<a href="mailto:(.*?)"', line)
                 if emails:
                     results['emails'] = mergelists(emails, results['emails'])
-    except (TimeoutError, URLError, ConnectionRefusedError, socket.timeout):
+    except:
         logging.debug('error while trying to retrieve emails from %s', url)
 
     # search /privacy for H[123] tags
