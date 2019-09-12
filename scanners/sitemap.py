@@ -37,7 +37,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     url = 'https://' + domain + '/sitemap.xml'
     i = 0
     try:
-        with urllib.request.urlopen(url) as sitemap:
+        with urllib.request.urlopen(url, timeout=5) as sitemap:
             for event, element in etree.iterparse(sitemap):
                 tag = etree.QName(element.tag).localname
                 if tag == 'url':

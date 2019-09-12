@@ -68,7 +68,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if page.endswith('.json'):
             counter = 0
             try:
-                with urllib.request.urlopen(url) as jsondata:
+                with urllib.request.urlopen(url, timeout=5) as jsondata:
                     try:
                         parser = ijson.parse(jsondata)
                         for prefix, event, value in parser:
