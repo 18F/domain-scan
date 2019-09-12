@@ -27,14 +27,14 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results = {}
     url = 'https://' + domain + '/privacy'
 
-    # get statuscode for /privacy
+    # get status_code for /privacy
     try:
         response = requests.head(url, allow_redirects=True, timeout=4)
-        results['statuscode'] = str(response.status_code)
+        results['status_code'] = str(response.status_code)
         results['final_url'] = response.url
     except:
         logging.debug("could not get data from %s", url)
-        results['statuscode'] = str(-1)
+        results['status_code'] = str(-1)
         results['final_url'] = ''
 
     # search /privacy for email addresses
@@ -84,7 +84,7 @@ def to_rows(data):
 
 # CSV headers for each row of data. Referenced locally.
 headers = [
-    'statuscode',
+    'status_code',
     'final_url',
     'emails',
     'h1',

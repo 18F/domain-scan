@@ -23,14 +23,14 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     results = {}
 
-    # get statuscode and final_url for sitemap.xml
+    # get status_code and final_url for sitemap.xml
     try:
         response = requests.head("https://" + domain + '/sitemap.xml', allow_redirects=True, timeout=4)
-        results['statuscode'] = str(response.status_code)
+        results['status_code'] = str(response.status_code)
         results['final_url'] = response.url
     except:
         logging.debug("could not get data from %s/sitemap.xml", domain)
-        results['statuscode'] = str(-1)
+        results['status_code'] = str(-1)
         results['final_url'] = ''
 
     # search sitemap and count the <url> tags
@@ -77,7 +77,7 @@ def to_rows(data):
 
 # CSV headers for each row of data. Referenced locally.
 headers = [
-    'statuscode',
+    'status_code',
     'final_url',
     'url_tag_count',
     'sitemap_locations_from_robotstxt',
