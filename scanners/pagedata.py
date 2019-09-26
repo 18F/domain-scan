@@ -3,6 +3,7 @@ import requests
 import ijson
 import resource
 import urllib.request
+from urllib.parse import urlparse
 
 ###
 # Very simple scanner that gets some basic info from a list of pages on a domain.
@@ -107,7 +108,10 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
         # This is the final url that we ended up at, in case of redirects.
         try:
+            results[page]['final_url_in_same_domain'] = False
             results[page]['final_url'] = response.url
+            if urlparse(response.url).hostname.endswith(domain):
+                results[page]['final_url_in_same_domain'] = True
         except:
             results[page]['final_url'] = ''
 
