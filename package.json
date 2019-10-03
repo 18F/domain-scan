@@ -3,10 +3,16 @@
   "description": "Dependencies for building Lambda containers for headless Chrome in domain-scan.",
   "dependencies": {
     "puppeteer": "^1.0.0",
-    "tar": "^4.0.1"
+    "tar": "^4.0.1",
+    "snyk": "^1.230.5"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.6.0"
-  }
+  },
+  "scripts": {
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
+  },
+  "snyk": true
 }
