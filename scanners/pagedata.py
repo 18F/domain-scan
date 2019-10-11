@@ -25,7 +25,13 @@ pages = [
     "/open",
     "/privacy",
     "/robots.txt",
-    "/sitemap.xml"
+    "/sitemap.xml",
+    "/cj",
+    "/digitalstrategy/datacenteroptimizationstrategicplan.json",
+    "/digitalstrategy/FITARAmilestones.json",
+    "/digitalstrategy/governanceboards.json",
+    "/digitalstrategy/costsavings.json",
+    "/digitalstrategy/bureaudirectory.json",
 ]
 
 
