@@ -4,6 +4,7 @@ import ijson
 import resource
 import urllib.request
 from urllib.parse import urlparse
+import time
 
 ###
 # Very simple scanner that gets some basic info from a list of pages on a domain.
@@ -114,7 +115,14 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         try:
             results[page]['content_length'] = str(response.headers['Content-Length'])
         except:
-            results[page]['content_length'] = ''
+            # sometimes cloudfront seems to have errors or cache misses, so let's try again
+            try:
+                # sleep a bit to let it have time to cache the page
+                time.sleep(0.01)
+                newresponse = requests.head(url, allow_redirects=True, timeout=4)
+                results[page]['content_length'] = str(newresponse.headers['Content-Length'])
+            except:
+                results[page]['content_length'] = ''
 
         # This is the final url that we ended up at, in case of redirects.
         try:
