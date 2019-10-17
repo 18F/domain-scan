@@ -92,6 +92,10 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                             # be code.gov compliant.
                             if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
                                 results[page]['codegov_measurementtype'] = ' '.join([value, results[page]['codegov_measurementtype']])
+                            if prefix.endswith('measurementType.method') or prefix.endswith('measurementtype.method'):
+                                results[page]['codegov_measurementtype'] = ' '.join([value, results[page]['codegov_measurementtype']])
+                            if prefix.endswith('measurementType.ifOther') or prefix.endswith('measurementtype.ifOther'):
+                                results[page]['codegov_measurementtype'] = ' '.join([value, results[page]['codegov_measurementtype']])
 
                         results[page]['json_items'] = str(counter)
                         logging.debug('memory usage after parsing json for %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
