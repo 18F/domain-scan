@@ -89,7 +89,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                                 results[page]['opendata_conforms_to'] = ' '.join([value, results[page]['opendata_conforms_to']])
 
                             # see if there is a 'measurementType' field, which indicates that it might
-                            # be code.gov compliant.
+                            # be code.gov compliant.  Taken from https://code.gov/about/compliance/inventory-code
                             if prefix.endswith('.measurementType') or prefix.endswith('.measurementtype'):
                                 results[page]['codegov_measurementtype'] = ' '.join([value, results[page]['codegov_measurementtype']])
                             if prefix.endswith('measurementType.method') or prefix.endswith('measurementtype.method'):
