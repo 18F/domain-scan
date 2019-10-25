@@ -28,7 +28,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     try:
         response = requests.get("https://" + domain, timeout=5)
         results["status_code"] = response.status_code
-    except:
+    except Exception:
         logging.debug("got error while querying %s", domain)
         results["status_code"] = -1
         return results
@@ -55,7 +55,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                         results["dap_detected"] = True
                         u = urllib.parse.urlparse(s['src'])
                         results['dap_parameters'] = urllib.parse.parse_qs(u.query)
-                except:
+                except Exception:
                     logging.debug("could not download", s['src'], 'for domain', domain)
 
     logging.warning("DAP %s Complete!", domain)

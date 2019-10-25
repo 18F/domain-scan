@@ -28,7 +28,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         response = requests.head("https://" + domain + '/sitemap.xml', allow_redirects=True, timeout=4)
         results['status_code'] = str(response.status_code)
         results['final_url'] = response.url
-    except:
+    except Exception:
         logging.debug("could not get data from %s/sitemap.xml", domain)
         results['status_code'] = str(-1)
         results['final_url'] = ''
@@ -38,12 +38,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     i = 0
     try:
         with urllib.request.urlopen(url, timeout=5) as sitemap:
-            for event, element in etree.iterparse(sitemap):
+            for _, element in etree.iterparse(sitemap):
                 tag = etree.QName(element.tag).localname
                 if tag == 'url':
                     i = i + 1
                 element.clear()
-    except:
+    except Exception:
         logging.debug('error while trying to retrieve sitemap.xml')
     results['url_tag_count'] = i
 
@@ -52,12 +52,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results['sitemap_locations_from_robotstxt'] = []
     try:
         with urllib.request.urlopen(url, timeout=5) as robots:
-            for count, line in enumerate(robots):
+            for _, line in enumerate(robots):
                 line = line.decode().rstrip()
                 sitemaps = re.findall('[sS]itemap: (.*)', line)
                 if sitemaps:
                     results['sitemap_locations_from_robotstxt'] = list(set().union(sitemaps, results['sitemap_locations_from_robotstxt']))
-    except:
+    except Exception:
         logging.debug('error while trying to retrieve robots.txt for %s', url)
 
     logging.warning("sitemap %s Complete!", domain)

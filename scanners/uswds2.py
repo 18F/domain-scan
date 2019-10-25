@@ -26,7 +26,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # Get the url
     try:
         response = requests.get("http://" + domain, timeout=5)
-    except:
+    except Exception:
         logging.debug("got error while querying %s", domain)
         results["domain"] = domain
         results["status_code"] = -1
@@ -68,7 +68,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     try:
         tree = html.fromstring(response.content)
         csspages = tree.xpath('/html/head/link[@rel="stylesheet"]/@href')
-    except:
+    except Exception:
         csspages = []
 
     for csspage in csspages:
@@ -80,7 +80,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
         try:
             cssresponse = requests.get(url, timeout=5, stream=True)
-        except:
+        except Exception:
             logging.debug("got error while querying for css page %s", url)
             continue
 

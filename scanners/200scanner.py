@@ -58,7 +58,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         try:
             response = requests.head("https://" + domain + page, allow_redirects=True, timeout=4)
             results[page] = str(response.status_code)
-        except:
+        except Exception:
             logging.debug("could not get data from %s%s", domain, page)
             results[page] = str(-1)
 

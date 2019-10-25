@@ -32,7 +32,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         response = requests.head(url, allow_redirects=True, timeout=4)
         results['status_code'] = str(response.status_code)
         results['final_url'] = response.url
-    except:
+    except Exception:
         logging.debug("could not get data from %s", url)
         results['status_code'] = str(-1)
         results['final_url'] = ''
@@ -41,12 +41,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results['emails'] = []
     try:
         with urllib.request.urlopen(url, timeout=5) as privacypage:
-            for count, line in enumerate(privacypage):
+            for _, line in enumerate(privacypage):
                 line = line.decode().rstrip()
                 emails = re.findall('<a href="mailto:(.*?)"', line)
                 if emails:
                     results['emails'] = mergelists(emails, results['emails'])
-    except:
+    except Exception:
         logging.debug('error while trying to retrieve emails from %s', url)
 
     # search /privacy for H[123] tags
@@ -55,7 +55,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results['h3'] = []
     try:
         with urllib.request.urlopen(url, timeout=5) as privacypage:
-            for count, line in enumerate(privacypage):
+            for _, line in enumerate(privacypage):
                 line = line.decode().rstrip()
                 h1s = re.findall('<h1>(.*)</h1>', line)
                 h2s = re.findall('<h2>(.*)</h2>', line)
@@ -64,7 +64,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                     results['h1'] = mergelists(h1s, results['h1'])
                     results['h2'] = mergelists(h2s, results['h2'])
                     results['h3'] = mergelists(h3s, results['h3'])
-    except:
+    except Exception:
         logging.debug('error while trying to retrieve emails from %s', url)
 
     logging.warning("sitemap %s Complete!", domain)

@@ -68,7 +68,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         try:
             response = requests.head(url, allow_redirects=True, timeout=4)
             results[page]['responsecode'] = str(response.status_code)
-        except:
+        except Exception:
             logging.debug("could not get data from %s%s", domain, page)
             results[page]['responsecode'] = '-1'
 
@@ -100,28 +100,28 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
                         results[page]['json_items'] = str(counter)
                         logging.debug('memory usage after parsing json for %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-                    except:
+                    except Exception:
                         logging.debug('error parsing json for %s', url)
-            except:
+            except Exception:
                 logging.debug('could not open %s', url)
 
         # Get the content-type
         try:
             results[page]['content_type'] = str(response.headers['Content-Type'])
-        except:
+        except Exception:
             results[page]['content_type'] = ''
 
         # get the content-length
         try:
             results[page]['content_length'] = str(response.headers['Content-Length'])
-        except:
+        except Exception:
             # sometimes cloudfront seems to have errors or cache misses, so let's try again
             try:
                 # sleep a bit to let it have time to cache the page
                 time.sleep(0.01)
                 newresponse = requests.head(url, allow_redirects=True, timeout=4)
                 results[page]['content_length'] = str(newresponse.headers['Content-Length'])
-            except:
+            except Exception:
                 results[page]['content_length'] = ''
 
         # This is the final url that we ended up at, in case of redirects.
@@ -130,7 +130,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             results[page]['final_url'] = response.url
             if urlparse(response.url).hostname.endswith(domain):
                 results[page]['final_url_in_same_domain'] = True
-        except:
+        except Exception:
             results[page]['final_url'] = ''
 
         logging.debug('memory usage after page %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
