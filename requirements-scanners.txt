@@ -21,3 +21,7 @@ ijson
 
 # DAP
 beautifulsoup4
+
+# headless
+publicsuffix
+strict_rfc3339

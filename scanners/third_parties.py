@@ -36,7 +36,7 @@ def init_domain(domain, environment, options):
 
         # Otherwise, well, whatever.
         else:
-            url = 'http://' + domain
+            url = 'https://' + domain
     else:
         url = domain
 
