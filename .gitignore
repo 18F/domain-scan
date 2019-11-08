@@ -6,7 +6,6 @@
 *.txt
 
 /lambda/headless/build
-package-lock.json
 node_modules
 
 /cache
