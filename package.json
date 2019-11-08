@@ -2,11 +2,7 @@
   "name": "domain-scan-headless-lambda",
   "description": "Dependencies for building Lambda containers for headless Chrome in domain-scan.",
   "dependencies": {
-    "puppeteer": "^1.0.0",
-    "tar": "^4.0.1"
-  },
-  "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.6.0"
+    "puppeteer": "^2.0.0",
+    "tar": "^5.0.5"
   }
 }
