@@ -50,13 +50,17 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 # slurp the js down and check for UA-33523145-1, which is supposedly an ID that
                 # will never change.
                 try:
-                    jsresponse = requests.get(s['src'], timeout=5)
+                    if s['src'].startswith('http'):
+                        jsurl = s['src']
+                    else:
+                        jsurl = 'https://' + domain + s['src']
+                    jsresponse = requests.get(jsurl, timeout=5)
                     if re.findall(r'UA-33523145-1', jsresponse.text):
                         results["dap_detected"] = True
-                        u = urllib.parse.urlparse(s['src'])
+                        u = urllib.parse.urlparse(jsurl)
                         results['dap_parameters'] = urllib.parse.parse_qs(u.query)
                 except Exception:
-                    logging.debug("could not download", s['src'], 'for domain', domain)
+                    logging.debug("could not download", jsurl, 'for domain', domain)
 
     logging.warning("DAP %s Complete!", domain)
 
