@@ -22,6 +22,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results = {}
     results["domain"] = domain
     results["dap_detected"] = False
+    results['dap_traces'] = False
     results['dap_parameters'] = {}
 
     # Get the url
@@ -61,6 +62,20 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                         results['dap_parameters'] = urllib.parse.parse_qs(u.query)
                 except Exception:
                     logging.debug("could not download", jsurl, 'for domain', domain)
+        if results['dap_detected'] is not True:
+            # check for things that look like analytics stuff
+            # This is to try to handle the case like hud.gov, which currently
+            # has a script that dynamically appends the nonstandard-named
+            # locally hosted DAP js on the end of the file.  Ugh.
+            fedanalytics = re.findall(r'Federated-Analytics', response.text)
+            scriptid = re.findall(r'_fed_an_ua_tag', response.text)
+            if fedanalytics and scriptid:
+                # kinda pretty sure there's dap here
+                results['dap_detected'] = True
+                results['dap_traces'] = True
+            elif fedanalytics or scriptid:
+                # maybe?
+                results['dap_traces'] = True
 
     logging.warning("DAP %s Complete!", domain)
 
