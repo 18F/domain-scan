@@ -35,10 +35,10 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         return results
 
     # check for DAP url
-    res = re.findall(r'https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js', response.text)
+    res = re.findall(r'dap.digitalgov.gov/Universal-Federated-Analytics-Min.js', response.text)
     if res:
         results["dap_detected"] = True
-        res = re.findall(r'"(https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?.*?)"', response.text)
+        res = re.findall(r'(dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?.*?)"', response.text)
         for i in res:
             u = urllib.parse.urlparse(i)
             results['dap_parameters'] = urllib.parse.parse_qs(u.query)
@@ -62,6 +62,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                         results['dap_parameters'] = urllib.parse.parse_qs(u.query)
                 except Exception:
                     logging.debug("could not download", jsurl, 'for domain', domain)
+
+        # check for the DAP ID
+        if re.findall(r'UA-33523145-1', response.text):
+            results['dap_detected'] = True
+
         if results['dap_detected'] is not True:
             # check for things that look like analytics stuff
             # This is to try to handle the case like hud.gov, which currently
