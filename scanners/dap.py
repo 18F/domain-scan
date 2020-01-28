@@ -1,95 +1,29 @@
-import logging
-import requests
-import re
-import urllib.parse
-from bs4 import BeautifulSoup
+# Evaluate DAP participation using Chrome headless.
 
-###
-# Scanner to search for DAP.  It scrapes the front page and
-# searches for the DAP js url and extracts parameters too.
+# Can also be run in Lambda.
+lambda_support = True
 
-
-# Set a default number of workers for a particular scan type.
-# Overridden by a --workers flag. XXX not actually overridden?
-workers = 50
+# Signal that this is a JS-based scan using headless Chrome.
+# The scan method will be defined in third_parties.js instead.
+scan_headless = True
 
 
-# Required scan function. This is the meat of the scanner, where things
-# that use the network or are otherwise expensive would go.
-#
-# Runs locally or in the cloud (Lambda).
-def scan(domain: str, environment: dict, options: dict) -> dict:
-    results = {}
-    results["domain"] = domain
-    results["dap_detected"] = False
-    results['dap_traces'] = False
-    results['dap_parameters'] = {}
-
-    # Get the url
-    try:
-        response = requests.get("https://" + domain, timeout=5)
-        results["status_code"] = response.status_code
-    except Exception:
-        logging.debug("got error while querying %s", domain)
-        results["status_code"] = -1
-        return results
-
-    # check for DAP url
-    res = re.findall(r'dap.digitalgov.gov/Universal-Federated-Analytics-Min.js', response.text)
-    if res:
-        results["dap_detected"] = True
-        res = re.findall(r'(dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?.*?)"', response.text)
-        for i in res:
-            u = urllib.parse.urlparse(i)
-            results['dap_parameters'] = urllib.parse.parse_qs(u.query)
+# make sure we have the domain/url stuff set up properly
+def init_domain(domain, environment, options):
+    # To scan, we need a URL, not just a domain.
+    url = None
+    if not (domain.startswith('http://') or domain.startswith('https://')):
+        url = 'https://' + domain
     else:
-        # search for DAP in included js
-        soup = BeautifulSoup(response.text, features="lxml")
-        scripts = soup.find_all('script')
-        for s in scripts:
-            if s.has_attr('src'):
-                # slurp the js down and check for UA-33523145-1, which is supposedly an ID that
-                # will never change.
-                try:
-                    if s['src'].startswith('http'):
-                        jsurl = s['src']
-                    else:
-                        jsurl = 'https://' + domain + s['src']
-                    jsresponse = requests.get(jsurl, timeout=5)
-                    if re.findall(r'UA-33523145-1', jsresponse.text):
-                        results["dap_detected"] = True
-                        u = urllib.parse.urlparse(jsurl)
-                        results['dap_parameters'] = urllib.parse.parse_qs(u.query)
-                except Exception:
-                    logging.debug("could not download", jsurl, 'for domain', domain)
+        url = domain
 
-        # check for the DAP ID
-        if re.findall(r'UA-33523145-1', response.text):
-            results['dap_detected'] = True
+    # Standardize by ending with a /.
+    url = url + "/"
 
-        if results['dap_detected'] is not True:
-            # check for things that look like analytics stuff
-            # This is to try to handle the case like hud.gov, which currently
-            # has a script that dynamically appends the nonstandard-named
-            # locally hosted DAP js on the end of the file.  Ugh.
-            fedanalytics = re.findall(r'Federated-Analytics', response.text)
-            scriptid = re.findall(r'_fed_an_ua_tag', response.text)
-            if fedanalytics and scriptid:
-                # kinda pretty sure there's dap here
-                results['dap_detected'] = True
-                results['dap_traces'] = True
-            elif fedanalytics or scriptid:
-                # maybe?
-                results['dap_traces'] = True
-
-    logging.warning("DAP %s Complete!", domain)
-
-    return results
+    return {'url': url}
 
 
-# Required CSV row conversion function. Usually one row, can be more.
-#
-# Run locally.
+# Gets the return value of scan(), convert to a CSV row.
 def to_rows(data):
     row = []
     for i in headers:
