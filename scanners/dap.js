@@ -24,7 +24,7 @@ module.exports = {
       domain: domain,
       status_code: -1,
       dap_detected: false,
-      dap_parameters: []
+      dap_parameters: ""
     };
 
     // Trap each outgoing HTTP request to see if we are submitting DAP data.
@@ -33,8 +33,12 @@ module.exports = {
       // the POST data will contain the UA identifier, so this canonically
       // determines whether it is doing DAP or not!
       if (request.method() === "POST") {
-        if (request.postData().includes('UA-33523145-1')) {
-          data.dap_detected = true;
+        try {
+          if (request.postData().includes('UA-33523145-1')) {
+            data.dap_detected = true;
+          }
+        } catch (err) {
+          // there is no postdata, which is fine.
         }
       }
 
