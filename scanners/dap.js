@@ -30,16 +30,19 @@ module.exports = {
     // Trap each outgoing HTTP request to see if we are submitting DAP data.
     page.on('request', (request) => {
       // When the browser is doing the request to the DAP analytics service,
-      // the POST data will contain the UA identifier, so this canonically
+      // the POST data and/or URL will contain the UA identifier, so this canonically
       // determines whether it is doing DAP or not!
-      if (request.method() === "POST") {
-        try {
-          if (request.postData().includes('UA-33523145-1')) {
-            data.dap_detected = true;
-          }
-        } catch (err) {
-          // there is no postdata, which is fine.
+      const requesturl = request.url();
+      if (requesturl.includes('UA-33523145-1')) {
+        data.dap_detected = true;
+      }
+      try {
+        const postdata = request.postData();
+        if (postdata.includes('UA-33523145-1')) {
+          data.dap_detected = true;
         }
+      } catch (err) {
+        // there is no postdata, which is fine.
       }
 
       // get the dap_parameters from the query to dap.digitalgov.gov
