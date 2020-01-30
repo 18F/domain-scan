@@ -5,6 +5,7 @@ import resource
 import urllib.request
 from urllib.parse import urlparse
 import time
+import re
 
 ###
 # Very simple scanner that gets some basic info from a list of pages on a domain.
@@ -132,6 +133,33 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 results[page]['final_url_in_same_domain'] = True
         except Exception:
             results[page]['final_url'] = ''
+
+        # get the page if it's the /data page so that we can scrape it
+        if page == '/data':
+            try:
+                response = requests.get(url, allow_redirects=True, timeout=5)
+
+                # check for "chief data officer"
+                try:
+                    res = re.findall(r'chief data officer', response.text, flags=re.IGNORECASE)
+                    if res:
+                        results[page]['contains_chiefdataofficer'] = True
+                    else:
+                        results[page]['contains_chiefdataofficer'] = False
+                except Exception:
+                    results[page]['contains_chiefdataofficer'] = False
+
+                # check for "Charter"
+                try:
+                    res = re.findall(r'Charter', response.text, flags=re.IGNORECASE)
+                    if res:
+                        results[page]['contains_charter'] = True
+                    else:
+                        results[page]['contains_charter'] = False
+                except Exception:
+                    results[page]['contains_charter'] = False
+            except Exception:
+                logging.debug("got error while scraping %s", domain)
 
         logging.debug('memory usage after page %s: %d', url, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
