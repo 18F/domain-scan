@@ -120,7 +120,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             res = re.findall(r'uswds v[0-9.]* ', cssbody)
             if res:
                 vstuff = res[0].split(' ')
-                results["uswdsversion"] = vstuff[1]
+                results["uswdsversion"] = str(vstuff[1])
                 results["total_score"] = results["total_score"] + 20
 
             # check for favicon-57.png (flag) in css
@@ -145,7 +145,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # add the status code and domain
     results["status_code"] = response.status_code
     results["domain"] = domain
-    if results["uswdsversion"] == 0:
+    if results["uswdsversion"] == '0' or results["uswdsversion"] == 0:
         results["uswdsversion"] = ""
 
     logging.warning("uswds2 %s Complete!", domain)
