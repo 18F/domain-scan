@@ -64,7 +64,7 @@ module.exports = {
     // find all the URLs/domains on the page
     const html = await page.content();
     data.page_urls = pageurls(html);
-    var allpagedomains = data.page_urls.map(getDomainFromURL);
+    const allpagedomains = data.page_urls.map(getDomainFromURL);
     data.page_domains = [...new Set(allpagedomains)];
 
     // TODO: make smarter use of timeouts and events to decide 'done'
