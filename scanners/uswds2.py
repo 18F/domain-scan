@@ -22,6 +22,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     results = {}
     for i in headers:
         results[i] = 0
+    results['uswdsversion'] = ""
 
     # Get the url
     try:
@@ -145,8 +146,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # add the status code and domain
     results["status_code"] = response.status_code
     results["domain"] = domain
-    if results["uswdsversion"] == '0' or results["uswdsversion"] == 0:
-        results["uswdsversion"] = ""
 
     logging.warning("uswds2 %s Complete!", domain)
 
