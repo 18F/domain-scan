@@ -20,6 +20,7 @@ workers = 30
 pages = [
     "/",
     "/code.json",
+    "/coronavirus",
     "/data.json",
     "/data",
     "/developer",
