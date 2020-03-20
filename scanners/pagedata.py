@@ -35,6 +35,7 @@ pages = [
     "/digitalstrategy/governanceboards.json",
     "/digitalstrategy/costsavings.json",
     "/digitalstrategy/bureaudirectory.json",
+    "/redirecttest-foo-bar-baz",
 ]
 
 
