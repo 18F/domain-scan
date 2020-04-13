@@ -20,7 +20,7 @@ from sslyze.server_connectivity_tester import ServerConnectivityTester, ServerCo
 from sslyze.synchronous_scanner import SynchronousScanner
 from sslyze.concurrent_scanner import ConcurrentScanner, PluginRaisedExceptionScanResult
 from sslyze.plugins.openssl_cipher_suites_plugin import Tlsv10ScanCommand, Tlsv11ScanCommand, Tlsv12ScanCommand, Tlsv13ScanCommand, Sslv20ScanCommand, Sslv30ScanCommand
-from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand
+from sslyze.plugins.certificate_info_plugin import CertificateInfoScanCommand, _SymantecDistructTester
 from sslyze.plugins.session_renegotiation_plugin import SessionRenegotiationScanCommand
 from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
@@ -411,7 +411,7 @@ def analyze_certs(certs):
     data = {'certs': {}}
 
     # Served chain.
-    served_chain = certs.certificate_chain
+    served_chain = certs.received_certificate_chain
 
     # Constructed chain may not be there if it didn't validate.
     constructed_chain = certs.verified_certificate_chain
@@ -489,7 +489,7 @@ def analyze_certs(certs):
     data['certs']['any_sha1_served'] = any_sha1_served
 
     if data['certs'].get('constructed_issuer'):
-        data['certs']['any_sha1_constructed'] = certs.has_sha1_in_certificate_chain
+        data['certs']['any_sha1_constructed'] = certs.verified_chain_has_sha1_signature
 
     extensions = leaf.extensions
     oids = []
@@ -539,10 +539,13 @@ def analyze_certs(certs):
                     data['certs']['ev']['trusted_browsers'].append(browser)
 
     # Is this cert issued by Symantec?
-    distrust_timeline = certs.symantec_distrust_timeline
-    is_symantec_cert = (distrust_timeline is not None)
+    is_symantec_cert = certs.verified_chain_has_legacy_symantec_anchor
     data['certs']['is_symantec_cert'] = is_symantec_cert
     if is_symantec_cert:
+        # The distrust date is no longer passed down from when this
+        # test is originally run, so we have to repeat the test here
+        # to determine it.  It shouldn't get run that often.
+        distrust_timeline = _SymantecDistructTester.get_distrust_timeline(constructed_chain)
         data['certs']['symantec_distrust_date'] = distrust_timeline.name
     else:
         data['certs']['symantec_distrust_date'] = None
@@ -599,11 +602,11 @@ def init_sslyze(hostname, port, starttls_smtp, options, sync=False):
         server_tester = ServerConnectivityTester(hostname=hostname, port=port, tls_wrapped_protocol=tls_wrapped_protocol)
         server_info = server_tester.perform(network_timeout=network_timeout)
     except ServerConnectivityError:
-        logging.warning("\tServer connectivity not established during test.")
+        logging.exception("\tServer connectivity not established during test.")
         return None, None
     except Exception as err:
         utils.notify(err)
-        logging.warning("\tUnknown exception when performing server connectivity info.")
+        logging.exception("\tUnknown exception when performing server connectivity info.")
         return None, None
 
     if sync:
@@ -627,7 +630,7 @@ def scan_serial(scanner, server_info, data, options):
         try:
             result = scanner.run_scan_command(server_info, command)
         except Exception as err:
-            logging.warning("{}: Error during {} scan.".format(server_info.hostname, scan_type))
+            logging.exception("{}: Error during {} scan.".format(server_info.hostname, scan_type))
             logging.debug("{}: Exception during {} scan: {}".format(server_info.hostname, scan_type, err))
             errors = errors + 1
         return result, errors
@@ -646,11 +649,11 @@ def scan_serial(scanner, server_info, data, options):
             logging.debug("\t\tCertificate information scan.")
             certs = scanner.run_scan_command(server_info, CertificateInfoScanCommand(ca_file=CA_FILE))
         except idna.core.InvalidCodepoint:
-            logging.warning(utils.format_last_exception())
+            logging.exception(utils.format_last_exception())
             data['errors'].append("Invalid certificate/OCSP for this domain.")
             certs = None
         except Exception as err:
-            logging.warning("{}: Error during certificate information scan.".format(server_info.hostname))
+            logging.exception("{}: Error during certificate information scan.".format(server_info.hostname))
             logging.debug("{}: Exception during certificate information scan: {}".format(server_info.hostname, err))
     else:
         certs = None
@@ -677,12 +680,12 @@ def scan_parallel(scanner, server_info, data, options):
         except OSError:
             text = ("OSError - likely too many processes and open files.")
             data['errors'].append(text)
-            logging.warning("%s\n%s" % (text, utils.format_last_exception()))
+            logging.exception("%s\n%s" % (text, utils.format_last_exception()))
             return None, None, None, None, None, None, None
         except Exception:
             text = ("Unknown exception queueing sslyze command.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warning(text)
+            logging.exception(text)
             return None, None, None, None, None, None, None
 
     # Initialize commands and result containers
@@ -738,7 +741,7 @@ def scan_parallel(scanner, server_info, data, options):
             was_error = True
             text = ("Exception inside async scanner result processing.\n%s" % utils.format_last_exception())
             data['errors'].append(text)
-            logging.warning("\t%s" % text)
+            logging.exception("\t%s" % text)
 
     # There was an error during async processing.
     if was_error:
