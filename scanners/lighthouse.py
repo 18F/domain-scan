@@ -14,7 +14,6 @@ import os
 from utils import utils
 
 
-
 LIGHTHOUSE_PATH = os.environ.get('LIGHTHOUSE_PATH', 'lighthouse')
 LIGHTHOUSE_AUDITS = [
     'color-contrast',
@@ -59,7 +58,6 @@ workers = 2
 # def init_domain(domain: str, environment: dict, options: dict) -> dict:
 #     logging.debug("Init function for %s." % domain)
 #     return {'variable': domain}
-
 
 
 def _url_for_domain(domain: str, cache_dir: str):
