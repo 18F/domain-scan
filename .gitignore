@@ -6,7 +6,6 @@
 *.txt
 
 /lambda/headless/build
-package-lock.json
 node_modules
 
 /cache
@@ -28,6 +27,7 @@ __pycache__
 scripts/pulse-results/*.json
 .DS_Store
 venv
+env
 build/
 dist/
 dist_back/

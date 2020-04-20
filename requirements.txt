@@ -8,6 +8,7 @@
 # Used by parts of domain-scan, but not used inside of Lambda function
 # invocation.
 boto3
+tldextract
 
 # Used locally by trustymail code even when Lambda is used
 dnspython

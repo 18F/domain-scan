@@ -36,7 +36,9 @@ module.exports = {
       nearby_urls: [],
       nearby_domains: [],
       known_services: [],
-      unknown_services: []
+      unknown_services: [],
+      page_urls: [],
+      page_domains: []
     };
 
     // Trap each outgoing HTTP request to examine the URL.
@@ -59,11 +61,27 @@ module.exports = {
       else throw exc;
     }
 
+    // find all the URLs/domains on the page
+    const html = await page.content();
+    data.page_urls = pageurls(html);
+    const allpagedomains = data.page_urls.map(getDomainFromURL);
+    data.page_domains = [...new Set(allpagedomains)];
+
     // TODO: make smarter use of timeouts and events to decide 'done'
 
     return data;
   }
 };
+
+var pageurls = (html) => {
+  var urlRegex =/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+  return [...new Set(html.match(urlRegex))];
+}
+
+var getDomainFromURL = (href) => {
+  var url = URL.parse(href);
+  return url.hostname;
+}
 
 var processUrl = (href, sourceHref, data) => {
   if (debug) console.log("URI: " + href);

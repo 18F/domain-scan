@@ -36,7 +36,7 @@ def init_domain(domain, environment, options):
 
         # Otherwise, well, whatever.
         else:
-            url = 'http://' + domain
+            url = 'https://' + domain
     else:
         url = domain
 
@@ -57,7 +57,9 @@ def to_rows(data):
         str.join(" | ", data['nearby_domains']),
         str.join(" | ", data['nearby_urls']),
         str.join(" | ", data['known_services']),
-        str.join(" | ", data['unknown_services'])
+        str.join(" | ", data['unknown_services']),
+        str.join(" | ", data['page_urls']),
+        str.join(" | ", data['page_domains'])
     ]]
 
 
@@ -69,5 +71,7 @@ headers = [
     'Nearby Domains',
     'Nearby URLs',
     'Known Services',
-    'Unknown Services'
+    'Unknown Services',
+    'URLs on the page',
+    'Domains in the URLs on the page'
 ]
