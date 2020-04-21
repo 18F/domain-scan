@@ -17,16 +17,16 @@ from utils import utils
 LIGHTHOUSE_PATH = os.environ.get('LIGHTHOUSE_PATH', 'lighthouse')
 LIGHTHOUSE_AUDITS = [
     'color-contrast',
-    'tap-targets',
+    'font-size',
     'image-alt',
     'input-image-alt',
-    'font-size',
+    'performance-budget',
+    'tap-targets',
+    'timing-budget',
+    'total-byte-weight',
     'unminified-css',
     'unminified-javascript',
     'uses-text-compression',
-    'total-byte-weight',
-    'performance-budget',
-    'timing-budget',
     'viewport',
 ]
 
