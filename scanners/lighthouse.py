@@ -88,7 +88,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         _url_for_domain(domain, cache_dir),
         '--quiet',
         '--output=json',
-        '--chrome-flags="--headless"',
+        '--chrome-flags="--headless --no-sandbox"',
         *(f'--only-audits={audit}' for audit in LIGHTHOUSE_AUDITS),
     ])
     logging.info('Done running Lighthouse CLI')
