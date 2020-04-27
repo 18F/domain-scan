@@ -83,15 +83,17 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
-    logging.info('Running Lighthouse CLI...')
-    raw = utils.scan([
+    lighthouse_cmd = ' '.join([
         LIGHTHOUSE_PATH,
         _url_for_domain(domain, cache_dir),
         '--quiet',
         '--output=json',
         '--chrome-flags="--headless --no-sandbox"',
         *(f'--only-audits={audit}' for audit in LIGHTHOUSE_AUDITS),
-    ], shell=True)
+    ])
+
+    logging.info('Running Lighthouse CLI...')
+    raw = utils.scan(lighthouse_cmd, shell=True)
     logging.info('Done running Lighthouse CLI')
 
     return json.loads(raw)['audits']
