@@ -83,9 +83,10 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
+    url = _url_for_domain(domain, cache_dir)
     lighthouse_cmd = ' '.join([
         LIGHTHOUSE_PATH,
-        _url_for_domain(domain, cache_dir),
+        url,
         '--quiet',
         '--output=json',
         '--chrome-flags="--headless --no-sandbox"',
@@ -96,7 +97,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     raw = utils.scan(lighthouse_cmd, shell=True)
     logging.info('Done running Lighthouse CLI')
 
-    return json.loads(raw)['audits']
+    try:
+        return json.loads(raw)['audits']
+    except BaseException as e:
+        logging.exception(f'Error running Lighthouse scan for {url}')
+        return {}
 
 
 # Required CSV row conversion function. Usually one row, can be more.
