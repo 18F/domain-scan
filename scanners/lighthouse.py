@@ -34,7 +34,7 @@ CHROME_PATH = os.environ.get('CHROME_PATH')
 
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag.
-workers = 3
+workers = 1
 
 
 # Optional one-time initialization for all scans.
