@@ -416,12 +416,12 @@ def try_command(command):
         return False
 
 
-def scan(command, env=None, allowed_return_codes=[]):
+def scan(command, env=None, allowed_return_codes=[], shell=False):
     try:
         response = subprocess.check_output(
             command,
             stderr=subprocess.STDOUT,
-            shell=False, env=env
+            shell=shell, env=env
         )
         return str(response, encoding='UTF-8')
     except subprocess.CalledProcessError as exc:

@@ -29,11 +29,12 @@ LIGHTHOUSE_AUDITS = [
     'uses-text-compression',
     'viewport',
 ]
+CHROME_PATH = os.environ.get('CHROME_PATH')
 
 
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag.
-workers = 2
+workers = 3
 
 
 # Optional one-time initialization for all scans.
@@ -90,7 +91,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         '--output=json',
         '--chrome-flags="--headless --no-sandbox"',
         *(f'--only-audits={audit}' for audit in LIGHTHOUSE_AUDITS),
-    ])
+    ], shell=True)
     logging.info('Done running Lighthouse CLI')
 
     return json.loads(raw)['audits']
