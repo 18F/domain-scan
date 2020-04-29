@@ -10,6 +10,7 @@ To use, set the `LIGHTHOUSE_PATH` environment variable to the Lighthouse path.
 import json
 import logging
 import os
+import subprocess
 
 from utils import utils
 
@@ -79,7 +80,7 @@ def _url_for_domain(domain: str, cache_dir: str):
 #
 # Runs locally or in the cloud (Lambda).
 def scan(domain: str, environment: dict, options: dict) -> dict:
-    logging.debug('Scan function called with options: %s' % options)
+    logging.debug('Scan function called with options: %s', options)
 
     cache_dir = options.get('_', {}).get('cache_dir', './cache')
 
@@ -94,13 +95,18 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     ])
 
     logging.info('Running Lighthouse CLI...')
-    raw = utils.scan(lighthouse_cmd, shell=True)
-    logging.info('Done running Lighthouse CLI')
 
     try:
+        response = subprocess.check_output(
+            lighthouse_cmd,
+            stderr=subprocess.STDOUT,
+            shell=True, env=None
+        )
+        raw = str(response, encoding='UTF-8')
+        logging.info('Done running Lighthouse CLI')
         return json.loads(raw)['audits']
-    except BaseException as e:
-        logging.exception(f'Error running Lighthouse scan for {url}')
+    except subprocess.CalledProcessError as exc:
+        logging.warning("Error running Lighthouse scan for URL %s." % url)
         return {}
 
 
