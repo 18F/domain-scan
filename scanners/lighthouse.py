@@ -106,7 +106,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         raw = str(response, encoding='UTF-8')
         logging.info('Done running Lighthouse CLI')
         return json.loads(raw)['audits']
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         logging.warning("Error running Lighthouse scan for URL %s." % url)
         return {}
 
