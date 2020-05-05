@@ -29,6 +29,7 @@ LIGHTHOUSE_AUDITS = [
     'unminified-javascript',
     'uses-text-compression',
     'viewport',
+    'speed-index',
 ]
 CHROME_PATH = os.environ.get('CHROME_PATH')
 
