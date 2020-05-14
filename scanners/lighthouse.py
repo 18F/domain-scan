@@ -6,14 +6,16 @@ https://developers.google.com/web/tools/lighthouse
 To use, set the `LIGHTHOUSE_PATH` environment variable to the Lighthouse path.
 """
 
-
-import json
-import logging
 import os
-import subprocess
 
-from utils import utils
 
+# Can also be run in Lambda.
+# NOTE: untested
+lambda_support = False
+
+# Signal that this is a JS-based scan using headless Chrome.
+# The scan method will be defined in lighthouse.js instead.
+scan_headless = True
 
 LIGHTHOUSE_PATH = os.environ.get('LIGHTHOUSE_PATH', 'lighthouse')
 LIGHTHOUSE_AUDITS = [
@@ -39,78 +41,6 @@ CHROME_PATH = os.environ.get('CHROME_PATH')
 workers = 1
 
 
-# Optional one-time initialization for all scans.
-# If defined, any data returned will be passed to every scan instance and used
-# to update the environment dict for that instance
-# Will halt scan execution if it returns False or raises an exception.
-#
-# Run locally.
-# def init(environment: dict, options: dict) -> dict:
-#     logging.debug("Init function.")
-
-#     #cache_dir = options.get('_', {}).get('cache_dir', './cache')
-
-#     return {'constant': 12345}
-
-
-# Optional one-time initialization per-scan. If defined, any data
-# returned will be passed to the instance for that domain and used to update
-# the environment dict for that particular domain.
-#
-# Run locally.
-# def init_domain(domain: str, environment: dict, options: dict) -> dict:
-#     logging.debug("Init function for %s." % domain)
-#     return {'variable': domain}
-
-
-def _url_for_domain(domain: str, cache_dir: str):
-    if domain.startswith('http://') or domain.startswith('https://'):
-        return domain
-
-    # If we have data from pshtt, use the canonical endpoint.
-    canonical = utils.domain_canonical(domain, cache_dir=cache_dir)
-    if canonical:
-        return canonical
-
-    # Otherwise, well, whatever.
-    return 'http://' + domain
-
-
-# Required scan function. This is the meat of the scanner, where things
-# that use the network or are otherwise expensive would go.
-#
-# Runs locally or in the cloud (Lambda).
-def scan(domain: str, environment: dict, options: dict) -> dict:
-    logging.debug('Scan function called with options: %s', options)
-
-    cache_dir = options.get('_', {}).get('cache_dir', './cache')
-
-    url = _url_for_domain(domain, cache_dir)
-    lighthouse_cmd = ' '.join([
-        LIGHTHOUSE_PATH,
-        url,
-        '--quiet',
-        '--output=json',
-        '--chrome-flags="--headless --no-sandbox"',
-        *(f'--only-audits={audit}' for audit in LIGHTHOUSE_AUDITS),
-    ])
-
-    logging.info('Running Lighthouse CLI...')
-
-    try:
-        response = subprocess.check_output(
-            lighthouse_cmd,
-            stderr=subprocess.STDOUT,
-            shell=True, env=None
-        )
-        raw = str(response, encoding='UTF-8')
-        logging.info('Done running Lighthouse CLI')
-        return json.loads(raw)['audits']
-    except subprocess.CalledProcessError:
-        logging.warning("Error running Lighthouse scan for URL %s." % url)
-        return {}
-
-
 # Required CSV row conversion function. Usually one row, can be more.
 #
 # Run locally.
@@ -127,6 +57,57 @@ def to_rows(data):
 # CSV headers for each row of data. Referenced locally.
 headers = ['ID', 'Description', 'Title', 'Score', 'Score Display Mode']
 
+
+#
+# Below is an implementation that will spawn Lighthouse via its cli rather than
+# use a Puppeteer-managed headless Chrome.
+#
+
+# def _url_for_domain(domain: str, cache_dir: str):
+#     if domain.startswith('http://') or domain.startswith('https://'):
+#         return domain
+
+#     # If we have data from pshtt, use the canonical endpoint.
+#     canonical = utils.domain_canonical(domain, cache_dir=cache_dir)
+#     if canonical:
+#         return canonical
+
+#     # Otherwise, well, whatever.
+#     return 'http://' + domain
+
+# Required scan function. This is the meat of the scanner, where things
+# that use the network or are otherwise expensive would go.
+#
+# Runs locally or in the cloud (Lambda).
+# def scan(domain: str, environment: dict, options: dict) -> dict:
+#     logging.debug('Scan function called with options: %s', options)
+
+#     cache_dir = options.get('_', {}).get('cache_dir', './cache')
+
+#     url = _url_for_domain(domain, cache_dir)
+#     lighthouse_cmd = ' '.join([
+#         LIGHTHOUSE_PATH,
+#         url,
+#         '--quiet',
+#         '--output=json',
+#         '--chrome-flags="--headless --no-sandbox"',
+#         *(f'--only-audits={audit}' for audit in LIGHTHOUSE_AUDITS),
+#     ])
+
+#     logging.info('Running Lighthouse CLI...')
+
+#     try:
+#         response = subprocess.check_output(
+#             lighthouse_cmd,
+#             stderr=subprocess.STDOUT,
+#             shell=True, env=None
+#         )
+#         raw = str(response, encoding='UTF-8')
+#         logging.info('Done running Lighthouse CLI')
+#         return json.loads(raw)['audits']
+#     except subprocess.CalledProcessError:
+#         logging.warning("Error running Lighthouse scan for URL %s." % url)
+#         return {}
 
 # TODO: Add ability to override default LIGHTHOUSE_AUDITS
 # Optional handler for custom CLI parameters. Takes the args (as a list of
