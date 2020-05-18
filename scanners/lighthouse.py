@@ -51,7 +51,7 @@ def to_rows(data):
         audit['title'],
         audit['score'],
         audit['scoreDisplayMode']
-    ] for audit in data.values()]
+    ] for name, audit in data.items() if name != 'error']
 
 
 # CSV headers for each row of data. Referenced locally.

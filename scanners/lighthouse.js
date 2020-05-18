@@ -40,7 +40,10 @@ module.exports = {
         logLevel: 'silent',
         outputPath: 'stdout',
       });
-      return output.lhr.audits;
+      return {
+          error: '',
+          ...output.lhr.audits
+      };
 
     } catch (exc) {
       return {
