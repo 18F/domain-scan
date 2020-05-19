@@ -74,6 +74,7 @@ Append columns to each row with metadata about the scan itself, such as how long
 * `trustymail`: The `trustymail` command, available from the [`trustymail`](https://github.com/dhs-ncats/trustymail) Python package from the [Department of Homeland Security's NCATS team](https://github.com/dhs-ncats). (Override path by setting the `TRUSTYMAIL_PATH` environment variable.)
 * `third_parties` - What third party web services are in use, using [headless Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) to trap outgoing requests. (See documentation for [using](#headless-chrome) or [writing](#developing-chrome-scanners) Chrome-based scanners.)
 * `a11y` - Accessibility issues, using [`pa11y`](https://github.com/pa11y/pa11y).
+* `lighthouse` - Scanner that runs [`Google Lighthouse`](https://developers.google.com/web/tools/lighthouse).
 * `noop` - Test scanner (no-op) used for development and debugging. Does nothing.
 
 ### Parallelization
