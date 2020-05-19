@@ -40,15 +40,11 @@ module.exports = {
         logLevel: 'silent',
         outputPath: 'stdout',
       });
-      return {
-          error: '',
-          ...output.lhr.audits
-      };
+      return output.lhr.audits;
 
     } catch (exc) {
-      return {
-        error: exc.message
-      }
+      console.log('problem scanning ' + domain + ' ' + exc.message);
+      return null;
     }
   }
 }
