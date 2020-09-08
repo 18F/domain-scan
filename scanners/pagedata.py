@@ -1,11 +1,13 @@
 import logging
-import requests
-import ijson
+import os
+import re
 import resource
+import time
 import urllib.request
 from urllib.parse import urlparse
-import time
-import re
+
+import ijson
+import requests
 
 ###
 # Very simple scanner that gets some basic info from a list of pages on a domain.
@@ -14,6 +16,9 @@ import re
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag. XXX not actually overridden?
 workers = 30
+
+
+user_agent = os.environ.get("PAGEDATA_USER_AGENT", "18F/domain-scan/pagedata.py")
 
 
 # This is the list of pages that we will be checking.
@@ -67,9 +72,13 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         results[page]['codegov_measurementtype'] = ''
         results[page]['json_items'] = str(0)
 
+        headers = {
+            'User-Agent': user_agent,
+        }
+
         # try the query and store the responsecode
         try:
-            response = requests.head(url, allow_redirects=True, timeout=4)
+            response = requests.head(url, allow_redirects=True, timeout=4, headers=headers)
             results[page]['responsecode'] = str(response.status_code)
         except Exception:
             logging.debug("could not get data from %s%s", domain, page)
