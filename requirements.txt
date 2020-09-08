@@ -13,5 +13,8 @@ tldextract
 # Used locally by trustymail code even when Lambda is used
 dnspython
 
+# Used by some scanners to parse pages
+beautifulsoup4
+
 # Used in Lambda functions
 -r lambda/requirements-lambda.txt
