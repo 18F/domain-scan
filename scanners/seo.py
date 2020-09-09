@@ -76,7 +76,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         urls = soup.find_all('url')
         results['sitemap']['urls found'] = len(urls)
         # and how many of those URLs appear to be PDFs
-        if urls > 0:
+        if urls:
             pdfcount = len([u for u in urls if '.pdf' in u.get_text()])
             results['sitemap']['PDFs found in sitemap'] = pdfcount
 
