@@ -35,6 +35,7 @@ pages = [
     "/privacy",
 ]
 
+
 # Optional one-time initialization for all scans.
 # If defined, any data returned will be passed to every scan instance and used
 # to update the environment dict for that instance
@@ -52,9 +53,9 @@ def init(environment: dict, options: dict) -> dict:
 def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.debug("Scan function called with options: %s" % options)
 
-    # Initialize results with a quick check for the presence of robots.txt. 
+    # Initialize results with a quick check for the presence of robots.txt.
     # Because we're not reading robots.txt, we only need the status code.
-    # We could put these in `pages` but since we have specialized needs for each 
+    # We could put these in `pages` but since we have specialized needs for each
     # and no need to iterate through them, I don't want to.
     results = {
         'robots': requests.get("https://" + domain + '/robots.txt').status_code,
@@ -67,12 +68,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         'status': sitemap_status
     }
     # If we have found a sitemap, see how many URLs are in there?
-    # TO DO: If sitemap.xml redirects to a sitemap index, 
+    # TO DO: If sitemap.xml redirects to a sitemap index,
     # we're not handling that correctly yet. We need to detect that
     # redirect, then ... what? Follow from there?
-    if sitemap_status is 200:
+    if sitemap_status == 200:
         soup = BeautifulSoup(sitemap.text, 'xml')
-        urls  = soup.find_all('url')
+        urls = soup.find_all('url')
         results['sitemap']['urls found'] = len(urls)
         # and how many of those URLs appear to be PDFs
         if len(urls) > 0:
@@ -93,7 +94,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             # and description
             description = htmlsoup.select_one("meta[name='description']")
             if description:
-                descriptions.append(description['content'])
+                descriptions.append(description['content'])push
             # and can we find dc:date?
             dc_date = htmlsoup.select_one("meta[name='DC.Date']")
             # if we found one, grab the content
