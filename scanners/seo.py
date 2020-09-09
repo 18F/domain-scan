@@ -2,6 +2,7 @@ import logging
 import requests
 
 from bs4 import BeautifulSoup
+from http import HTTPStatus
 
 """
 Fairly simple scanner that makes a few checks for SEO and
@@ -26,7 +27,6 @@ Possible future scope:
 """
 
 # Set a default number of workers for a particular scan type.
-# Overridden by a --workers flag. XXX not actually overridden?
 workers = 50
 
 # This is the initial list of pages that we will be checking.
@@ -71,12 +71,12 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # TO DO: If sitemap.xml redirects to a sitemap index,
     # we're not handling that correctly yet. We need to detect that
     # redirect, then ... what? Follow from there?
-    if sitemap_status == 200:
+    if sitemap_status == HTTPStatus.OK:
         soup = BeautifulSoup(sitemap.text, 'xml')
         urls = soup.find_all('url')
         results['sitemap']['urls found'] = len(urls)
         # and how many of those URLs appear to be PDFs
-        if len(urls) > 0:
+        if urls > 0:
             pdfcount = len([u for u in urls if '.pdf' in u.get_text()])
             results['sitemap']['PDFs found in sitemap'] = pdfcount
 
@@ -86,7 +86,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # Perform the "task".
     for page in environment['pages']:
         try:
-            r = requests.get("https://" + domain + page, allow_redirects=True, timeout=4)
+            r = requests.get("https://" + domain + page, timeout=4)
             htmlsoup = BeautifulSoup(r.text, 'lxml')
             # get title and put in dupe-checking list
             title = htmlsoup.find('title').get_text()
