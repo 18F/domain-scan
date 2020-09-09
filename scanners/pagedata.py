@@ -62,6 +62,7 @@ def init(environment: dict, options: dict) -> dict:
 def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.debug("Scan function called with options: %s" % options)
 
+
     results = {}
 
     # Perform the "task".
@@ -88,7 +89,8 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         if page.endswith('.json'):
             counter = 0
             try:
-                with urllib.request.urlopen(url, timeout=5) as jsondata:
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=5) as jsondata:
                     try:
                         parser = ijson.parse(jsondata)
                         for prefix, event, value in parser:
@@ -148,7 +150,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # get the page if it's the /data page so that we can scrape it
         if page == '/data':
             try:
-                response = requests.get(url, allow_redirects=True, timeout=5)
+                response = requests.get(url, allow_redirects=True, timeout=5, headers=headers)
 
                 # check for "chief data officer"
                 try:
