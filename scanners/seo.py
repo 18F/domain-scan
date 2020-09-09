@@ -125,8 +125,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if len(descriptions) != len(set(descriptions)):
         results['warnings']['Duplicate descriptions found'] = True
 
-    logging.warning('DEBUG: results' + str(results))
-
     logging.warning("SEO scan for %s Complete!", domain)
 
     return results
