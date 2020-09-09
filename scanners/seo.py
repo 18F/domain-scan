@@ -94,7 +94,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             # and description
             description = htmlsoup.select_one("meta[name='description']")
             if description:
-                descriptions.append(description['content'])push
+                descriptions.append(description['content'])
             # and can we find dc:date?
             dc_date = htmlsoup.select_one("meta[name='DC.Date']")
             # if we found one, grab the content
