@@ -707,5 +707,5 @@ def suffix_pattern(suffixes):
     return re.compile("(?:%s)$" % center)
 
 
-def flatten(l):
-    return list(chain.from_iterable(l))
+def flatten(iterable):
+    return list(chain.from_iterable(iterable))
