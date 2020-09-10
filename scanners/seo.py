@@ -135,7 +135,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if len(descriptions) != len(set(descriptions)):
         results['warnings']['Duplicate descriptions found'] = True
 
-    #logging.warning("DEBUG: results: %s", results)
+    # logging.warning("DEBUG: results: %s", results)
     logging.warning("SEO scan for %s Complete!", domain)
 
     return results
@@ -146,8 +146,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 # Run locally.
 def to_rows(data):
     row = []
-    #logging.warning("DEBUG: data we're writing to rows: %s", data)
+    # logging.warning("DEBUG: data we're writing to rows: %s", data)
     for header in headers:
         row.extend([data[header]])
     return [row]
-
