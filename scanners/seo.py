@@ -35,6 +35,9 @@ pages = [
     "/privacy",
 ]
 
+# CSV headers for each row of data. Referenced locally.
+headers = ['robots', 'warnings', 'sitemap'] + pages
+
 
 # Optional one-time initialization for all scans.
 # If defined, any data returned will be passed to every scan instance and used
@@ -87,6 +90,13 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     for page in environment['pages']:
         try:
             r = requests.get("https://" + domain + page, timeout=4)
+            # if we didn't find the page, write minimal info and skip to next page
+            if r.status_code != HTTPStatus.OK:
+                results[page] = {
+                    'page': page,
+                    'status': str(r.status_code)
+                }
+                continue
             htmlsoup = BeautifulSoup(r.text, 'lxml')
             # get title and put in dupe-checking list
             title = htmlsoup.find('title').get_text()
@@ -125,6 +135,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if len(descriptions) != len(set(descriptions)):
         results['warnings']['Duplicate descriptions found'] = True
 
+    #logging.warning("DEBUG: results: %s", results)
     logging.warning("SEO scan for %s Complete!", domain)
 
     return results
@@ -135,10 +146,8 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 # Run locally.
 def to_rows(data):
     row = []
-    for page in headers:
-        row.extend([data[page]])
+    #logging.warning("DEBUG: data we're writing to rows: %s", data)
+    for header in headers:
+        row.extend([data[header]])
     return [row]
 
-
-# CSV headers for each row of data. Referenced locally.
-headers = pages
