@@ -62,7 +62,6 @@ def init(environment: dict, options: dict) -> dict:
 def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.debug("Scan function called with options: %s" % options)
 
-
     results = {}
 
     # Perform the "task".
