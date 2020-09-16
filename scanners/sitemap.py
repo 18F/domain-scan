@@ -1,13 +1,26 @@
 import logging
-import urllib.request
-from lxml import etree
 import re
 import requests
 
-###
-# Scan focused on learning about the sitemap.xml file, as per
-# https://github.com/18F/site-scanning/issues/87.
+from bs4 import BeautifulSoup
+from http import HTTPStatus
+from urllib import request, robotparser
 
+"""
+This scan looks for any sitemap.xml files, including those found in robots.txt,
+as outlined in https://github.com/18F/site-scanning/issues/87.
+It will also surface the crawl delay outlined in robots.txt.
+Results returned include:
+    * Status code of the sitemap file (200, 404, etc)
+    * Final url of the sitemap (to account for redirects and such)
+    * URL tag count (the number of URLs found in the sitemap)
+    * The number of PDF files found in those URLs
+    * Crawl delay (from robots.txt)
+    * Sitemap locations from robots.txt (as a list)
+
+Note that if you are calling seo.py then you should not run this scan,
+as it is already called by seo.py and there's no reason to run it twice.
+"""
 
 # Set a default number of workers for a particular scan type.
 # Overridden by a --workers flag. XXX not actually overridden?
@@ -16,57 +29,55 @@ workers = 50
 
 # Required scan function. This is the meat of the scanner, where things
 # that use the network or are otherwise expensive would go.
-#
 # Runs locally or in the cloud (Lambda).
 def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.debug("Scan function called with options: %s" % options)
 
-    results = {}
+    sitemap = None
+    fqd = "https://%s" % domain # note lack of trailing slash
+    results = {
+        'status_code': None,
+        'final_url': None,
+        'url_tag_count': None,
+        'pdfs_in_urls': None,
+        'crawl_delay': None,
+        'sitemap_locations_from_robotstxt': []
+    }
 
     # get status_code and final_url for sitemap.xml
     try:
-        response = requests.head("https://" + domain + '/sitemap.xml', allow_redirects=True, timeout=4)
-        results['status_code'] = str(response.status_code)
-        results['final_url'] = response.url
-    except Exception:
-        logging.debug("could not get data from %s/sitemap.xml", domain)
-        results['status_code'] = str(-1)
-        results['final_url'] = ''
+        sitemap = requests.get(fqd + '/sitemap.xml')
+        results['status_code'] = sitemap.status_code
+        results['final_url'] = sitemap.url
+    except Exception as error:
+        results['status_code'] = "Could not get data from %s/sitemap.xml: %s" % (domain, error)
 
-    # search sitemap and count the <url> tags
-    url = 'https://' + domain + '/sitemap.xml'
-    i = 0
-    try:
-        with urllib.request.urlopen(url, timeout=5) as sitemap:
-            for _, element in etree.iterparse(sitemap):
-                tag = etree.QName(element.tag).localname
-                if tag == 'url':
-                    i = i + 1
-                element.clear()
-    except Exception:
-        logging.debug('error while trying to retrieve sitemap.xml')
-    results['url_tag_count'] = i
+    # Check once more that we have a usable sitemap before parsing it
+    if sitemap and sitemap.status_code == HTTPStatus.OK:
+        soup = BeautifulSoup(sitemap.text, 'xml')
+        urls = soup.find_all('url')
+        results['url_tag_count'] = len(urls)
+        # and how many of those URLs appear to be PDFs
+        if urls:
+            results['pdfs_in_urls'] = len([u for u in urls if '.pdf' in u.get_text()])
 
-    # search robots.txt for sitemap locations
-    url = 'https://' + domain + '/robots.txt'
-    results['sitemap_locations_from_robotstxt'] = []
+    # Now search robots.txt for crawl delay and sitemap locations
+    # when we have Python 3.8 RobotFileParser may be a better option than regex for this.
+    # But it can be kinda funky, too.
     try:
-        with urllib.request.urlopen(url, timeout=5) as robots:
-            for _, line in enumerate(robots):
-                line = line.decode().rstrip()
-                sitemaps = re.findall('[sS]itemap: (.*)', line)
-                if sitemaps:
-                    results['sitemap_locations_from_robotstxt'] = list(set().union(sitemaps, results['sitemap_locations_from_robotstxt']))
-    except Exception:
-        logging.debug('error while trying to retrieve robots.txt for %s', url)
+        robots = request.urlopen(fqd + '/robots.txt', timeout=5).read().decode()
+        # Note we have seen cases where a site is defining crawl delay more than once.
+        # We are only grabbing the first instance. Subsequent declarations are ignored.
+        results['crawl_delay'] = re.search('[cC]rawl-[dD]elay: (.*)', robots).group()
+        results['sitemap_locations_from_robotstxt'] = re.findall('[sS]itemap: (.*)', robots)
+    except Exception as error:
+        logging.warning("Error trying to retrieve robots.txt for %s: %s" % (fqd, error))
 
     logging.warning("sitemap %s Complete!", domain)
-
+    logging.warning( results)
     return results
 
-
 # Required CSV row conversion function. Usually one row, can be more.
-#
 # Run locally.
 def to_rows(data):
     row = []
@@ -80,5 +91,7 @@ headers = [
     'status_code',
     'final_url',
     'url_tag_count',
+    'pdfs_in_urls',
+    'crawl_delay',
     'sitemap_locations_from_robotstxt',
 ]
