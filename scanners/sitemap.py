@@ -77,7 +77,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # This could lead to incorrect results and should be double-checked if 
         # the crawl delay is particularly critical to you. For our purposes,
         # simply grabbing the first is Good Enough.
-        results['crawl_delay'] = re.search('[cC]rawl-[dD]elay: (.*)', robots).group()
+        cd = re.search('[cC]rawl-[dD]elay: (.*)', robots)
+        if cd:
+            results['crawl_delay'] = cd.group()
         results['sitemap_locations_from_robotstxt'] = re.findall('[sS]itemap: (.*)', robots)
     except Exception as error:
         logging.warning("Error trying to retrieve robots.txt for %s: %s" % (fqd, error))
@@ -100,6 +102,7 @@ headers = [
     'final_url',
     'url_tag_count',
     'pdfs_in_urls',
+    'sitemap_locations_from_index',
     'crawl_delay',
     'sitemap_locations_from_robotstxt',
 ]
