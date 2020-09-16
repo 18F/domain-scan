@@ -15,6 +15,7 @@ Results returned include:
     * Final url of the sitemap (to account for redirects and such)
     * URL tag count (the number of URLs found in the sitemap)
     * The number of PDF files found in those URLs
+    * Sitemap locations from index (as a list, for cases where sitemap.xml is an index)
     * Crawl delay (from robots.txt)
     * Sitemap locations from robots.txt (as a list)
 
@@ -40,6 +41,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         'final_url': None,
         'url_tag_count': None,
         'pdfs_in_urls': None,
+        'sitemap_locations_from_index': [],
         'crawl_delay': None,
         'sitemap_locations_from_robotstxt': []
     }
@@ -60,21 +62,27 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         # and how many of those URLs appear to be PDFs
         if urls:
             results['pdfs_in_urls'] = len([u for u in urls if '.pdf' in u.get_text()])
+        # And check if it's a sitemap index
+        if soup.find('sitemapindex'):
+            results['sitemap_locations_from_index'] = [loc.text for loc in soup.select("sitemap > loc")]
 
     # Now search robots.txt for crawl delay and sitemap locations
     # when we have Python 3.8 RobotFileParser may be a better option than regex for this.
     # But it can be kinda funky, too.
     try:
         robots = request.urlopen(fqd + '/robots.txt', timeout=5).read().decode()
-        # Note we have seen cases where a site is defining crawl delay more than once.
-        # We are only grabbing the first instance. Subsequent declarations are ignored.
+        # Note we have seen cases where a site is defining crawl delay more than once or
+        # are declaring different crawl delays per user agent. We are only grabbing 
+        # the first instance. Subsequent declarations are ignored.
+        # This could lead to incorrect results and should be double-checked if 
+        # the crawl delay is particularly critical to you. For our purposes,
+        # simply grabbing the first is Good Enough.
         results['crawl_delay'] = re.search('[cC]rawl-[dD]elay: (.*)', robots).group()
         results['sitemap_locations_from_robotstxt'] = re.findall('[sS]itemap: (.*)', robots)
     except Exception as error:
         logging.warning("Error trying to retrieve robots.txt for %s: %s" % (fqd, error))
 
     logging.warning("sitemap %s Complete!", domain)
-    logging.warning( results)
     return results
 
 # Required CSV row conversion function. Usually one row, can be more.
