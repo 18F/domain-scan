@@ -4,7 +4,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from http import HTTPStatus
-from urllib import request, robotparser
+from urllib import request
 
 """
 This scan looks for any sitemap.xml files, including those found in robots.txt,
@@ -35,11 +35,11 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.debug("Scan function called with options: %s" % options)
 
     sitemap = None
-    fqd = "https://%s" % domain # note lack of trailing slash
+    fqd = "https://%s" % domain  # note lack of trailing slash
     results = {
-        'status_code': None,
-        'final_url': None,
-        'url_tag_count': None,
+        'sitemap_status_code': None,
+        'sitemap_final_url': None,
+        'sitemap_url_tag_count': None,
         'pdfs_in_urls': None,
         'sitemap_locations_from_index': [],
         'crawl_delay': None,
@@ -72,9 +72,9 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     try:
         robots = request.urlopen(fqd + '/robots.txt', timeout=5).read().decode()
         # Note we have seen cases where a site is defining crawl delay more than once or
-        # are declaring different crawl delays per user agent. We are only grabbing 
+        # are declaring different crawl delays per user agent. We are only grabbing
         # the first instance. Subsequent declarations are ignored.
-        # This could lead to incorrect results and should be double-checked if 
+        # This could lead to incorrect results and should be double-checked if
         # the crawl delay is particularly critical to you. For our purposes,
         # simply grabbing the first is Good Enough.
         cd = re.search('[cC]rawl-[dD]elay: (.*)', robots)
@@ -87,6 +87,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.warning("sitemap %s Complete!", domain)
     return results
 
+
 # Required CSV row conversion function. Usually one row, can be more.
 # Run locally.
 def to_rows(data):
@@ -98,9 +99,9 @@ def to_rows(data):
 
 # CSV headers for each row of data. Referenced locally.
 headers = [
-    'status_code',
-    'final_url',
-    'url_tag_count',
+    'sitemap_status_code',
+    'sitemap_final_url',
+    'sitemap_url_tag_count',
     'pdfs_in_urls',
     'sitemap_locations_from_index',
     'crawl_delay',
