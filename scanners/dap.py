@@ -4,7 +4,7 @@
 lambda_support = True
 
 # Signal that this is a JS-based scan using headless Chrome.
-# The scan method will be defined in third_parties.js instead.
+# The scan method will be defined in dap.js instead.
 scan_headless = True
 
 
@@ -37,4 +37,8 @@ headers = [
     "status_code",
     "dap_detected",
     "dap_parameters",
+    "final_url",
+    "final_url_in_same_domain",
+    "redirect",
+    "redirects_to"
 ]
