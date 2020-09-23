@@ -37,18 +37,19 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     sitemap = None
     fqd = "https://%s" % domain  # note lack of trailing slash
     results = {
-        'sitemap_status_code': None,
-        'sitemap_final_url': None,
-        'sitemap_url_tag_count': None,
+        'status_code': None,
+        'final_url': None,
+        'url_tag_count': None,
         'pdfs_in_urls': None,
         'sitemap_locations_from_index': [],
+        'robots': None,
         'crawl_delay': None,
         'sitemap_locations_from_robotstxt': []
     }
 
     # get status_code and final_url for sitemap.xml
     try:
-        sitemap = requests.get(fqd + '/sitemap.xml')
+        sitemap = requests.get(fqd + '/sitemap.xml', timeout=4)
         results['status_code'] = sitemap.status_code
         results['final_url'] = sitemap.url
     except Exception as error:
@@ -56,7 +57,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # Check once more that we have a usable sitemap before parsing it
     if sitemap and sitemap.status_code == HTTPStatus.OK:
-        soup = BeautifulSoup(sitemap.text, 'xml')
+        soup = BeautifulSoup(sitemap.text, 'lxml')
         urls = soup.find_all('url')
         results['url_tag_count'] = len(urls)
         # and how many of those URLs appear to be PDFs
@@ -70,19 +71,24 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # when we have Python 3.8 RobotFileParser may be a better option than regex for this.
     # But it can be kinda funky, too.
     try:
-        robots = request.urlopen(fqd + '/robots.txt', timeout=5).read().decode()
-        # Note we have seen cases where a site is defining crawl delay more than once or
-        # are declaring different crawl delays per user agent. We are only grabbing
-        # the first instance. Subsequent declarations are ignored.
-        # This could lead to incorrect results and should be double-checked if
-        # the crawl delay is particularly critical to you. For our purposes,
-        # simply grabbing the first is Good Enough.
-        cd = re.search('[cC]rawl-[dD]elay: (.*)', robots)
-        if cd:
-            results['crawl_delay'] = cd.group()
-        results['sitemap_locations_from_robotstxt'] = re.findall('[sS]itemap: (.*)', robots)
+        robots = requests.get(fqd + '/sitemap.xml', timeout=4)
+    
+        if robots and robots.status_code == HTTPStatus.OK:
+            results['robots'] = 'OK'
+            # now read it. Note we have seen cases where a site is defining
+            # crawl delay more than once or are declaring different crawl
+            # delays per user agent. We are only grabbing the first instance.
+            # Subsequent declarations are ignored. This could lead to incorrect
+            # results and should be double-checked if the crawl delay is particularly
+            # critical to you. For our purposes, simply grabbing the first is Good Enough.
+            cd = re.findall('[cC]rawl-[dD]elay: (.*)', robots.text)
+            if cd:
+                results['crawl_delay'] = cd[0]
+            results['sitemap_locations_from_robotstxt'] = re.findall('[sS]itemap: (.*)', robots.text)
+        else:
+            results['robots'] = robots.status_code
     except Exception as error:
-        logging.warning("Error trying to retrieve robots.txt for %s: %s" % (fqd, error))
+        logging.warning("Error parsing robots.txt for %s: %s" % (fqd, error))
 
     logging.warning("sitemap %s Complete!", domain)
     return results
@@ -99,11 +105,12 @@ def to_rows(data):
 
 # CSV headers for each row of data. Referenced locally.
 headers = [
-    'sitemap_status_code',
-    'sitemap_final_url',
-    'sitemap_url_tag_count',
+    'status_code',
+    'final_url',
+    'url_tag_count',
     'pdfs_in_urls',
     'sitemap_locations_from_index',
+    'robots',
     'crawl_delay',
     'sitemap_locations_from_robotstxt',
 ]
