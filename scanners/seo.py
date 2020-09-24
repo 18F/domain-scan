@@ -10,18 +10,18 @@ from .sitemap import scan as sitemap_scan
 
 """
 Fairly simple scanner that makes a few checks for SEO and
-search indexing readiness. 
+search indexing readiness.
 It first runs the sitemap scanner to capture the presence of
 (and key contents of) sitemap.xml and robots.txt files.
 then runs additional SEO checks to determine:
 
-* What platform does the site run on	
+* What platform does the site run on
 # Does a sitemap.xml exist?
 # How many of the total URLs are in the sitemap
-# How many PDFs are in the sitemap? 
+# How many PDFs are in the sitemap?
 # How many URLs are there total
 # Does a Robots.txt exist
-# Crawl delay? (number)	
+# Crawl delay? (number)
 # Est hours to index (crawl delay x #number of URLs)
 # Does a Main element exist
 # Does OG Date metadata exist
@@ -33,7 +33,6 @@ will compare the two pages to determine if the title and descriptions
 appear to be unique.
 
 Possible future scope:
-* total urls (set of nav + sitemap maybe?)
 * expanded checking (grab some set of URLs from Nav and look at them, too)
 
 """
@@ -63,6 +62,7 @@ headers = [
     'Main tags found',
     'Warnings'] + pages
 
+
 # Optional one-time initialization for all scans.
 # If defined, any data returned will be passed to every scan instance and used
 # to update the environment dict for that instance
@@ -85,7 +85,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     fqd = "https://%s" % domain  # note lack of trailing slash
 
     if sitemap_results['status_code'] == HTTPStatus.OK:
-        sitemap_status = "OK" 
+        sitemap_status = "OK"
     else:
         sitemap_status = sitemap_results['status_code']
 
@@ -130,7 +130,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
     # Can we compute how long it will take to index all URLs (in hours)?
     if results['Crawl delay']:
-        results['Est time to index'] = (int(results['Total URLs']) * int(results['Crawl delay']))/3600
+        results['Est time to index'] = (int(results['Total URLs']) * int(results['Crawl delay'])) / 3600
 
     # We'll write to these empty lists for simple dupe checking later
     titles = []
@@ -170,10 +170,10 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 results['Main tags found'] = maintag
             if r.status_code == HTTPStatus.OK:
                 results[page] = {
-                'title': title,
-                'description': description,
-                'date': dc_date
-            }
+                    'title': title,
+                    'description': description,
+                    'date': dc_date
+                }
         except Exception as error:
             results[page] = "Could not get data from %s%s: %s" % (domain, page, error)
 

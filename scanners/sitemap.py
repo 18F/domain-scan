@@ -4,7 +4,6 @@ import requests
 
 from bs4 import BeautifulSoup
 from http import HTTPStatus
-from urllib import request
 
 """
 This scan looks for any sitemap.xml files, including those found in robots.txt,
@@ -72,7 +71,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     # But it can be kinda funky, too.
     try:
         robots = requests.get(fqd + '/sitemap.xml', timeout=4)
-    
         if robots and robots.status_code == HTTPStatus.OK:
             results['robots'] = 'OK'
             # now read it. Note we have seen cases where a site is defining
