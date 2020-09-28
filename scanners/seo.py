@@ -173,7 +173,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
 
             # Look for a search form
             if not results['Search found']:
-                searchtag = True if htmlsoup.find("input", {"type" : "search"}) else False
+                searchtag = True if htmlsoup.find("input", {"type": "search"}) else False
                 # if we couldn't find `a search input` look for classes
                 if not searchtag:
                     searchtag = True if htmlsoup.select('[class*="search"]') else False
