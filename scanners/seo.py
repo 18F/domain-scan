@@ -60,6 +60,7 @@ headers = [
     'Total URLs',
     'Est time to index',
     'Main tags found',
+    'Search found',
     'Warnings'] + pages
 
 
@@ -102,6 +103,7 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
         'Total URLs': sitemap_results['url_tag_count'] if sitemap_results['url_tag_count'] else 0,
         'Est time to index': 'Unknown',
         'Main tags found': False,
+        'Search found': False,
         'Warnings': {},
     }
 
@@ -168,6 +170,16 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
                 if not maintag:
                     maintag = True if htmlsoup.select('[role=main]') else False
                 results['Main tags found'] = maintag
+
+            # Look for a search form
+            if not results['Search found']:
+                searchtag = True if htmlsoup.find("input", {"type" : "search"}) else False
+                # if we couldn't find `a search input` look for classes
+                if not searchtag:
+                    searchtag = True if htmlsoup.select('[class*="search"]') else False
+                results['Search found'] = searchtag
+
+            # Now populate page info
             if r.status_code == HTTPStatus.OK:
                 results[page] = {
                     'title': title,
