@@ -1,27 +1,38 @@
 import logging
 import requests
 
-from bs4 import BeautifulSoup
 from http import HTTPStatus
+
+from bs4 import BeautifulSoup
+from builtwith import builtwith
+
+from .sitemap import scan as sitemap_scan
 
 """
 Fairly simple scanner that makes a few checks for SEO and
-search indexing readiness. It will attempt to determine:
-* Does a robots.txt file exist at the expected location (/robots.txt)
-* If a sitemap.xml file exists
-  * If so, how many URLs are in it?
-  * How many of those URLs are PDF files?
-* Does a `main` element exist on pages
-* Does OG data exist (particularly date)
+search indexing readiness.
+It first runs the sitemap scanner to capture the presence of
+(and key contents of) sitemap.xml and robots.txt files.
+then runs additional SEO checks to determine:
+
+* What platform does the site run on
+# Does a sitemap.xml exist?
+# How many of the total URLs are in the sitemap
+# How many PDFs are in the sitemap?
+# How many URLs are there total
+# Does a Robots.txt exist
+# Crawl delay? (number)
+# Est hours to index (crawl delay x #number of URLs)
+# Does a Main element exist
+# Does OG Date metadata exist
+# Are Title tags unique
+# Are meta descriptions unique
 
 Further, by comparing the site root with a second page (/privacy) it
 will compare the two pages to determine if the title and descriptions
 appear to be unique.
 
 Possible future scope:
-* crawl delay (how do we determine?)
-* total urls (set of nav + sitemap maybe?)
-* builtwith (requires paid API access)
 * expanded checking (grab some set of URLs from Nav and look at them, too)
 
 """
@@ -36,7 +47,21 @@ pages = [
 ]
 
 # CSV headers for each row of data. Referenced locally.
-headers = ['robots', 'warnings', 'sitemap'] + pages
+headers = [
+    'Platforms',
+    'Sitemap.xml',
+    'Sitemap Final URL',
+    'Sitemap items',
+    'PDFs in sitemap',
+    'Sitemaps from index',
+    'Robots.txt',
+    'Crawl delay',
+    'Sitemaps from robots',
+    'Total URLs',
+    'Est time to index',
+    'Main tags found',
+    'Search found',
+    'Warnings'] + pages
 
 
 # Optional one-time initialization for all scans.
@@ -56,46 +81,68 @@ def init(environment: dict, options: dict) -> dict:
 def scan(domain: str, environment: dict, options: dict) -> dict:
     logging.debug("Scan function called with options: %s" % options)
 
-    # Initialize results with a quick check for the presence of robots.txt.
-    # Because we're not reading robots.txt, we only need the status code.
-    # We could put these in `pages` but since we have specialized needs for each
-    # and no need to iterate through them, I don't want to.
+    # Run sitemap_scan to capture that data
+    sitemap_results = sitemap_scan(domain, environment, options)
+    fqd = "https://%s" % domain  # note lack of trailing slash
+
+    if sitemap_results['status_code'] == HTTPStatus.OK:
+        sitemap_status = "OK"
+    else:
+        sitemap_status = sitemap_results['status_code']
+
     results = {
-        'robots': requests.get("https://" + domain + '/robots.txt').status_code,
-        'warnings': {}
+        'Platforms': 'Unknown',
+        'Sitemap.xml': sitemap_status,
+        'Sitemap Final URL': sitemap_results['final_url'],
+        'Sitemap items': sitemap_results['url_tag_count'],
+        'PDFs in sitemap': sitemap_results['pdfs_in_urls'],
+        'Sitemaps from index': sitemap_results['sitemap_locations_from_index'],
+        'Robots.txt': sitemap_results['robots'],
+        'Crawl delay': sitemap_results['crawl_delay'],
+        'Sitemaps from robots': sitemap_results['sitemap_locations_from_robotstxt'],
+        'Total URLs': sitemap_results['url_tag_count'] if sitemap_results['url_tag_count'] else 0,
+        'Est time to index': 'Unknown',
+        'Main tags found': False,
+        'Search found': False,
+        'Warnings': {},
     }
-    # Now let's take a look at sitemap
-    sitemap = requests.get("https://" + domain + '/sitemap.xml')
-    sitemap_status = sitemap.status_code
-    results['sitemap'] = {
-        'status': sitemap_status
-    }
-    # If we have found a sitemap, see how many URLs are in there?
-    # TO DO: If sitemap.xml redirects to a sitemap index,
-    # we're not handling that correctly yet. We need to detect that
-    # redirect, then ... what? Follow from there?
-    if sitemap_status == HTTPStatus.OK:
-        soup = BeautifulSoup(sitemap.text, 'xml')
-        urls = soup.find_all('url')
-        results['sitemap']['urls found'] = len(urls)
-        # and how many of those URLs appear to be PDFs
-        if urls:
-            pdfcount = len([u for u in urls if '.pdf' in u.get_text()])
-            results['sitemap']['PDFs found in sitemap'] = pdfcount
+
+    # See if we can determine platforms used for the site
+    build_info = builtwith(fqd)
+    if 'web-frameworks' in build_info:
+        results['Platforms'] = build_info['web-frameworks']
+
+    # If we found additional sitemaps in a sitemap index or in robots.txt, we
+    # need to go look at them and update our url total.
+    additional_urls = 0
+    for loc in sitemap_results['sitemap_locations_from_index']:
+        if loc != sitemap_results['final_url']:
+            sitemap = requests.get(loc)
+            if sitemap.status_code == HTTPStatus.OK:
+                soup = BeautifulSoup(sitemap.text, 'xml')
+                additional_urls += len(soup.find_all('url'))
+
+    for loc in sitemap_results['sitemap_locations_from_robotstxt']:
+        if loc != sitemap_results['final_url']:
+            sitemap = requests.get(loc)
+            if sitemap.status_code == HTTPStatus.OK:
+                soup = BeautifulSoup(sitemap.text, 'xml')
+                additional_urls += len(soup.find_all('url'))
+    results['Total URLs'] = results['Total URLs'] + additional_urls
+
+    # Can we compute how long it will take to index all URLs (in hours)?
+    if results['Crawl delay']:
+        results['Est time to index'] = (int(results['Total URLs']) * int(results['Crawl delay'])) / 3600
 
     # We'll write to these empty lists for simple dupe checking later
     titles = []
     descriptions = []
-    # Perform the "task".
     for page in environment['pages']:
         try:
             r = requests.get("https://" + domain + page, timeout=4)
             # if we didn't find the page, write minimal info and skip to next page
             if r.status_code != HTTPStatus.OK:
-                results[page] = {
-                    'page': page,
-                    'status': str(r.status_code)
-                }
+                results[page] = '404'
                 continue
             htmlsoup = BeautifulSoup(r.text, 'lxml')
             # get title and put in dupe-checking list
@@ -106,26 +153,39 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
             if description:
                 descriptions.append(description['content'])
             # and can we find dc:date?
-            dc_date = htmlsoup.select_one("meta[name='DC.Date']")
+            dc_date = htmlsoup.select_one("meta[name='article:published_time']")
+            if not dc_date:
+                dc_date = htmlsoup.select_one("meta[name='article:modified_time']")
+                if not dc_date:
+                    dc_date = htmlsoup.select_one("meta[name='DC.Date']")
             # if we found one, grab the content
             if dc_date:
                 dc_date = dc_date['content']
 
-            # Find the main tag (or alternate)
+            # Find the main tag (or alternate), if we haven't found one already.
             # Potential TO-DO: check that there is only one. Necessary? ¯\_(ツ)_/¯
-            maintag = True if htmlsoup.find('main') else False
-            # if we couldn't find `main` look for the corresponding role
-            if not maintag:
-                maintag = True if htmlsoup.select('[role=main]') else False
+            if not results['Main tags found']:
+                maintag = True if htmlsoup.find('main') else False
+                # if we couldn't find `main` look for the corresponding role
+                if not maintag:
+                    maintag = True if htmlsoup.select('[role=main]') else False
+                results['Main tags found'] = maintag
 
-            results[page] = {
-                'page': page,
-                'status': str(r.status_code),
-                'title': title,
-                'description': description,
-                'has main tag': maintag,
-                'DC Date': dc_date
-            }
+            # Look for a search form
+            if not results['Search found']:
+                searchtag = True if htmlsoup.find("input", {"type": "search"}) else False
+                # if we couldn't find `a search input` look for classes
+                if not searchtag:
+                    searchtag = True if htmlsoup.select('[class*="search"]') else False
+                results['Search found'] = searchtag
+
+            # Now populate page info
+            if r.status_code == HTTPStatus.OK:
+                results[page] = {
+                    'title': title,
+                    'description': description,
+                    'date': dc_date
+                }
         except Exception as error:
             results[page] = "Could not get data from %s%s: %s" % (domain, page, error)
 
@@ -135,7 +195,6 @@ def scan(domain: str, environment: dict, options: dict) -> dict:
     if len(descriptions) != len(set(descriptions)):
         results['warnings']['Duplicate descriptions found'] = True
 
-    # logging.warning("DEBUG: results: %s", results)
     logging.warning("SEO scan for %s Complete!", domain)
 
     return results
