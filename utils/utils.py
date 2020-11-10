@@ -416,7 +416,9 @@ def try_command(command):
         return False
 
 
-def scan(command, env=None, allowed_return_codes=[]):
+def scan(command, env=None, allowed_return_codes=None):
+    if allowed_return_codes is None:
+        allowed_return_codes = []
     try:
         response = subprocess.check_output(
             command,

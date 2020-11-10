@@ -353,7 +353,7 @@ def analyze_protocols_and_ciphers(data, sslv2, sslv3, tlsv1, tlsv1_1, tlsv1_2, t
     )
     data['ciphers'] = [cipher.name for cipher in accepted_ciphers]
 
-    if len(accepted_ciphers) > 0:
+    if accepted_ciphers:
         # Look at accepted cipher suites for RC4 or DHE.
         # This is imperfect, as the advertising of RC4 could discriminate based on client.
         # DHE and ECDHE may not remain the only forward secret options for TLS.
@@ -526,7 +526,7 @@ def analyze_certs(certs):
         if oid in apple_ev:
             browsers.append("Apple")
 
-        if len(browsers) > 0:
+        if browsers:
             data['certs']['ev']['trusted'] = True
 
             # Log each new OID we observe as marked for EV.

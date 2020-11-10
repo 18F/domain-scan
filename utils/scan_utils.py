@@ -113,8 +113,10 @@ def format_last_exception():
 
 
 # Command Line Conveniences #
-def scan(command: List[str], env: dict=None,
-         allowed_return_codes: list=[]) -> Union[str, None]:
+def scan(command: List[str], env: dict = None,
+         allowed_return_codes: list = None) -> Union[str, None]:
+    if allowed_return_codes is None:
+        allowed_return_codes = []
     try:
         response = subprocess.check_output(
             command,
@@ -180,7 +182,7 @@ def configure_logging(options: Union[dict, None]=None) -> None:
 # This loads the whole thing into memory: it's not a great solution for
 # super-large lists of domains.
 def sort_csv(input_filename):
-    logging.warning("Sorting %s..." % input_filename)
+    logging.warning("Sorting %s...", input_filename)
 
     input_file = open(input_filename, encoding='utf-8', newline='')
     tmp_filename = "%s.tmp" % input_filename
@@ -221,7 +223,10 @@ def sort_csv(input_filename):
     shutil.move(tmp_filename, input_filename)
 
 
-def write_rows(rows, domain, base_domain, scanner, csv_writer, meta={}):
+def write_rows(rows, domain, base_domain, scanner, csv_writer, meta=None):
+
+    if meta is None:
+        meta = {}
 
     # If we didn't get any info, we'll still output information about why the scan failed.
     if rows is None:

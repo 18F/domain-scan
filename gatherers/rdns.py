@@ -42,7 +42,7 @@ class Gatherer(Gatherer):
             exit(1)
 
         with open(path) as lines:
-            logging.debug("\tReading %s..." % path)
+            logging.debug("\tReading %s...", path)
 
             for record in process_lines(lines, ip_filter, number_filter):
                 yield record
