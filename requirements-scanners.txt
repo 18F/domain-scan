@@ -11,7 +11,7 @@ pshtt>=0.6.6
 trustymail>=0.7.5
 
 # sslyze
-sslyze>=2.1.3,<3.0
+sslyze>=2.1.4,<3.0
 
 # a11y / csp
 pyyaml
